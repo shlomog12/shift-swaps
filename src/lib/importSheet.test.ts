@@ -24,11 +24,8 @@ describe('parseSheet', () => {
   });
 
   it('works without the day label column and with other date formats', () => {
-    const result = parseSheet('05/11/26\tחסן\tלוי\n6-11-2026,כהן,');
-    expect(result.rows).toEqual([
-      { night: '2026-11-05', slot1: 'חסן', slot2: 'לוי' },
-      { night: '2026-11-06', slot1: 'כהן', slot2: null },
-    ]);
+    expect(parseSheet('05/11/26\tחסן\tלוי').rows).toEqual([{ night: '2026-11-05', slot1: 'חסן', slot2: 'לוי' }]);
+    expect(parseSheet('6-11-2026,כהן,').rows).toEqual([{ night: '2026-11-06', slot1: 'כהן', slot2: null }]);
   });
 
   it('rejects impossible dates and reports duplicates', () => {
@@ -41,5 +38,21 @@ describe('parseSheet', () => {
   it('ignores columns before the date', () => {
     const result = parseSheet('x\t7.10.2026\tליל רביעי- שלישי בלילה\tאהרוני נעם\tגדליוביץ');
     expect(result.rows).toEqual([{ night: '2026-10-07', slot1: 'אהרוני נעם', slot2: 'גדליוביץ' }]);
+  });
+
+  it('reads a CSV downloaded from Google Sheets, with quoted fields', () => {
+    const csv = [
+      '\uFEFF"שבצ""ק שמירת תושבים",,,',
+      'תאריך,יום בשבוע,00:00-3:00,3:00-6:00',
+      '1.10.2026,ליל חמישי- רביעי בלילה,יהושע,"דניאלי, משה"',
+      '2.10.2026,ליל שישי- חמישי בלילה,,בוסי',
+      '',
+    ].join('\r\n');
+    const result = parseSheet(csv);
+    expect(result.rows).toEqual([
+      { night: '2026-10-01', slot1: 'יהושע', slot2: 'דניאלי, משה' },
+      { night: '2026-10-02', slot1: null, slot2: 'בוסי' },
+    ]);
+    expect(result.skipped).toHaveLength(2);
   });
 });

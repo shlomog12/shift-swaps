@@ -32,12 +32,51 @@ function cleanName(cell: string | undefined): string | null {
   return name === '' ? null : name;
 }
 
-function splitLine(line: string): string[] {
-  return line.includes('\t') ? line.split('\t') : line.split(',');
+/**
+ * Splits delimited text into rows of cells. Handles quoted fields ("a, b", doubled "" quotes and line
+ * breaks inside quotes), as produced by Google Sheets for both CSV downloads and copied cells.
+ */
+export function splitRows(text: string, delimiter: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"' && cell === '') {
+      quoted = true;
+    } else if (ch === delimiter) {
+      row.push(cell);
+      cell = '';
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += ch;
+    }
+  }
+  if (cell !== '' || row.length > 0) {
+    row.push(cell);
+    rows.push(row);
+  }
+  return rows;
 }
 
 /**
- * Parses a table pasted from Google Sheets (tab separated) or a simple CSV.
+ * Parses a table pasted from Google Sheets (tab separated) or a CSV file downloaded from it.
  * Expected columns: date, optional day label ("ליל חמישי- רביעי בלילה"), first shift, second shift.
  * Columns before the date are ignored.
  */
@@ -46,13 +85,13 @@ export function parseSheet(text: string): ImportResult {
   const skipped: string[] = [];
   const duplicates = new Set<string>();
 
-  for (const rawLine of text.split(/\r?\n/)) {
-    const cells = splitLine(rawLine);
+  const delimiter = text.includes('\t') ? '\t' : ',';
+  for (const cells of splitRows(text.replace(/^\uFEFF/, ''), delimiter)) {
     if (cells.every((cell) => cell.trim() === '')) continue;
 
     const dateIndex = cells.findIndex((cell) => parseDate(cell) !== null);
     if (dateIndex === -1) {
-      skipped.push(rawLine.trim());
+      skipped.push(cells.join(delimiter).trim());
       continue;
     }
 

@@ -29,13 +29,13 @@ function ImportPanel() {
   const [message, setMessage] = useState<string | null>(null);
   const { busy, error, setError, run } = useAction();
 
-  async function analyze() {
+  async function analyze(source: string) {
     setMessage(null);
     setError(null);
-    const parsed = parseSheet(text);
+    const parsed = parseSheet(source);
     if (parsed.rows.length === 0) {
       setPreview(null);
-      setError('לא נמצאו שורות עם תאריך. העתק את הטבלה מהגיליון, כולל עמודת התאריך.');
+      setError('לא נמצאו שורות עם תאריך. ודא שהטבלה כוללת את עמודת התאריך.');
       return;
     }
     const from = parsed.rows[0].night;
@@ -64,15 +64,40 @@ function ImportPanel() {
     );
   }
 
+  async function loadFile(file: File) {
+    if (!/\.(csv|tsv|txt)$/i.test(file.name)) {
+      setPreview(null);
+      setError('אפשר לבחור רק קובץ CSV. בגוגל שיטס: קובץ ← הורדה ← ערכים מופרדים בפסיקים (csv.)');
+      return;
+    }
+    const content = await file.text();
+    setText(content);
+    await analyze(content);
+  }
+
   const changedCount = preview ? preview.rows.filter((r) => preview.states.get(r.night) !== 'same').length : 0;
 
   return (
     <section className="card">
-      <h2>ייבוא מגוגל שיטס</h2>
+      <h2>ייבוא מהגיליון</h2>
       <p className="muted small">
-        בגיליון: מסמנים את הטבלה (תאריך, יום, משמרת ראשונה, משמרת שנייה), מעתיקים ומדביקים כאן. שורות כותרת
-        מדולגות אוטומטית. לילות שכבר קיימים מתעדכנים, ולילות שלא מופיעים בהדבקה לא משתנים.
+        שתי דרכים: לבחור קובץ CSV שהורד מהגיליון (קובץ ← הורדה ← ערכים מופרדים בפסיקים), או לסמן את הטבלה
+        בגיליון, להעתיק ולהדביק בתיבה. העמודות: תאריך, יום, משמרת ראשונה, משמרת שנייה. שורות כותרת מדולגות
+        אוטומטית. לילות שכבר קיימים מתעדכנים, ולילות שלא מופיעים בקובץ לא משתנים.
       </p>
+      <label className="file-button">
+        בחירת קובץ CSV
+        <input
+          type="file"
+          accept=".csv,.tsv,.txt,text/csv"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (file) loadFile(file).catch((err: Error) => setError(err.message));
+          }}
+        />
+      </label>
+      <p className="muted small">או הדבקה:</p>
       <textarea
         rows={6}
         value={text}
@@ -83,7 +108,7 @@ function ImportPanel() {
         }}
       />
       <div className="row">
-        <button onClick={analyze} disabled={!text.trim() || busy}>
+        <button onClick={() => analyze(text)} disabled={!text.trim() || busy}>
           תצוגה מקדימה
         </button>
         {preview && (
