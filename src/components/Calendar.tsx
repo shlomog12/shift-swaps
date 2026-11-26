@@ -1,21 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   SLOT_HOURS,
+  SLOT_NAME,
+  addDays,
+  dayOfMonth,
+  formatDate,
   formatShortDate,
   hasStarted,
   israelToday,
-  monthBounds,
+  monthGridBounds,
   monthKey,
   monthTitle,
   nightLabel,
   shiftMonth,
 } from '../lib/dates';
-import { useMe, useQuery } from '../lib/hooks';
+import { useMe, useQuery, type Me } from '../lib/hooks';
 import { loadPendingOffers, loadShifts } from '../lib/queries';
 import type { Shift } from '../lib/types';
-import { ShiftCell } from './ShiftCell';
+import { ShiftCell, shiftClasses } from './ShiftCell';
 
 type Filter = 'all' | 'mine' | 'open' | 'swap';
+type View = 'month' | 'list';
+type NightShifts = Partial<Record<1 | 2, Shift>>;
 
 const FILTERS: [Filter, string][] = [
   ['all', 'הכול'],
@@ -23,6 +29,9 @@ const FILTERS: [Filter, string][] = [
   ['open', 'פנויות'],
   ['swap', 'חילופים'],
 ];
+
+const WEEKDAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+const VIEW_STORAGE_KEY = 'calendar-view';
 
 export function offerCounts(offers: { night: string; slot: number }[] | undefined): Map<string, number> {
   const counts = new Map<string, number>();
@@ -33,56 +42,77 @@ export function offerCounts(offers: { night: string; slot: number }[] | undefine
   return counts;
 }
 
+function matchesFilter(shift: Shift, filter: Filter, me: Me): boolean {
+  switch (filter) {
+    case 'all':
+      return true;
+    case 'mine':
+      return me.isMine(shift.assignee);
+    case 'open':
+      return !shift.assignee && !hasStarted(shift.night, shift.slot);
+    case 'swap':
+      return shift.swap_requested;
+  }
+}
+
+function initialView(): View {
+  return localStorage.getItem(VIEW_STORAGE_KEY) === 'list' ? 'list' : 'month';
+}
+
 export function Calendar() {
-  const me = useMe();
   const today = israelToday();
   const [month, setMonth] = useState(monthKey(today));
+  const [view, setView] = useState<View>(initialView);
   const [filter, setFilter] = useState<Filter>('all');
-  const { from, to } = monthBounds(month);
+  const [selected, setSelected] = useState<string>(today);
+  const { from, to } = monthGridBounds(month);
   const shifts = useQuery(() => loadShifts(from, to), [from, to]);
   const offers = useQuery(loadPendingOffers, []);
   const counts = useMemo(() => offerCounts(offers.data), [offers.data]);
-  const todayRow = useRef<HTMLDivElement>(null);
-  const scrolled = useRef(false);
 
-  const nights = useMemo(() => {
-    const byNight = new Map<string, Partial<Record<1 | 2, Shift>>>();
-    for (const s of shifts.data ?? []) {
-      const matches =
-        filter === 'all' ||
-        (filter === 'mine' && me.isMine(s.assignee)) ||
-        (filter === 'open' && !s.assignee && !hasStarted(s.night, s.slot)) ||
-        (filter === 'swap' && s.swap_requested);
-      if (!matches) continue;
-      byNight.set(s.night, { ...byNight.get(s.night), [s.slot]: s });
-    }
-    return [...byNight.entries()];
-  }, [shifts.data, filter, me]);
+  const byNight = useMemo(() => {
+    const map = new Map<string, NightShifts>();
+    for (const s of shifts.data ?? []) map.set(s.night, { ...map.get(s.night), [s.slot]: s });
+    return map;
+  }, [shifts.data]);
 
-  // Bring tonight into view the first time the current month is shown.
-  useEffect(() => {
-    if (!scrolled.current && todayRow.current) {
-      scrolled.current = true;
-      todayRow.current.scrollIntoView({ block: 'center' });
-    }
-  }, [nights]);
+  function changeView(next: View) {
+    setView(next);
+    localStorage.setItem(VIEW_STORAGE_KEY, next);
+  }
+
+  function goToMonth(key: string) {
+    setMonth(key);
+    setSelected(key === monthKey(today) ? today : `${key}-01`);
+  }
 
   return (
     <div className="page">
       <div className="month-nav">
-        <button className="icon" aria-label="החודש הקודם" onClick={() => setMonth(shiftMonth(month, -1))}>
+        <button className="icon" aria-label="החודש הקודם" onClick={() => goToMonth(shiftMonth(month, -1))}>
           ›
         </button>
         <h2>{monthTitle(month)}</h2>
-        <button className="icon" aria-label="החודש הבא" onClick={() => setMonth(shiftMonth(month, 1))}>
+        <button className="icon" aria-label="החודש הבא" onClick={() => goToMonth(shiftMonth(month, 1))}>
           ‹
         </button>
       </div>
-      {month !== monthKey(today) && (
-        <button className="link center" onClick={() => setMonth(monthKey(today))}>
-          חזרה לחודש הנוכחי
-        </button>
-      )}
+
+      <div className="toolbar">
+        <div className="segmented" role="group" aria-label="תצוגה">
+          <button className={view === 'month' ? 'selected' : undefined} onClick={() => changeView('month')}>
+            יומן
+          </button>
+          <button className={view === 'list' ? 'selected' : undefined} onClick={() => changeView('list')}>
+            רשימה
+          </button>
+        </div>
+        {month !== monthKey(today) && (
+          <button className="link" onClick={() => goToMonth(monthKey(today))}>
+            היום
+          </button>
+        )}
+      </div>
 
       <div className="filters">
         {FILTERS.map(([value, label]) => (
@@ -94,41 +124,176 @@ export function Calendar() {
 
       {shifts.error && <p className="error">{shifts.error}</p>}
       {shifts.loading && !shifts.data && <p className="muted">טוען...</p>}
-      {shifts.data && nights.length === 0 && (
-        <p className="empty">
-          {filter === 'all' ? 'אין משמרות בחודש הזה. המנהל עדיין לא הזין אותן.' : 'אין משמרות שמתאימות לסינון.'}
-        </p>
+
+      {shifts.data && view === 'month' && (
+        <>
+          <MonthGrid
+            month={month}
+            from={from}
+            to={to}
+            today={today}
+            selected={selected}
+            byNight={byNight}
+            filter={filter}
+            onSelect={setSelected}
+          />
+          <DayDetails night={selected} shifts={byNight.get(selected)} counts={counts} />
+        </>
       )}
 
-      {nights.length > 0 && (
-        <div className="roster">
-          <div className="roster-head">
-            <span>לילה</span>
-            <span>{SLOT_HOURS[1]}</span>
-            <span>{SLOT_HOURS[2]}</span>
-          </div>
-          {nights.map(([night, slots]) => (
-            <div
-              key={night}
-              ref={night === today ? todayRow : undefined}
-              className={night === today ? 'roster-row today' : 'roster-row'}
-            >
-              <div className="night">
-                <strong>{formatShortDate(night)}</strong>
-                <span className="muted small">{nightLabel(night)}</span>
-              </div>
-              {([1, 2] as const).map((slot) => {
-                const shift = slots[slot];
-                return shift ? (
-                  <ShiftCell key={slot} shift={shift} offers={counts.get(`${night}/${slot}`)} />
-                ) : (
-                  <span key={slot} />
-                );
-              })}
-            </div>
-          ))}
-        </div>
+      {shifts.data && view === 'list' && (
+        <RosterList month={month} today={today} byNight={byNight} filter={filter} counts={counts} />
       )}
+    </div>
+  );
+}
+
+interface GridProps {
+  month: string;
+  from: string;
+  to: string;
+  today: string;
+  selected: string;
+  byNight: Map<string, NightShifts>;
+  filter: Filter;
+  onSelect: (night: string) => void;
+}
+
+function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect }: GridProps) {
+  const me = useMe();
+  const days: string[] = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
+
+  return (
+    <div className="month-grid">
+      {WEEKDAYS.map((name) => (
+        <div key={name} className="weekday">
+          {name}
+        </div>
+      ))}
+      {days.map((day) => {
+        const night = byNight.get(day);
+        const classes = ['day'];
+        if (monthKey(day) !== month) classes.push('other-month');
+        if (day === today) classes.push('today');
+        if (day === selected) classes.push('selected');
+        return (
+          <button key={day} className={classes.join(' ')} onClick={() => onSelect(day)} aria-label={formatDate(day)}>
+            <span className="day-number">{dayOfMonth(day)}</span>
+            {([1, 2] as const).map((slot) => {
+              const shift = night?.[slot];
+              if (!shift) return null;
+              const chipClasses = shiftClasses(shift, me.isMine(shift.assignee)).replace('shift-cell', 'day-chip');
+              const dim = matchesFilter(shift, filter, me) ? '' : ' dim';
+              return (
+                <span key={slot} className={chipClasses + dim}>
+                  {shift.assignee ?? 'פנוי'}
+                </span>
+              );
+            })}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function DayDetails({ night, shifts, counts }: { night: string; shifts?: NightShifts; counts: Map<string, number> }) {
+  return (
+    <section className="day-details">
+      <h3>
+        {formatDate(night)} · <span className="muted">{nightLabel(night)}</span>
+      </h3>
+      {!shifts && <p className="muted">אין משמרות בלילה הזה.</p>}
+      {shifts &&
+        ([1, 2] as const).map((slot) => {
+          const shift = shifts[slot];
+          return (
+            shift && (
+              <div key={slot} className="day-detail-row">
+                <span className="slot-label">
+                  {SLOT_NAME[slot]}
+                  <span className="muted small"> {SLOT_HOURS[slot]}</span>
+                </span>
+                <ShiftCell shift={shift} offers={counts.get(`${night}/${slot}`)} />
+              </div>
+            )
+          );
+        })}
+    </section>
+  );
+}
+
+interface ListProps {
+  month: string;
+  today: string;
+  byNight: Map<string, NightShifts>;
+  filter: Filter;
+  counts: Map<string, number>;
+}
+
+function RosterList({ month, today, byNight, filter, counts }: ListProps) {
+  const me = useMe();
+  const todayRow = useRef<HTMLDivElement>(null);
+  const scrolled = useRef(false);
+
+  const nights = useMemo(() => {
+    const rows: [string, NightShifts][] = [];
+    for (const [night, slots] of byNight) {
+      if (monthKey(night) !== month) continue;
+      const visible: NightShifts = {};
+      for (const slot of [1, 2] as const) {
+        const shift = slots[slot];
+        if (shift && matchesFilter(shift, filter, me)) visible[slot] = shift;
+      }
+      if (visible[1] || visible[2]) rows.push([night, visible]);
+    }
+    return rows.sort(([a], [b]) => a.localeCompare(b));
+  }, [byNight, month, filter, me]);
+
+  // Bring tonight into view the first time the list is shown.
+  useEffect(() => {
+    if (!scrolled.current && todayRow.current) {
+      scrolled.current = true;
+      todayRow.current.scrollIntoView({ block: 'center' });
+    }
+  }, [nights]);
+
+  if (nights.length === 0) {
+    return (
+      <p className="empty">
+        {filter === 'all' ? 'אין משמרות בחודש הזה. המנהל עדיין לא הזין אותן.' : 'אין משמרות שמתאימות לסינון.'}
+      </p>
+    );
+  }
+
+  return (
+    <div className="roster">
+      <div className="roster-head">
+        <span>לילה</span>
+        <span>{SLOT_HOURS[1]}</span>
+        <span>{SLOT_HOURS[2]}</span>
+      </div>
+      {nights.map(([night, slots]) => (
+        <div
+          key={night}
+          ref={night === today ? todayRow : undefined}
+          className={night === today ? 'roster-row today' : 'roster-row'}
+        >
+          <div className="night">
+            <strong>{formatShortDate(night)}</strong>
+            <span className="muted small">{nightLabel(night)}</span>
+          </div>
+          {([1, 2] as const).map((slot) => {
+            const shift = slots[slot];
+            return shift ? (
+              <ShiftCell key={slot} shift={shift} offers={counts.get(`${night}/${slot}`)} />
+            ) : (
+              <span key={slot} />
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

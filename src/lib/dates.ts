@@ -45,6 +45,21 @@ export function dayName(iso: string): string {
   return DAY_NAMES[toUtc(iso).getUTCDay()];
 }
 
+/** 0 = Sunday … 6 = Saturday. */
+export function dayOfWeek(iso: string): number {
+  return toUtc(iso).getUTCDay();
+}
+
+export function dayOfMonth(iso: string): number {
+  return parts(iso)[2];
+}
+
+/** First and last day of the Sunday-to-Saturday weeks that cover the month. */
+export function monthGridBounds(key: string): { from: string; to: string } {
+  const { from, to } = monthBounds(key);
+  return { from: addDays(from, -dayOfWeek(from)), to: addDays(to, 6 - dayOfWeek(to)) };
+}
+
 /** "ליל חמישי – רביעי בלילה": the shift date is the morning after the evening it starts on. */
 export function nightLabel(iso: string): string {
   return `ליל ${dayName(iso)} – ${dayName(addDays(iso, -1))} בלילה`;

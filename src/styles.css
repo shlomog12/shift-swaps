@@ -644,3 +644,165 @@ td.cell-changed {
 .file-button input {
   display: none;
 }
+
+/* Calendar toolbar */
+.toolbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.segmented button {
+  border: none;
+  border-radius: 0;
+  padding: 0.35rem 1rem;
+}
+
+.segmented button.selected {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+/* Month grid (Sunday on the right, as the page is RTL) */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.weekday {
+  background: var(--bg);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0.25rem 0;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  min-height: 5.2rem;
+  padding: 2px;
+  border: none;
+  border-radius: 0;
+  background: var(--card);
+  text-align: center;
+}
+
+.day.other-month {
+  background: var(--bg);
+}
+
+.day.other-month .day-number {
+  color: var(--muted);
+}
+
+.day.selected {
+  box-shadow: inset 0 0 0 2px var(--primary);
+}
+
+.day-number {
+  font-size: 0.75rem;
+  font-weight: 600;
+  align-self: center;
+  min-width: 1.4rem;
+  line-height: 1.4rem;
+  border-radius: 999px;
+}
+
+.day.today .day-number {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.day-chip {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  padding: 1px 2px;
+  border-radius: 4px;
+  background: #e9edf3;
+  border: 1px solid transparent;
+  word-break: break-word;
+}
+
+.day-chip.open {
+  background: var(--open);
+  border: 1px dashed var(--open-border);
+  color: var(--success);
+}
+
+.day-chip.mine {
+  background: var(--mine);
+  border-color: var(--mine-border);
+  font-weight: 700;
+}
+
+.day-chip.swap {
+  background: var(--swap);
+  border-color: var(--swap-border);
+}
+
+.day-chip.past {
+  opacity: 0.55;
+}
+
+.day-chip.dim {
+  opacity: 0.2;
+}
+
+@media (min-width: 700px) {
+  .day {
+    min-height: 6.5rem;
+    padding: 4px;
+  }
+  .day-chip {
+    font-size: 0.8rem;
+    padding: 2px 4px;
+  }
+}
+
+/* Selected day */
+.day-details {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.8rem;
+  margin-top: 0.8rem;
+}
+
+.day-details h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.day-detail-row {
+  display: grid;
+  grid-template-columns: 6rem 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.slot-label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+}
