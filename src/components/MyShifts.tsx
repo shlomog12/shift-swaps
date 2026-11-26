@@ -6,7 +6,7 @@ import type { SwapOffer } from '../lib/types';
 import { ShiftListItem } from './Board';
 import { useFeedback } from './Feedback';
 import { DecisionsCard } from './Summary';
-import { REQUEST_STATUS, WhatsAppButton, giveText, inviteText, shiftText } from './SwapRequests';
+import { REQUEST_STATUS, giveText, shiftText } from './SwapRequests';
 
 const STATUS_TEXT: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -26,8 +26,8 @@ export function MyShifts() {
   const mine = (shifts.data ?? []).filter((s) => me.isMine(s.assignee) && !hasStarted(s.night, s.slot));
 
   async function withdraw(requestId: number) {
-    const ok = await confirm({ title: 'לבטל את הבקשה?', confirmLabel: 'ביטול הבקשה', cancelLabel: 'השארה', danger: true });
-    if (ok) run(() => api.withdrawSwapRequest(requestId), () => toast('הבקשה בוטלה'));
+    const ok = await confirm({ title: 'לבטל את ההצעה?', confirmLabel: 'ביטול ההצעה', cancelLabel: 'השארה', danger: true });
+    if (ok) run(() => api.withdrawSwapRequest(requestId), () => toast('ההצעה בוטלה'));
   }
 
   return (
@@ -63,9 +63,9 @@ export function MyShifts() {
         ))}
       </ul>
 
-      <h2>בקשות חילוף ששלחתי</h2>
+      <h2>הצעות החלפה ששלחתי</h2>
       {sent.data && sent.data.length === 0 && (
-        <p className="empty">עוד לא שלחת בקשות. אפשר לבקש חילוף בלחיצה על משמרת של מישהו אחר.</p>
+        <p className="empty">עוד לא שלחת הצעות. אפשר להציע החלפה בלחיצה על משמרת של מישהו אחר.</p>
       )}
       <ul className="list">
         {(sent.data ?? []).map((r) => (
@@ -81,19 +81,13 @@ export function MyShifts() {
             </button>
             {r.status === 'pending' && (
               <button className="link small" disabled={busy} onClick={() => withdraw(r.id)}>
-                ביטול הבקשה
+                ביטול ההצעה
               </button>
             )}
           </li>
         ))}
       </ul>
       {error && <p className="error">{error}</p>}
-
-      <section className="invite">
-        <h2>הזמנה לאפליקציה</h2>
-        <p className="muted small">מכירים מישהו מהשמירה שעוד לא נכנס? אפשר לשלוח לו קישור והסבר קצר.</p>
-        <WhatsAppButton text={inviteText()} label="הזמנה בוואטסאפ" />
-      </section>
     </div>
   );
 }

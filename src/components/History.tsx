@@ -28,16 +28,16 @@ function describe(e: AuditEntry): string {
       return `אישור חילוף: ${text(d.from)} ← ${text(d.to)}`;
     case 'send_swap_request':
       return d.give_night
-        ? `בקשה מ${text(d.owner)} להחליף משמרת (בתמורה ל־${formatDate(String(d.give_night))})`
-        : `בקשה מ${text(d.owner)} לקחת את המשמרת, בלי תמורה`;
+        ? `הצעת החלפה ל${text(d.owner)} (בתמורה ל־${formatDate(String(d.give_night))})`
+        : `הצעה ל${text(d.owner)} לקחת את המשמרת, בלי תמורה`;
     case 'withdraw_swap_request':
-      return `ביטול בקשת חילוף מ${text(d.owner)}`;
+      return `ביטול הצעת החלפה ל${text(d.owner)}`;
     case 'accept_swap_request':
       return d.give_night
         ? `אישור החלפה: ${text(d.from)} ← ${text(d.to)} (ובתמורה ${formatDate(String(d.give_night))})`
         : `אישור מסירה: ${text(d.from)} ← ${text(d.to)}`;
     case 'decline_swap_request':
-      return `דחיית בקשת החילוף של ${text(d.requester)}`;
+      return `דחיית הצעת ההחלפה של ${text(d.requester)}`;
     case 'decline_offer':
       return `דחיית ההתנדבות של ${text(d.volunteer)}`;
     case 'admin_set':

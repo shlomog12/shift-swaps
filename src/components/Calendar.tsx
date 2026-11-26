@@ -120,6 +120,7 @@ export function Calendar() {
           </button>
         )}
       </div>
+      <RosterShare month={month} shifts={shifts.data} />
 
       <div className="filters">
         {FILTERS.map(([value, label]) => (
@@ -152,8 +153,6 @@ export function Calendar() {
       {shifts.data && view === 'list' && (
         <RosterList month={month} today={today} byNight={byNight} filter={filter} counts={counts} />
       )}
-
-      {shifts.data && <RosterShare month={month} shifts={shifts.data} />}
     </div>
   );
 }

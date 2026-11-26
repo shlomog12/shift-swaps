@@ -16,7 +16,6 @@ import {
   swapWantedText,
   volunteeredText,
 } from './SwapRequests';
-import { useShareOffer } from './ShareDialog';
 
 const OFFER_STATUS: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -33,8 +32,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const requests = useQuery(() => loadShiftRequests(night, slot), [night, slot]);
   const [asking, setAsking] = useState(false);
   const { busy, error, run } = useAction();
-  const { confirm, toast } = useFeedback();
-  const shareOffer = useShareOffer();
+  const { confirm, toast, shareOffer } = useFeedback();
 
   // Escape closes the sheet (an open confirmation dialog handles Escape itself first).
   useEffect(() => {
@@ -52,7 +50,23 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const canDecide = mine || isAdmin;
   const pendingRequests = (requests.data ?? []).filter((r) => r.status === 'pending' && r.owner === s?.assignee);
   const myRequest = pendingRequests.find((r) => r.requester_id === me.profile.id);
-  const pastRequests = (requests.data ?? []).filter((r) => r.status !== 'pending');
+  // Decided offers and requests, newest first, as one history of the shift.
+  const history = [
+    ...(offers.data ?? [])
+      .filter((o) => o.status !== 'pending')
+      .map((o) => ({
+        key: `o${o.id}`,
+        at: o.decided_at ?? o.created_at,
+        text: `התנדבות של ${o.volunteer} במקום ${o.requester}: ${OFFER_STATUS[o.status]}`,
+      })),
+    ...(requests.data ?? [])
+      .filter((r) => r.status !== 'pending')
+      .map((r) => ({
+        key: `r${r.id}`,
+        at: r.decided_at ?? r.created_at,
+        text: `הצעת החלפה של ${r.requester} ל${r.owner} (${giveText(r)}): ${REQUEST_STATUS[r.status]}`,
+      })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
 
   /** Runs an action, then shows `done`, optionally closes the sheet and runs `then`. */
   function act(action: () => Promise<unknown>, done: string, closeAfter = true, then?: () => void) {
@@ -134,8 +148,8 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                           <>
                             <p>{when}</p>
                             <p className="muted">
-                              הבקשה תופיע בלוח החילופים. המשמרת נשארת {mine ? 'שלך' : `של ${s.assignee}`} עד שמתנדב
-                              יאושר.
+                              הבקשה תופיע בלוח החילופים וכל אחד יוכל להתנדב. המשמרת נשארת{' '}
+                              {mine ? 'שלך' : `של ${s.assignee}`} עד שמתנדב יאושר.
                             </p>
                           </>
                         ),
@@ -146,32 +160,9 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                     )
                   }
                 >
-                  {mine ? 'בקשת חילוף' : `בקשת חילוף בשם ${s.assignee}`}
+                  {mine ? 'פרסום בקשת חילוף' : `פרסום בקשת חילוף בשם ${s.assignee}`}
                 </button>
               )}
-
-              {s.swap_requested && canDecide && (
-                <button
-                  disabled={busy}
-                  onClick={() =>
-                    confirmThen(
-                      {
-                        title: 'לבטל את בקשת החילוף?',
-                        message: pending.length > 0 ? 'ההתנדבויות שהתקבלו יבוטלו, והמתנדבים יקבלו על כך מייל.' : undefined,
-                        confirmLabel: 'ביטול הבקשה',
-                        cancelLabel: 'השארת הבקשה',
-                        danger: true,
-                      },
-                      () => api.cancelSwapRequest(night, slot),
-                      'בקשת החילוף בוטלה',
-                    )
-                  }
-                >
-                  ביטול בקשת החילוף
-                </button>
-              )}
-
-              {!started && s.swap_requested && <WhatsAppButton text={swapWantedText(s, mine)} />}
 
               {!started && s.swap_requested && !mine && !myOffer && (
                 <button
@@ -194,15 +185,25 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                       true,
                       () =>
                         shareOffer({
-                          title: 'ההתנדבות נשלחה',
-                          message: `${s.assignee} יקבלו מייל. כדי שיראו מהר יותר, אפשר לשלוח גם הודעה בוואטסאפ עם קישור לאישור.`,
+                          message: `נשלח מייל ל${s.assignee}. אפשר גם לשלוח הודעה בוואטסאפ עם קישור לאישור`,
                           text: volunteeredText(s),
-                          label: `הודעה ל${s.assignee} בוואטסאפ`,
+                          label: `הודעה ל${s.assignee}`,
                         }),
                     )
                   }
                 >
                   התנדבות לקחת את המשמרת
+                </button>
+              )}
+
+              {/* A direct swap offer. With an open request, volunteering already covers "nothing in return". */}
+              {!started && s.assignee && !mine && !myRequest && !asking && (
+                <button
+                  className={s.swap_requested ? 'link' : undefined}
+                  disabled={busy}
+                  onClick={() => setAsking(true)}
+                >
+                  {s.swap_requested ? 'או: להציע משמרת שלי בתמורה' : `הצעת החלפה ל${s.assignee}`}
                 </button>
               )}
 
@@ -221,48 +222,72 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                 </button>
               )}
 
-              {myOffer && !started && (
-                <WhatsAppButton text={volunteeredText(s)} label={`הודעה ל${s.assignee} על ההתנדבות בוואטסאפ`} />
+              {s.swap_requested && canDecide && (
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    confirmThen(
+                      {
+                        title: 'לבטל את בקשת החילוף?',
+                        message: pending.length > 0 ? 'ההתנדבויות שהתקבלו יבוטלו, ותישלח על כך הודעה במייל.' : undefined,
+                        confirmLabel: 'ביטול הבקשה',
+                        cancelLabel: 'השארת הבקשה',
+                        danger: true,
+                      },
+                      () => api.cancelSwapRequest(night, slot),
+                      'בקשת החילוף בוטלה',
+                    )
+                  }
+                >
+                  ביטול בקשת החילוף
+                </button>
               )}
 
-              {!started && s.assignee && !mine && !myRequest && !asking && (
-                <button disabled={busy} onClick={() => setAsking(true)}>
-                  בקשת חילוף מ{s.assignee}
-                </button>
+              {/* Sharing comes after the main actions. */}
+              {!started && s.swap_requested && (
+                <WhatsAppButton text={swapWantedText(s, mine)} label="שיתוף הבקשה בוואטסאפ" />
+              )}
+              {myOffer && !started && (
+                <WhatsAppButton text={volunteeredText(s)} label={`הודעה ל${s.assignee} על ההתנדבות`} />
               )}
             </div>
 
             {asking && !myRequest && s.assignee && (
-              <RequestForm target={target} owner={s.assignee} onDone={() => setAsking(false)} />
+              <RequestForm
+                target={target}
+                owner={s.assignee}
+                allowNothing={!s.swap_requested}
+                onDone={() => setAsking(false)}
+              />
             )}
 
             {myRequest && (
               <section className="my-request">
                 <p>
-                  שלחת ל{s.assignee} בקשת חילוף ({giveText(myRequest)}). {REQUEST_STATUS.pending}.
+                  שלחת ל{s.assignee} הצעת החלפה ({giveText(myRequest)}). {REQUEST_STATUS.pending}.
                 </p>
                 <div className="row wrap">
-                  <WhatsAppButton text={requestSentText(myRequest)} label={`שליחה ל${s.assignee} בוואטסאפ`} />
                   <button
                     disabled={busy}
                     onClick={() =>
                       confirmThen(
-                        { title: 'לבטל את הבקשה?', confirmLabel: 'ביטול הבקשה', cancelLabel: 'השארה', danger: true },
+                        { title: 'לבטל את ההצעה?', confirmLabel: 'ביטול ההצעה', cancelLabel: 'השארה', danger: true },
                         () => api.withdrawSwapRequest(myRequest.id),
-                        'הבקשה בוטלה',
+                        'ההצעה בוטלה',
                         false,
                       )
                     }
                   >
-                    ביטול הבקשה שלי
+                    ביטול ההצעה
                   </button>
+                  <WhatsAppButton text={requestSentText(myRequest)} label={`הודעה ל${s.assignee}`} />
                 </div>
               </section>
             )}
 
             {canDecide && !started && pendingRequests.length > 0 && (
               <section>
-                <h3>בקשות חילוף{mine ? ' אליך' : ''}</h3>
+                <h3>הצעות החלפה{mine ? ' אליך' : ''}</h3>
                 <ul className="offers">
                   {pendingRequests.map((r) => (
                     <IncomingRequest key={r.id} request={r} />
@@ -306,10 +331,9 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                                 true,
                                 () =>
                                   shareOffer({
-                                    title: `המשמרת נמסרה ל${o.volunteer}`,
-                                    message: `אפשר לעדכן את ${o.volunteer} בוואטסאפ.`,
+                                    message: `אפשר לעדכן את ${o.volunteer} בוואטסאפ`,
                                     text: offerDecisionText(s, o.volunteer, true),
-                                    label: `עדכון ל${o.volunteer} בוואטסאפ`,
+                                    label: `עדכון ל${o.volunteer}`,
                                   }),
                               )
                             }
@@ -327,10 +351,9 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                                 false,
                                 () =>
                                   shareOffer({
-                                    title: 'ההתנדבות נדחתה',
-                                    message: `אפשר לעדכן את ${o.volunteer} בוואטסאפ.`,
+                                    message: `אפשר לעדכן את ${o.volunteer} בוואטסאפ`,
                                     text: offerDecisionText(s, o.volunteer, false),
-                                    label: `עדכון ל${o.volunteer} בוואטסאפ`,
+                                    label: `עדכון ל${o.volunteer}`,
                                   }),
                               )
                             }
@@ -345,28 +368,13 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
               </section>
             )}
 
-            {(offers.data ?? []).some((o) => o.status !== 'pending') && (
+            {history.length > 0 && (
               <details>
-                <summary className="muted small">התנדבויות קודמות</summary>
+                <summary className="muted small">היסטוריית המשמרת ({history.length})</summary>
                 <ul className="offers past-offers">
-                  {(offers.data ?? [])
-                    .filter((o) => o.status !== 'pending')
-                    .map((o) => (
-                      <li key={o.id} className="small">
-                        {o.volunteer} → {o.requester}: {OFFER_STATUS[o.status]}
-                      </li>
-                    ))}
-                </ul>
-              </details>
-            )}
-
-            {pastRequests.length > 0 && (
-              <details>
-                <summary className="muted small">בקשות חילוף קודמות</summary>
-                <ul className="offers past-offers">
-                  {pastRequests.map((r) => (
-                    <li key={r.id} className="small">
-                      {r.requester} → {r.owner} ({giveText(r)}): {REQUEST_STATUS[r.status]}
+                  {history.map((h) => (
+                    <li key={h.key} className="small">
+                      {h.text} <span className="muted">· {formatDateTime(h.at)}</span>
                     </li>
                   ))}
                 </ul>

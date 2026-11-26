@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
-import { formatDate, formatDateTime, hasStarted, nightLabel, slotTime } from '../lib/dates';
+import { addDays, formatDate, formatDateTime, hasStarted, israelToday, nightLabel, slotTime } from '../lib/dates';
 import { useAction, useMe, useRoster } from '../lib/hooks';
 import { appLink, shiftLink, whatsappUrl } from '../lib/share';
 import type { OfferStatus, Shift, ShiftKey, SwapRequest } from '../lib/types';
 import { useFeedback } from './Feedback';
-import { useShareOffer } from './ShareDialog';
+import { WhatsAppIcon } from './WhatsAppIcon';
 
 export const REQUEST_STATUS: Record<OfferStatus, string> = {
   pending: 'ממתין לתשובה',
@@ -42,6 +42,7 @@ export function WhatsAppButton({
       target="_blank"
       rel="noopener noreferrer"
     >
+      <WhatsAppIcon />
       {label}
     </a>
   );
@@ -63,7 +64,7 @@ export function requestSentText(r: SwapRequest): string {
       ? `להחליף איתך: לקחת את המשמרת שלך ב־${shiftText(r.night, r.slot)}, ` +
         `ובתמורה לתת לך את המשמרת שלי ב־${shiftText(r.give_night, r.give_slot)}`
       : `לקחת ממך את המשמרת ב־${shiftText(r.night, r.slot)}, בלי משמרת בתמורה`;
-  return `היי ${r.owner}, ביקשתי באפליקציית המשמרות ${offer}.\nאפשר לאשר כאן:\n${shiftLink(r.night, r.slot)}`;
+  return `היי ${r.owner}, שלחתי לך הצעה באפליקציית המשמרות ${offer}.\nאפשר לאשר כאן:\n${shiftLink(r.night, r.slot)}`;
 }
 
 /** To the owner after volunteering; the link opens the shift with the approve button. */
@@ -85,10 +86,10 @@ export function offerDecisionText(shift: Shift, volunteer: string, accepted: boo
 /** To the requester after the owner decided on a direct request. */
 export function requestDecisionText(r: SwapRequest, accepted: boolean): string {
   const when = shiftText(r.night, r.slot);
-  if (!accepted) return `היי ${r.requester}, בקשת החילוף שלך על המשמרת ב־${when} לא אושרה.`;
+  if (!accepted) return `היי ${r.requester}, הצעת ההחלפה שלך על המשמרת ב־${when} לא אושרה.`;
   const back =
     r.give_night && r.give_slot ? `, והמשמרת שלך ב־${shiftText(r.give_night, r.give_slot)} עברה ל${r.owner}` : '';
-  return `היי ${r.requester}, בקשת החילוף אושרה. המשמרת ב־${when} רשומה עכשיו עליך${back}.\n${shiftLink(r.night, r.slot)}`;
+  return `היי ${r.requester}, הצעת ההחלפה אושרה. המשמרת ב־${when} רשומה עכשיו עליך${back}.\n${shiftLink(r.night, r.slot)}`;
 }
 
 /** For a group: every open swap request, each with a link to volunteer. */
@@ -108,15 +109,34 @@ export function inviteText(): string {
 }
 
 const NOTHING = 'nothing';
+/** The form first lists only my shifts in the coming weeks; the rest are behind "show more". */
+const NEAR_DAYS = 14;
 
-/** Lets a user ask the owner of a shift for it, offering one of their own shifts or nothing in return. */
-export function RequestForm({ target, owner, onDone }: { target: ShiftKey; owner: string; onDone: () => void }) {
+/**
+ * Lets a user offer the owner of a shift a swap: one of their own shifts in return, or (when the owner has
+ * not asked for a swap) taking it with nothing in return. When the owner did ask, volunteering covers that.
+ */
+export function RequestForm({
+  target,
+  owner,
+  allowNothing = true,
+  onDone,
+}: {
+  target: ShiftKey;
+  owner: string;
+  allowNothing?: boolean;
+  onDone: () => void;
+}) {
   const me = useMe();
   const shifts = useRoster().upcoming;
   const [choice, setChoice] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const { busy, error, run } = useAction();
-  const { toast } = useFeedback();
+  const { toast, shareOffer } = useFeedback();
   const mine = (shifts.data ?? []).filter((s) => me.isMine(s.assignee) && !hasStarted(s.night, s.slot));
+  const nearEnd = addDays(israelToday(), NEAR_DAYS);
+  const visible = showAll ? mine : mine.filter((s) => s.night <= nearEnd);
+  const hidden = mine.length - visible.length;
 
   function send() {
     if (!choice) return;
@@ -124,7 +144,24 @@ export function RequestForm({ target, owner, onDone }: { target: ShiftKey; owner
     run(
       () => api.sendSwapRequest(target.night, target.slot, give && { night: give.night, slot: give.slot }),
       () => {
-        toast(`הבקשה נשלחה ל${owner}`);
+        toast(`ההצעה נשלחה ל${owner}`);
+        shareOffer({
+          message: `נשלח מייל ל${owner}. אפשר גם לשלוח הודעה בוואטסאפ עם קישור לאישור`,
+          text: requestSentText({
+            id: 0,
+            night: target.night,
+            slot: target.slot,
+            owner,
+            requester_id: me.profile.id,
+            requester: me.profile.display_name ?? '',
+            give_night: give?.night ?? null,
+            give_slot: give?.slot ?? null,
+            status: 'pending',
+            created_at: '',
+            decided_at: null,
+          }),
+          label: `הודעה ל${owner}`,
+        });
         onDone();
       },
     );
@@ -132,11 +169,20 @@ export function RequestForm({ target, owner, onDone }: { target: ShiftKey; owner
 
   return (
     <section className="request-form">
-      <h3>בקשת חילוף מ{owner}</h3>
-      <p className="muted small">תישלח הודעה במייל ל{owner}, ואפשר יהיה לאשר או לדחות. מה בתמורה?</p>
+      <h3>הצעת החלפה ל{owner}</h3>
+      <p className="muted small">
+        ההצעה תישלח במייל ל{owner}, ואפשר יהיה לאשר או לדחות.{' '}
+        {allowNothing ? 'מה בתמורה?' : 'איזו משמרת שלך בתמורה?'}
+      </p>
       {shifts.loading && !shifts.data && <p className="muted">טוען...</p>}
       <div className="choices">
-        {mine.map((s) => {
+        {allowNothing && (
+          <label className="choice">
+            <input type="radio" name="give" checked={choice === NOTHING} onChange={() => setChoice(NOTHING)} />
+            <span>בלי תמורה, רק לקחת את המשמרת</span>
+          </label>
+        )}
+        {visible.map((s) => {
           const key = `${s.night}/${s.slot}`;
           return (
             <label key={key} className="choice">
@@ -145,14 +191,16 @@ export function RequestForm({ target, owner, onDone }: { target: ShiftKey; owner
             </label>
           );
         })}
-        <label className="choice">
-          <input type="radio" name="give" checked={choice === NOTHING} onChange={() => setChoice(NOTHING)} />
-          <span>בלי תמורה, רק לקחת את המשמרת</span>
-        </label>
+        {hidden > 0 && (
+          <button type="button" className="link small" onClick={() => setShowAll(true)}>
+            הצגת עוד {hidden} משמרות שלי
+          </button>
+        )}
+        {mine.length === 0 && !allowNothing && <p className="muted small">אין לך משמרות קרובות להציע בתמורה.</p>}
       </div>
       <div className="row">
         <button className="primary" disabled={busy || !choice} onClick={send}>
-          שליחת הבקשה
+          שליחת ההצעה
         </button>
         <button disabled={busy} onClick={onDone}>
           ביטול
@@ -167,14 +215,12 @@ export function RequestForm({ target, owner, onDone }: { target: ShiftKey; owner
 export function IncomingRequest({ request: r, showShift }: { request: SwapRequest; showShift?: boolean }) {
   const me = useMe();
   const { busy, error, run } = useAction();
-  const { confirm, toast } = useFeedback();
-  const shareOffer = useShareOffer();
+  const { confirm, toast, shareOffer } = useFeedback();
   const exchange = Boolean(r.give_night && r.give_slot);
 
   function offerUpdate(accepted: boolean) {
     shareOffer({
-      title: accepted ? (exchange ? 'ההחלפה אושרה' : `המשמרת נמסרה ל${r.requester}`) : 'הבקשה נדחתה',
-      message: `אפשר לעדכן את ${r.requester} בוואטסאפ.`,
+      message: `אפשר לעדכן את ${r.requester} בוואטסאפ`,
       text: requestDecisionText(r, accepted),
       label: `עדכון ל${r.requester} בוואטסאפ`,
     });
@@ -208,12 +254,12 @@ export function IncomingRequest({ request: r, showShift }: { request: SwapReques
   }
 
   async function decline() {
-    const ok = await confirm({ title: `לדחות את הבקשה של ${r.requester}?`, confirmLabel: 'דחייה', danger: true });
+    const ok = await confirm({ title: `לדחות את ההצעה של ${r.requester}?`, confirmLabel: 'דחייה', danger: true });
     if (ok)
       run(
         () => api.declineSwapRequest(r.id),
         () => {
-          toast('הבקשה נדחתה');
+          toast('ההצעה נדחתה');
           offerUpdate(false);
         },
       );

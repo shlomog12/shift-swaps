@@ -3,6 +3,7 @@ import {
   SLOT_HOURS,
   addDays,
   hasStarted,
+  formatDateRange,
   monthBounds,
   monthGridBounds,
   nightLabel,
@@ -34,5 +35,9 @@ describe('dates', () => {
     expect(hasStarted('2026-10-01', 1, now)).toBe(true);
     expect(hasStarted('2026-10-01', 2, now)).toBe(false);
     expect(hasStarted('2026-10-02', 1, now)).toBe(false);
+  });
+  it('keeps a date range in reading order inside Hebrew text', () => {
+    expect(formatDateRange('2026-11-26', '2026-12-02')).toBe('\u206626.11\u2060–\u20602.12\u2069');
+    expect(formatDateRange('2026-11-26', '2026-12-02', true)).toBe('\u206626.11.2026\u2060–\u20602.12.2026\u2069');
   });
 });

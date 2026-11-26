@@ -21,11 +21,14 @@ export function AdminPhonePanel() {
   useEffect(() => setPhone(current ? formatPhone(current) : ''), [current]);
 
   return (
-    <section className="card">
-      <h2>הטלפון שלי לפניות בוואטסאפ</h2>
+    <section className="profile-section">
+      <h3>הטלפון שלי לפניות בוואטסאפ</h3>
       <p className="muted small">
-        מי שנרשם וממתין לאישור יוכל לשלוח לך הודעה בוואטסאפ ישירות מהאפליקציה. המספר מוצג רק במסך ההמתנה, ורק אם הוספת
-        אותו. אפשר למחוק אותו בכל רגע.
+        מי שנרשם וממתין לאישור יוכל לפנות אליך בוואטסאפ ישירות ממסך ההמתנה.
+      </p>
+      <p className="small warning-note">
+        שימו לב: המספר זמין לכל מי שמתחבר לאפליקציה עם חשבון גוגל, גם לפני שאושר – כלומר גם לאנשים שלא מוכרים לך.
+        אפשר למחוק אותו בכל רגע.
       </p>
       <form
         className="row"
@@ -46,7 +49,10 @@ export function AdminPhonePanel() {
           aria-label="מספר טלפון"
           onChange={(e) => setPhone(e.target.value)}
         />
-        <button className="primary" disabled={busy || contacts.loading}>
+        <button
+          className="primary"
+          disabled={busy || contacts.loading || phone.trim() === (current ? formatPhone(current) : '')}
+        >
           שמירה
         </button>
       </form>

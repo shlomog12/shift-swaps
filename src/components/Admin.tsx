@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
-import { SLOT_HOURS, addDays, formatDate, formatDateTime, israelToday, nightLabel } from '../lib/dates';
+import { SLOT_HOURS, addDays, formatDate, formatDateRange, formatDateTime, israelToday, nightLabel } from '../lib/dates';
 import { useAction, useMe, useQuery } from '../lib/hooks';
 import { parseSheet, type ImportResult, type ImportRow } from '../lib/importSheet';
 import { loadShifts } from '../lib/queries';
 import { appLink } from '../lib/share';
 import type { AdminUser, Shift } from '../lib/types';
-import { AdminPhonePanel } from './AdminPhone';
 import { useFeedback } from './Feedback';
-import { useShareOffer } from './ShareDialog';
 
 export function Admin() {
   return (
@@ -17,7 +15,6 @@ export function Admin() {
       <ImportPanel />
       <NightsPanel />
       <UsersPanel />
-      <AdminPhonePanel />
     </div>
   );
 }
@@ -132,8 +129,8 @@ function ImportPanel() {
       {preview && (
         <>
           <p className="small">
-            {preview.rows.length} לילות ({formatDate(preview.rows[0].night)}–
-            {formatDate(preview.rows[preview.rows.length - 1].night)}). {changedCount} חדשים או משתנים.
+            {preview.rows.length} לילות ({formatDateRange(preview.rows[0].night, preview.rows[preview.rows.length - 1].night, true)}).{' '}
+            {changedCount} חדשים או משתנים.
             {preview.skipped.length > 0 && ` ${preview.skipped.length} שורות ללא תאריך דולגו.`}
           </p>
           {preview.duplicates.length > 0 && (
@@ -254,8 +251,7 @@ function userLabel(u: AdminUser): string {
 /** Admin actions on a user, each behind an in-app confirmation and followed by a toast. */
 function useUserActions() {
   const { busy, error, run } = useAction();
-  const { confirm, toast } = useFeedback();
-  const shareOffer = useShareOffer();
+  const { confirm, toast, shareOffer } = useFeedback();
 
   async function remove(u: AdminUser) {
     const ok = await confirm({
@@ -292,8 +288,7 @@ function useUserActions() {
         toast('המשתמש אושר');
         const name = u.google_name ?? '';
         shareOffer({
-          title: `${name || u.email} אושר/ה`,
-          message: 'יישלח מייל, וכדי שיראו מהר יותר אפשר לשלוח גם הודעה בוואטסאפ.',
+          message: 'נשלח מייל על האישור. אפשר גם להודיע בוואטסאפ',
           text:
             `היי${name ? ` ${name}` : ''}, אישרתי אותך באפליקציית המשמרות. ` +
             `אפשר להיכנס ולבחור את השם שלך ברשימה:\n${appLink()}`,

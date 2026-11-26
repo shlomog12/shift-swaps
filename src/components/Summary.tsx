@@ -25,7 +25,7 @@ export function DecisionsCard() {
       <h2>ממתין להחלטה שלך ({total})</h2>
       {requests.length > 0 && (
         <>
-          <h3>בקשות חילוף אליך</h3>
+          <h3>הצעות החלפה אליך</h3>
           <ul className="offers">
             {requests.map((r) => (
               <IncomingRequest key={r.id} request={r} showShift />

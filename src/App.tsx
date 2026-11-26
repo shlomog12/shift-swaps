@@ -4,11 +4,11 @@ import { api } from './lib/api';
 import { Board } from './components/Board';
 import { Calendar } from './components/Calendar';
 import { FeedbackProvider } from './components/Feedback';
-import { ShareProvider } from './components/ShareDialog';
 import { History } from './components/History';
 import { AccessPending, Login, SetupMissing } from './components/Login';
 import { MyShifts } from './components/MyShifts';
 import { NamePicker } from './components/NamePicker';
+import { ProfileSheet } from './components/Profile';
 import { ShiftSheet } from './components/ShiftSheet';
 import {
   MeContext,
@@ -47,9 +47,7 @@ export function App() {
   return (
     <RefreshContext.Provider value={refreshValue}>
       <FeedbackProvider>
-        <ShareProvider>
-          <SignedInGate />
-        </ShareProvider>
+        <SignedInGate />
       </FeedbackProvider>
     </RefreshContext.Provider>
   );
@@ -89,6 +87,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   const [tab, setTab] = useState<Tab>('calendar');
   // A shift shared by link (e.g. on WhatsApp) opens right away.
   const [open, setOpen] = useState<ShiftKey | null>(readSharedShift);
+  const [profileOpen, setProfileOpen] = useState(false);
   useEffect(clearSharedShift, []);
   // Admins can switch to the regular user's view; the server still knows they are an admin.
   const [adminMode, setAdminMode] = useState(() => localStorage.getItem(ADMIN_MODE_KEY) !== 'off');
@@ -143,9 +142,8 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
               {isAdmin ? 'מצב מנהל' : 'תצוגת משתמש'}
             </button>
           )}
-          <span className="user-name">{profile.display_name}</span>
-          <button className="link small" onClick={() => supabase.auth.signOut()}>
-            התנתקות
+          <button className="user-button" onClick={() => setProfileOpen(true)} aria-label="פרופיל והגדרות">
+            <span aria-hidden="true">👤</span> {profile.display_name}
           </button>
         </span>
       </header>
@@ -173,6 +171,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
         ))}
       </nav>
 
+      {profileOpen && <ProfileSheet onClose={() => setProfileOpen(false)} />}
       {open && <ShiftSheet key={`${open.night}/${open.slot}`} target={open} onClose={() => setOpen(null)} />}
     </RosterContext.Provider>
     </MeContext.Provider>

@@ -19,6 +19,10 @@
   --accent: #f1c453;
   --accent-text: #1b2330;
   --shadow: rgb(0 0 0 / 8%);
+  --wa-text: #0d6b39;
+  --wa-border: #25a35a;
+  --wa-icon: #1faa53;
+  --wa-bg-hover: #e8f7ee;
   --danger: #c62828;
   --success: #2e7d32;
   --radius: 12px;
@@ -587,9 +591,22 @@ a.button {
   font-weight: 600;
 }
 
+/* Sharing is a secondary action: outlined, with the WhatsApp glyph, never competing with the main button. */
 a.button.whatsapp {
-  background: #25d366;
-  color: #fff;
+  gap: 0.4rem;
+  background: transparent;
+  color: var(--wa-text);
+  border: 1px solid var(--wa-border);
+  font-weight: 600;
+}
+
+a.button.whatsapp:hover {
+  background: var(--wa-bg-hover);
+}
+
+.wa-icon {
+  flex: none;
+  color: var(--wa-icon);
 }
 
 .actions a.button {
@@ -603,10 +620,30 @@ a.button.whatsapp {
 
 .roster-share {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin: 0.5rem 0 0;
+}
+
+.share-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+}
+
+.share-toggle.selected {
+  border-color: var(--wa-border);
+}
+
+.roster-share-menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .share-all {
@@ -620,13 +657,7 @@ a.button.whatsapp {
   margin: 0.8rem 0;
 }
 
-.invite {
-  margin-top: 1.5rem;
-}
 
-.dialog-buttons a.button {
-  flex: 1;
-}
 
 /* Direct swap requests */
 .request-form,
@@ -667,8 +698,19 @@ a.button.whatsapp {
   margin: 0 0 0.4rem;
 }
 
-.request-item {
-  gap: 0.5rem;
+/* Incoming offer: text on top, buttons underneath, so neither gets squeezed on a phone. */
+.offers li.request-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.offers li.request-item > .row {
+  justify-content: flex-end;
+}
+
+.offers li.request-item > .row button {
+  min-width: 5.5rem;
 }
 
 /* History */
@@ -1017,6 +1059,10 @@ td.cell-changed {
     --bar-bg: #141b26;
     --bar-text: #e6eaf0;
     --shadow: rgb(0 0 0 / 40%);
+    --wa-text: #5fdc8f;
+    --wa-border: #2f8f57;
+    --wa-icon: #3fd17a;
+    --wa-bg-hover: #13301f;
     --danger: #ef6b6b;
     --success: #5fcf86;
     color-scheme: dark;
@@ -1188,4 +1234,83 @@ button.danger.solid {
 
 .nowrap {
   white-space: nowrap;
+}
+
+/* WhatsApp offer after an action: sits with the toasts, does not block the screen */
+.share-bar {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem 0.8rem;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 20%);
+  animation: toast-in 0.2s ease-out;
+}
+
+.share-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.share-bar-actions .button {
+  margin-inline-end: auto;
+}
+
+button.icon.small-icon {
+  font-size: 1rem;
+  padding: 0.2rem 0.4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-bar {
+    animation: none;
+  }
+}
+
+/* Top bar profile button */
+.user-button {
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 35%);
+  color: var(--bar-text);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.9rem;
+}
+
+/* Profile sheet */
+.profile-section {
+  border-top: 1px solid var(--border);
+  padding: 0.6rem 0 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.profile-section h3 {
+  margin-top: 0;
+}
+
+.toggle-row {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+}
+
+.toggle-row input {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+.warning-note {
+  background: var(--swap);
+  color: var(--text);
+  border-inline-start: 3px solid var(--swap-border);
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
 }

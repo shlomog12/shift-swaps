@@ -89,6 +89,15 @@ export function formatShortDate(iso: string): string {
   return ltr(`${d}.${m}`);
 }
 
+/** "26.11–2.12" (or with years), as one left-to-right run so it does not flip inside Hebrew text. */
+export function formatDateRange(from: string, to: string, withYear = false): string {
+  const short = (iso: string) => {
+    const [y, m, d] = parts(iso);
+    return withYear ? `${d}.${m}.${y}` : `${d}.${m}`;
+  };
+  return ltr(`${short(from)}\u2060–\u2060${short(to)}`);
+}
+
 export function plural(count: number, one: string, many: string): string {
   return count === 1 ? one : `${count} ${many}`;
 }

@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { whatsappUrl } from '../lib/share';
+import { WhatsAppIcon } from './WhatsAppIcon';
 
 export interface ConfirmOptions {
   title: string;
@@ -21,12 +23,35 @@ export interface AskOptions {
 
 type ToastKind = 'success' | 'error' | 'info';
 
+/** After an action, an offer to tell the other person on WhatsApp. */
+export interface ShareOffer {
+  /** Who to tell, e.g. "אפשר לעדכן את דני בוואטסאפ". */
+  message: string;
+  /** The WhatsApp message. */
+  text: string;
+  /** Label of the WhatsApp button. */
+  label: string;
+}
+
+const SHARE_OFF_KEY = 'share-offers';
+const SHARE_MS = 15_000;
+
+export function shareOffersEnabled(): boolean {
+  return localStorage.getItem(SHARE_OFF_KEY) !== 'off';
+}
+
+export function setShareOffersEnabled(on: boolean) {
+  localStorage.setItem(SHARE_OFF_KEY, on ? 'on' : 'off');
+}
+
 interface Feedback {
   /** Resolves to true when the user confirms. */
   confirm: (options: ConfirmOptions) => Promise<boolean>;
   /** Resolves to the entered text, or null when cancelled. */
   ask: (options: AskOptions) => Promise<string | null>;
   toast: (message: string, kind?: ToastKind) => void;
+  /** Shows a dismissible WhatsApp offer that does not block the screen (unless the user turned these off). */
+  shareOffer: (offer: ShareOffer) => void;
 }
 
 const FeedbackContext = createContext<Feedback | null>(null);
@@ -53,6 +78,8 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
+  const [share, setShare] = useState<ShareOffer | null>(null);
+  const shareTimer = useRef<number | undefined>(undefined);
 
   const confirm = useCallback(
     (options: ConfirmOptions) => new Promise<boolean>((resolve) => setDialog({ type: 'confirm', options, resolve })),
@@ -68,7 +95,14 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     window.setTimeout(() => setToasts((list) => list.filter((t) => t.id !== id)), TOAST_MS);
   }, []);
 
-  const value = useMemo(() => ({ confirm, ask, toast }), [confirm, ask, toast]);
+  const shareOffer = useCallback((offer: ShareOffer) => {
+    if (!shareOffersEnabled()) return;
+    setShare(offer);
+    window.clearTimeout(shareTimer.current);
+    shareTimer.current = window.setTimeout(() => setShare(null), SHARE_MS);
+  }, []);
+
+  const value = useMemo(() => ({ confirm, ask, toast, shareOffer }), [confirm, ask, toast, shareOffer]);
 
   function close(result: boolean, text: string) {
     if (!dialog) return;
@@ -87,6 +121,36 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             {t.message}
           </div>
         ))}
+        {share && (
+          <div className="share-bar">
+            <span>{share.message}</span>
+            <span className="share-bar-actions">
+              <a
+                className="button whatsapp small"
+                href={whatsappUrl(share.text)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShare(null)}
+              >
+                <WhatsAppIcon />
+                {share.label}
+              </a>
+              <button
+                className="link small"
+                onClick={() => {
+                  setShareOffersEnabled(false);
+                  setShare(null);
+                  toast('לא נציע יותר. אפשר להחזיר את זה במסך הפרופיל', 'info');
+                }}
+              >
+                לא להציע שוב
+              </button>
+              <button className="icon small-icon" aria-label="סגירה" onClick={() => setShare(null)}>
+                ✕
+              </button>
+            </span>
+          </div>
+        )}
       </div>
     </FeedbackContext.Provider>
   );
