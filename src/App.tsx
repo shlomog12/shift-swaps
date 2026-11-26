@@ -4,6 +4,7 @@ import { api } from './lib/api';
 import { Board } from './components/Board';
 import { Calendar } from './components/Calendar';
 import { FeedbackProvider } from './components/Feedback';
+import { ShareProvider } from './components/ShareDialog';
 import { History } from './components/History';
 import { AccessPending, Login, SetupMissing } from './components/Login';
 import { MyShifts } from './components/MyShifts';
@@ -46,7 +47,9 @@ export function App() {
   return (
     <RefreshContext.Provider value={refreshValue}>
       <FeedbackProvider>
-        <SignedInGate />
+        <ShareProvider>
+          <SignedInGate />
+        </ShareProvider>
       </FeedbackProvider>
     </RefreshContext.Provider>
   );

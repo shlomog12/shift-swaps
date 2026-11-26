@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useRefresh } from '../lib/hooks';
+import { api } from '../lib/api';
+import { useQuery, useRefresh } from '../lib/hooks';
+import { appLink } from '../lib/share';
 import type { UserStatus } from '../lib/types';
 import { supabase } from '../lib/supabase';
+import { WhatsAppButton } from './SwapRequests';
 
 export function Login() {
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export function AccessPending({ status, email }: { status: Exclude<UserStatus, '
               ההרשמה התבצעה עם <span className="ltr-inline">{email}</span>. המנהל קיבל הודעה, ואחרי האישור אפשר
               יהיה לבחור את השם שלך ברשימה. יישלח גם מייל כשהחשבון יאושר.
             </p>
+            <AskAdmins email={email} />
             <button className="primary" onClick={refresh}>
               בדיקה שוב
             </button>
@@ -88,6 +92,23 @@ export function AccessPending({ status, email }: { status: Exclude<UserStatus, '
           </button>
         </p>
       </div>
+    </div>
+  );
+}
+
+/** WhatsApp buttons to the admins who added a phone, so a new user can ask to be approved. */
+function AskAdmins({ email }: { email: string }) {
+  const contacts = useQuery(api.adminContacts, []);
+  const text = `היי, נרשמתי לאפליקציית המשמרות עם ${email}. אפשר לאשר אותי?\n${appLink()}`;
+  if (!contacts.data) return null;
+
+  return (
+    <div className="ask-admins">
+      <p className="small">כדי לזרז את האישור, אפשר לשלוח למנהל הודעה בוואטסאפ:</p>
+      {contacts.data.map((c) => (
+        <WhatsAppButton key={c.id} text={text.replace('היי,', `היי ${c.name},`)} phone={c.phone} label={`הודעה ל${c.name}`} />
+      ))}
+      {contacts.data.length === 0 && <WhatsAppButton text={text} label="הודעה למנהל בוואטסאפ" />}
     </div>
   );
 }

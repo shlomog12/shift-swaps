@@ -6,7 +6,7 @@ import type { SwapOffer } from '../lib/types';
 import { ShiftListItem } from './Board';
 import { useFeedback } from './Feedback';
 import { DecisionsCard } from './Summary';
-import { REQUEST_STATUS, giveText, shiftText } from './SwapRequests';
+import { REQUEST_STATUS, WhatsAppButton, giveText, inviteText, shiftText } from './SwapRequests';
 
 const STATUS_TEXT: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -88,6 +88,12 @@ export function MyShifts() {
         ))}
       </ul>
       {error && <p className="error">{error}</p>}
+
+      <section className="invite">
+        <h2>הזמנה לאפליקציה</h2>
+        <p className="muted small">מכירים מישהו מהשמירה שעוד לא נכנס? אפשר לשלוח לו קישור והסבר קצר.</p>
+        <WhatsAppButton text={inviteText()} label="הזמנה בוואטסאפ" />
+      </section>
     </div>
   );
 }

@@ -63,6 +63,13 @@ export interface AuditEntry {
   details: Record<string, unknown>;
 }
 
+/** An admin who added a phone, for WhatsApp messages from users waiting for approval. */
+export interface AdminContact {
+  id: string;
+  name: string;
+  phone: string;
+}
+
 export interface RosterName {
   name: string;
   claimed: boolean;

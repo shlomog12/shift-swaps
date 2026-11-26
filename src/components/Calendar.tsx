@@ -19,6 +19,7 @@ import {
 import { useMe, useQuery, useRoster, type Me } from '../lib/hooks';
 import { loadShifts } from '../lib/queries';
 import type { Shift } from '../lib/types';
+import { RosterShare } from './RosterShare';
 import { ShiftCell, shiftClasses } from './ShiftCell';
 import { DecisionsCard, NextShiftCard } from './Summary';
 
@@ -151,6 +152,8 @@ export function Calendar() {
       {shifts.data && view === 'list' && (
         <RosterList month={month} today={today} byNight={byNight} filter={filter} counts={counts} />
       )}
+
+      {shifts.data && <RosterShare month={month} shifts={shifts.data} />}
     </div>
   );
 }

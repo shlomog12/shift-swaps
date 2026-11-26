@@ -596,6 +596,38 @@ a.button.whatsapp {
   padding: 0.75rem;
 }
 
+.button.small {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.roster-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.share-all {
+  margin-bottom: 0.6rem;
+}
+
+.ask-admins {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.8rem 0;
+}
+
+.invite {
+  margin-top: 1.5rem;
+}
+
+.dialog-buttons a.button {
+  flex: 1;
+}
+
 /* Direct swap requests */
 .request-form,
 .my-request {

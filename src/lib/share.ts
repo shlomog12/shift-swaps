@@ -8,8 +8,14 @@ export function shiftLink(night: string, slot: Slot): string {
   return `${window.location.origin}${window.location.pathname}?${PARAM}=${night}_${slot}`;
 }
 
-export function whatsappUrl(text: string): string {
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+/** The app's own address, for invitations and approval messages. */
+export function appLink(): string {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+/** Opens WhatsApp with the text; with a phone (e.g. 972501234567) it goes straight to that chat. */
+export function whatsappUrl(text: string, phone?: string | null): string {
+  return `https://wa.me/${phone ?? ''}?text=${encodeURIComponent(text)}`;
 }
 
 function parse(value: string | null): ShiftKey | null {

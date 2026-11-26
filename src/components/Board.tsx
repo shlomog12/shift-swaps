@@ -3,6 +3,7 @@ import { formatDate, hasStarted, nightLabel, plural, slotTime } from '../lib/dat
 import { useMe, useRoster } from '../lib/hooks';
 import type { Shift } from '../lib/types';
 import { offerCounts } from './Calendar';
+import { WhatsAppButton, openSwapsText } from './SwapRequests';
 
 export function ShiftListItem({ shift, note }: { shift: Shift; note?: string }) {
   const me = useMe();
@@ -50,6 +51,13 @@ export function Board() {
       {shifts.error && <p className="error">{shifts.error}</p>}
       {shifts.loading && !shifts.data && <p className="muted">טוען...</p>}
       {shifts.data && swaps.length === 0 && <p className="empty">אין כרגע בקשות חילוף.</p>}
+      {swaps.length > 0 && (
+        <WhatsAppButton
+          className="small share-all"
+          text={openSwapsText(swaps)}
+          label={swaps.length === 1 ? 'שיתוף הבקשה בוואטסאפ' : `שיתוף כל ${swaps.length} הבקשות בוואטסאפ`}
+        />
+      )}
       <ul className="list">
         {swaps.map((s) => (
           <ShiftListItem key={`${s.night}/${s.slot}`} shift={s} note={swapNote(s)} />

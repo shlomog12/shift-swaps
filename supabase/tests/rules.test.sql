@@ -272,4 +272,21 @@ reset role;
 select test.eq((select count(*) from public.email_outbox where subject like '%מבקש/ת %את המשמרת שלך%'
                 or subject like '%מבקש/ת להחליף%'), 3::bigint, 'owners told about requests (חסן has no account)');
 
+-- Admin phones: admins set them, signed-in users (even pending ones) see admins who added one.
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error('select public.set_my_phone(''0501234567'')', 'admin_only');
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.eq(public.set_my_phone('050-123-4567'), '972501234567', 'local number normalized');
+select test.eq(public.set_my_phone('+972 50 123 4567'), '972501234567', 'international number normalized');
+select test.expect_error('select public.set_my_phone(''12'')', 'invalid_phone');
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.eq(public.set_my_phone(''), null::text, 'empty clears the phone');
+select test.as_user('00000000-0000-0000-0000-00000000000d');
+select test.eq((select status from public.profiles), 'pending', 'D is pending');
+select test.eq((select count(*) from public.admin_contacts()), 1::bigint, 'pending user sees admins with a phone');
+select test.eq((select phone from public.admin_contacts()), '972501234567', 'admin phone listed');
+select test.expect_error('select phone from public.profiles', 'permission denied');
+reset role;
+
 \echo 'All rule tests passed.'

@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { api } from '../lib/api';
 import { formatDate, formatDateTime, hasStarted, nightLabel, slotTime } from '../lib/dates';
 import { useAction, useMe, useRoster } from '../lib/hooks';
-import { shiftLink, whatsappUrl } from '../lib/share';
+import { appLink, shiftLink, whatsappUrl } from '../lib/share';
 import type { OfferStatus, Shift, ShiftKey, SwapRequest } from '../lib/types';
 import { useFeedback } from './Feedback';
+import { useShareOffer } from './ShareDialog';
 
 export const REQUEST_STATUS: Record<OfferStatus, string> = {
   pending: 'ממתין לתשובה',
@@ -22,10 +23,25 @@ export function giveText(r: SwapRequest): string {
   return r.give_night && r.give_slot ? `בתמורה ל־${shiftText(r.give_night, r.give_slot)}` : 'בלי משמרת בתמורה';
 }
 
-/** Opens WhatsApp with a ready message; the person picks the chat. */
-export function WhatsAppButton({ text, label = 'שיתוף בוואטסאפ' }: { text: string; label?: string }) {
+/** Opens WhatsApp with a ready message: to the given phone, or the person picks the chat. */
+export function WhatsAppButton({
+  text,
+  label = 'שיתוף בוואטסאפ',
+  phone,
+  className = '',
+}: {
+  text: string;
+  label?: string;
+  phone?: string | null;
+  className?: string;
+}) {
   return (
-    <a className="button whatsapp" href={whatsappUrl(text)} target="_blank" rel="noopener noreferrer">
+    <a
+      className={`button whatsapp ${className}`.trim()}
+      href={whatsappUrl(text, phone)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       {label}
     </a>
   );
@@ -48,6 +64,47 @@ export function requestSentText(r: SwapRequest): string {
         `ובתמורה לתת לך את המשמרת שלי ב־${shiftText(r.give_night, r.give_slot)}`
       : `לקחת ממך את המשמרת ב־${shiftText(r.night, r.slot)}, בלי משמרת בתמורה`;
   return `היי ${r.owner}, ביקשתי באפליקציית המשמרות ${offer}.\nאפשר לאשר כאן:\n${shiftLink(r.night, r.slot)}`;
+}
+
+/** To the owner after volunteering; the link opens the shift with the approve button. */
+export function volunteeredText(shift: Shift): string {
+  return (
+    `היי ${shift.assignee}, התנדבתי באפליקציית המשמרות לקחת את המשמרת שלך ב־${shiftText(shift.night, shift.slot)}.\n` +
+    `אפשר לאשר כאן:\n${shiftLink(shift.night, shift.slot)}`
+  );
+}
+
+/** To a volunteer after the owner decided. */
+export function offerDecisionText(shift: Shift, volunteer: string, accepted: boolean): string {
+  const when = shiftText(shift.night, shift.slot);
+  return accepted
+    ? `היי ${volunteer}, ההתנדבות שלך אושרה. המשמרת ב־${when} רשומה עכשיו עליך. תודה!\n${shiftLink(shift.night, shift.slot)}`
+    : `היי ${volunteer}, תודה על ההתנדבות למשמרת ב־${when}. בסוף היא לא אושרה.`;
+}
+
+/** To the requester after the owner decided on a direct request. */
+export function requestDecisionText(r: SwapRequest, accepted: boolean): string {
+  const when = shiftText(r.night, r.slot);
+  if (!accepted) return `היי ${r.requester}, בקשת החילוף שלך על המשמרת ב־${when} לא אושרה.`;
+  const back =
+    r.give_night && r.give_slot ? `, והמשמרת שלך ב־${shiftText(r.give_night, r.give_slot)} עברה ל${r.owner}` : '';
+  return `היי ${r.requester}, בקשת החילוף אושרה. המשמרת ב־${when} רשומה עכשיו עליך${back}.\n${shiftLink(r.night, r.slot)}`;
+}
+
+/** For a group: every open swap request, each with a link to volunteer. */
+export function openSwapsText(shifts: Shift[]): string {
+  const lines = shifts.map(
+    (s) => `• ${shiftText(s.night, s.slot)} – ${s.assignee}\n  ${shiftLink(s.night, s.slot)}`,
+  );
+  return `מחפשים מחליפים למשמרות האלה. מי שיכול, אפשר להתנדב בקישור:\n\n${lines.join('\n')}`;
+}
+
+/** Invitation to people who have not joined yet. */
+export function inviteText(): string {
+  return (
+    'הצטרפות לאפליקציית המשמרות והחילופים של השמירה: רואים את השבצ"ק, מבקשים חילופים ומתנדבים להחליף.\n' +
+    `נכנסים עם חשבון גוגל, ואחרי אישור מנהל בוחרים את השם ברשימה:\n${appLink()}`
+  );
 }
 
 const NOTHING = 'nothing';
@@ -111,7 +168,17 @@ export function IncomingRequest({ request: r, showShift }: { request: SwapReques
   const me = useMe();
   const { busy, error, run } = useAction();
   const { confirm, toast } = useFeedback();
+  const shareOffer = useShareOffer();
   const exchange = Boolean(r.give_night && r.give_slot);
+
+  function offerUpdate(accepted: boolean) {
+    shareOffer({
+      title: accepted ? (exchange ? 'ההחלפה אושרה' : `המשמרת נמסרה ל${r.requester}`) : 'הבקשה נדחתה',
+      message: `אפשר לעדכן את ${r.requester} בוואטסאפ.`,
+      text: requestDecisionText(r, accepted),
+      label: `עדכון ל${r.requester} בוואטסאפ`,
+    });
+  }
 
   async function accept() {
     const ok = await confirm({
@@ -130,12 +197,26 @@ export function IncomingRequest({ request: r, showShift }: { request: SwapReques
       ),
       confirmLabel: exchange ? 'אישור ההחלפה' : 'מסירת המשמרת',
     });
-    if (ok) run(() => api.acceptSwapRequest(r.id), () => toast(exchange ? 'ההחלפה אושרה' : `המשמרת נמסרה ל${r.requester}`));
+    if (ok)
+      run(
+        () => api.acceptSwapRequest(r.id),
+        () => {
+          toast(exchange ? 'ההחלפה אושרה' : `המשמרת נמסרה ל${r.requester}`);
+          offerUpdate(true);
+        },
+      );
   }
 
   async function decline() {
     const ok = await confirm({ title: `לדחות את הבקשה של ${r.requester}?`, confirmLabel: 'דחייה', danger: true });
-    if (ok) run(() => api.declineSwapRequest(r.id), () => toast('הבקשה נדחתה'));
+    if (ok)
+      run(
+        () => api.declineSwapRequest(r.id),
+        () => {
+          toast('הבקשה נדחתה');
+          offerUpdate(false);
+        },
+      );
   }
 
   return (

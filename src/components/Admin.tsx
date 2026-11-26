@@ -4,8 +4,11 @@ import { SLOT_HOURS, addDays, formatDate, formatDateTime, israelToday, nightLabe
 import { useAction, useMe, useQuery } from '../lib/hooks';
 import { parseSheet, type ImportResult, type ImportRow } from '../lib/importSheet';
 import { loadShifts } from '../lib/queries';
+import { appLink } from '../lib/share';
 import type { AdminUser, Shift } from '../lib/types';
+import { AdminPhonePanel } from './AdminPhone';
 import { useFeedback } from './Feedback';
+import { useShareOffer } from './ShareDialog';
 
 export function Admin() {
   return (
@@ -14,6 +17,7 @@ export function Admin() {
       <ImportPanel />
       <NightsPanel />
       <UsersPanel />
+      <AdminPhonePanel />
     </div>
   );
 }
@@ -251,6 +255,7 @@ function userLabel(u: AdminUser): string {
 function useUserActions() {
   const { busy, error, run } = useAction();
   const { confirm, toast } = useFeedback();
+  const shareOffer = useShareOffer();
 
   async function remove(u: AdminUser) {
     const ok = await confirm({
@@ -281,7 +286,21 @@ function useUserActions() {
   }
 
   function approve(u: AdminUser) {
-    run(() => api.adminSetStatus(u.id, 'approved'), () => toast('המשתמש אושר'));
+    run(
+      () => api.adminSetStatus(u.id, 'approved'),
+      () => {
+        toast('המשתמש אושר');
+        const name = u.google_name ?? '';
+        shareOffer({
+          title: `${name || u.email} אושר/ה`,
+          message: 'יישלח מייל, וכדי שיראו מהר יותר אפשר לשלוח גם הודעה בוואטסאפ.',
+          text:
+            `היי${name ? ` ${name}` : ''}, אישרתי אותך באפליקציית המשמרות. ` +
+            `אפשר להיכנס ולבחור את השם שלך ברשימה:\n${appLink()}`,
+          label: 'הודעה בוואטסאפ',
+        });
+      },
+    );
   }
 
   return { busy, error, run, confirm, toast, remove, block, approve };

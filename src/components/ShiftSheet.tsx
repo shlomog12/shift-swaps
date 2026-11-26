@@ -11,9 +11,12 @@ import {
   RequestForm,
   WhatsAppButton,
   giveText,
+  offerDecisionText,
   requestSentText,
   swapWantedText,
+  volunteeredText,
 } from './SwapRequests';
+import { useShareOffer } from './ShareDialog';
 
 const OFFER_STATUS: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -31,6 +34,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const [asking, setAsking] = useState(false);
   const { busy, error, run } = useAction();
   const { confirm, toast } = useFeedback();
+  const shareOffer = useShareOffer();
 
   // Escape closes the sheet (an open confirmation dialog handles Escape itself first).
   useEffect(() => {
@@ -50,16 +54,23 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const myRequest = pendingRequests.find((r) => r.requester_id === me.profile.id);
   const pastRequests = (requests.data ?? []).filter((r) => r.status !== 'pending');
 
-  /** Runs an action, then shows `done` and optionally closes the sheet. */
-  function act(action: () => Promise<unknown>, done: string, closeAfter = true) {
+  /** Runs an action, then shows `done`, optionally closes the sheet and runs `then`. */
+  function act(action: () => Promise<unknown>, done: string, closeAfter = true, then?: () => void) {
     run(action, () => {
       toast(done);
       if (closeAfter) onClose();
+      then?.();
     });
   }
 
-  async function confirmThen(options: ConfirmOptions, action: () => Promise<unknown>, done: string, closeAfter = true) {
-    if (await confirm(options)) act(action, done, closeAfter);
+  async function confirmThen(
+    options: ConfirmOptions,
+    action: () => Promise<unknown>,
+    done: string,
+    closeAfter = true,
+    then?: () => void,
+  ) {
+    if (await confirm(options)) act(action, done, closeAfter, then);
   }
 
   const when = `${formatDate(night)}, ${slotTime(night, slot)}`;
@@ -180,6 +191,14 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                       },
                       () => api.offerSwap(night, slot),
                       'ההתנדבות נשלחה. תישלח הודעה במייל כשתתקבל החלטה',
+                      true,
+                      () =>
+                        shareOffer({
+                          title: 'ההתנדבות נשלחה',
+                          message: `${s.assignee} יקבלו מייל. כדי שיראו מהר יותר, אפשר לשלוח גם הודעה בוואטסאפ עם קישור לאישור.`,
+                          text: volunteeredText(s),
+                          label: `הודעה ל${s.assignee} בוואטסאפ`,
+                        }),
                     )
                   }
                 >
@@ -200,6 +219,10 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                 >
                   ביטול ההתנדבות שלי
                 </button>
+              )}
+
+              {myOffer && !started && (
+                <WhatsAppButton text={volunteeredText(s)} label={`הודעה ל${s.assignee} על ההתנדבות בוואטסאפ`} />
               )}
 
               {!started && s.assignee && !mine && !myRequest && !asking && (
@@ -280,6 +303,14 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                                 },
                                 () => api.acceptOffer(o.id),
                                 `המשמרת נמסרה ל${o.volunteer}`,
+                                true,
+                                () =>
+                                  shareOffer({
+                                    title: `המשמרת נמסרה ל${o.volunteer}`,
+                                    message: `אפשר לעדכן את ${o.volunteer} בוואטסאפ.`,
+                                    text: offerDecisionText(s, o.volunteer, true),
+                                    label: `עדכון ל${o.volunteer} בוואטסאפ`,
+                                  }),
                               )
                             }
                           >
@@ -294,6 +325,13 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                                 () => api.declineOffer(o.id),
                                 'ההתנדבות נדחתה',
                                 false,
+                                () =>
+                                  shareOffer({
+                                    title: 'ההתנדבות נדחתה',
+                                    message: `אפשר לעדכן את ${o.volunteer} בוואטסאפ.`,
+                                    text: offerDecisionText(s, o.volunteer, false),
+                                    label: `עדכון ל${o.volunteer} בוואטסאפ`,
+                                  }),
                               )
                             }
                           >

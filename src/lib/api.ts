@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { AdminUser, RosterName, Slot, UserStatus } from './types';
+import type { AdminContact, AdminUser, RosterName, Slot, UserStatus } from './types';
 import type { ImportRow } from './importSheet';
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -30,6 +30,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_import: 'אין שורות לייבוא.',
   import_too_large: 'אפשר לייבא עד 1000 לילות בפעם אחת.',
   invalid_range: 'טווח התאריכים לא תקין (עד 400 ימים).',
+  invalid_phone: 'מספר הטלפון לא תקין. אפשר לכתוב למשל 050-1234567.',
   user_not_found: 'המשתמש לא נמצא.',
   last_admin: 'אי אפשר להסיר את המנהל האחרון.',
 };
@@ -82,4 +83,6 @@ export const api = {
   adminSetUserName: (userId: string, name: string, renameShifts: boolean) =>
     call('admin_set_user_name', { p_user_id: userId, p_name: name, p_rename_shifts: renameShifts }),
   adminDeleteUser: (userId: string) => call('admin_delete_user', { p_user_id: userId }),
+  setMyPhone: (phone: string) => call<string | null>('set_my_phone', { p_phone: phone }),
+  adminContacts: () => call<AdminContact[]>('admin_contacts'),
 };
