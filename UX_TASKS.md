@@ -51,7 +51,7 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
   For every `false`, run its file below, in this order.
 - [x] (already applied) `false` in swap_requests → run all of `supabase/migrations/20261201000000_swap_requests.sql`.
 - [x] (already applied) `false` in admin_phone → run all of `supabase/migrations/20261202000000_admin_phones.sql`.
-- [ ] `false` in calendar → run all of `supabase/migrations/20261203000000_calendar_feed.sql`
+- [x] (applied) `false` in calendar → run all of `supabase/migrations/20261203000000_calendar_feed.sql`
       (task 39). Expected result: "Success. No rows returned".
 - [ ] **Deploy the calendar function** (terminal, from the project folder, after the SQL above):
   ```sh
