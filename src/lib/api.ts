@@ -17,6 +17,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   already_assignee: 'המשמרת כבר שלך.',
   offer_not_found: 'ההתנדבות לא נמצאה.',
   offer_not_pending: 'ההתנדבות כבר טופלה.',
+  request_exists: 'כבר שלחת בקשת חילוף על המשמרת הזאת. אפשר לבטל אותה ולשלוח חדשה.',
+  request_not_found: 'בקשת החילוף לא נמצאה.',
+  request_not_pending: 'בקשת החילוף כבר טופלה.',
+  stale_request: 'אחת המשמרות השתנתה מאז שנשלחה הבקשה, ולכן אי אפשר לאשר אותה.',
   stale_offer: 'המשמרת השתנתה מאז ההתנדבות, ולכן אי אפשר לאשר אותה.',
   admin_only: 'הפעולה הזאת זמינה רק למנהלים.',
   not_approved: 'החשבון שלך עדיין לא אושר על ידי מנהל.',
@@ -54,6 +58,15 @@ export const api = {
   withdrawOffer: (offerId: number) => call('withdraw_offer', { p_offer_id: offerId }),
   acceptOffer: (offerId: number) => call('accept_offer', { p_offer_id: offerId }),
   declineOffer: (offerId: number) => call('decline_offer', { p_offer_id: offerId }),
+  sendSwapRequest: (night: string, slot: Slot, give: { night: string; slot: Slot } | null) =>
+    call<number>('send_swap_request', {
+      ...shiftArgs(night, slot),
+      p_give_night: give?.night ?? null,
+      p_give_slot: give?.slot ?? null,
+    }),
+  withdrawSwapRequest: (requestId: number) => call('withdraw_swap_request', { p_request_id: requestId }),
+  acceptSwapRequest: (requestId: number) => call('accept_swap_request', { p_request_id: requestId }),
+  declineSwapRequest: (requestId: number) => call('decline_swap_request', { p_request_id: requestId }),
 
   adminSetAssignee: (night: string, slot: Slot, name: string | null) =>
     call('admin_set_assignee', { ...shiftArgs(night, slot), p_name: name ?? '' }),

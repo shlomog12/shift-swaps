@@ -1,9 +1,12 @@
 import { formatDate, hasStarted, nightShortLabel, slotTime } from '../lib/dates';
-import { useMe, useQuery, useRoster } from '../lib/hooks';
-import { loadMyOffers } from '../lib/queries';
+import { useAction, useMe, useQuery, useRoster } from '../lib/hooks';
+import { api } from '../lib/api';
+import { loadMyOffers, loadSentRequests } from '../lib/queries';
 import type { SwapOffer } from '../lib/types';
 import { ShiftListItem } from './Board';
+import { useFeedback } from './Feedback';
 import { DecisionsCard } from './Summary';
+import { REQUEST_STATUS, giveText, shiftText } from './SwapRequests';
 
 const STATUS_TEXT: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -16,8 +19,16 @@ export function MyShifts() {
   const me = useMe();
   const shifts = useRoster().upcoming;
   const offers = useQuery(() => loadMyOffers(me.profile.id), [me.profile.id]);
+  const sent = useQuery(() => loadSentRequests(me.profile.id), [me.profile.id]);
+  const { busy, error, run } = useAction();
+  const { confirm, toast } = useFeedback();
 
   const mine = (shifts.data ?? []).filter((s) => me.isMine(s.assignee) && !hasStarted(s.night, s.slot));
+
+  async function withdraw(requestId: number) {
+    const ok = await confirm({ title: 'לבטל את הבקשה?', confirmLabel: 'ביטול הבקשה', cancelLabel: 'השארה', danger: true });
+    if (ok) run(() => api.withdrawSwapRequest(requestId), () => toast('הבקשה בוטלה'));
+  }
 
   return (
     <div className="page">
@@ -51,6 +62,32 @@ export function MyShifts() {
           </li>
         ))}
       </ul>
+
+      <h2>בקשות חילוף ששלחתי</h2>
+      {sent.data && sent.data.length === 0 && (
+        <p className="empty">עוד לא שלחת בקשות. אפשר לבקש חילוף בלחיצה על משמרת של מישהו אחר.</p>
+      )}
+      <ul className="list">
+        {(sent.data ?? []).map((r) => (
+          <li key={r.id}>
+            <button className="list-item" onClick={() => me.openShift(r.night, r.slot)}>
+              <span className="list-main">
+                <strong>{shiftText(r.night, r.slot)}</strong>
+                <span className="muted small">
+                  מ{r.owner} · {giveText(r)}
+                </span>
+              </span>
+              <span className={`list-side status-${r.status}`}>{REQUEST_STATUS[r.status]}</span>
+            </button>
+            {r.status === 'pending' && (
+              <button className="link small" disabled={busy} onClick={() => withdraw(r.id)}>
+                ביטול הבקשה
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {error && <p className="error">{error}</p>}
     </div>
   );
 }

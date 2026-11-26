@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { awaitingMyDecision, nextShift } from './attention';
+import { awaitingMyDecision, incomingForMe, nextShift } from './attention';
 import { daysBetween, startsInLabel } from './dates';
-import type { Shift, SwapOffer } from './types';
+import type { Shift, SwapOffer, SwapRequest } from './types';
 
 const shift = (night: string, slot: 1 | 2, assignee: string | null, swap = false): Shift => ({
   night,
@@ -51,6 +51,25 @@ describe('attention', () => {
     const shifts = [shift('2026-10-01', 1, 'דנה'), shift('2026-10-02', 1, 'יוסי'), shift('2026-10-03', 2, 'דנה')];
     expect(nextShift(shifts, isDana, now)).toBe(shifts[2]);
     expect(nextShift([], isDana, now)).toBeUndefined();
+  });
+
+  it('lists pending direct requests for shifts that are still mine', () => {
+    const request = (night: string, status: SwapRequest['status'] = 'pending'): SwapRequest => ({
+      id: Math.random(),
+      night,
+      slot: 1,
+      owner: 'דנה',
+      requester_id: 'u2',
+      requester: 'אבי',
+      give_night: null,
+      give_slot: null,
+      status,
+      created_at: '',
+      decided_at: null,
+    });
+    const shifts = [shift('2026-10-03', 1, 'דנה'), shift('2026-10-04', 1, 'יוסי'), shift('2026-09-30', 1, 'דנה')];
+    const requests = [request('2026-10-03'), request('2026-10-03', 'declined'), request('2026-10-04'), request('2026-09-30')];
+    expect(incomingForMe(shifts, requests, isDana, now)).toEqual([requests[0]]);
   });
 
   it('says how soon a shift starts', () => {

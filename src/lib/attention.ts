@@ -1,5 +1,5 @@
 import { hasStarted } from './dates';
-import type { Shift, SwapOffer } from './types';
+import type { Shift, SwapOffer, SwapRequest } from './types';
 
 export interface Decision {
   shift: Shift;
@@ -33,4 +33,15 @@ export function nextShift(
   now: Date = new Date(),
 ): Shift | undefined {
   return shifts.find((s) => isMine(s.assignee) && !hasStarted(s.night, s.slot, now));
+}
+
+/** Pending direct requests for shifts that are still mine and have not started. */
+export function incomingForMe(
+  shifts: Shift[],
+  requests: SwapRequest[],
+  isMine: (assignee: string | null) => boolean,
+  now: Date = new Date(),
+): SwapRequest[] {
+  const mine = new Set(shifts.filter((s) => isMine(s.assignee) && !hasStarted(s.night, s.slot, now)).map(key));
+  return requests.filter((r) => r.status === 'pending' && mine.has(key(r)));
 }

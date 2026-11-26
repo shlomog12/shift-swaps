@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import type { Profile, Shift, Slot, SwapOffer } from './types';
+import type { Profile, Shift, Slot, SwapOffer, SwapRequest } from './types';
 
 /** Bumped whenever shared data may have changed, so every query reloads. */
 export const RefreshContext = createContext<{ version: number; refresh: () => void }>({
@@ -72,6 +72,7 @@ export function useLiveRefresh(enabled: boolean, refresh: () => void) {
       .channel('roster-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, debounced)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'swap_offers' }, debounced)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'swap_requests' }, debounced)
       .subscribe();
     const onVisible = () => document.visibilityState === 'visible' && debounced();
     document.addEventListener('visibilitychange', onVisible);
@@ -103,6 +104,8 @@ export function useMe(): Me {
 export interface Roster {
   upcoming: QueryState<Shift[]>;
   pendingOffers: QueryState<SwapOffer[]>;
+  /** Pending direct requests addressed to my roster name. */
+  incoming: QueryState<SwapRequest[]>;
 }
 
 export const RosterContext = createContext<Roster | null>(null);

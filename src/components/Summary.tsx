@@ -1,22 +1,39 @@
 import { useMemo } from 'react';
-import { awaitingMyDecision, nextShift } from '../lib/attention';
+import { awaitingMyDecision, incomingForMe, nextShift } from '../lib/attention';
 import { SLOT_HOURS, formatDate, hasStarted, nightLabel, nightShortLabel, startsInLabel } from '../lib/dates';
 import { useMe, useRoster } from '../lib/hooks';
+import { IncomingRequest } from './SwapRequests';
 
 /** Swap requests on my shifts that have volunteers waiting for my answer. */
 export function DecisionsCard() {
   const me = useMe();
-  const { upcoming, pendingOffers } = useRoster();
+  const { upcoming, pendingOffers, incoming } = useRoster();
   const decisions = useMemo(
     () => awaitingMyDecision(upcoming.data ?? [], pendingOffers.data ?? [], me.isMine),
     [upcoming.data, pendingOffers.data, me],
   );
+  const requests = useMemo(
+    () => incomingForMe(upcoming.data ?? [], incoming.data ?? [], me.isMine),
+    [upcoming.data, incoming.data, me],
+  );
+  const total = decisions.length + requests.length;
 
-  if (decisions.length === 0) return null;
+  if (total === 0) return null;
 
   return (
     <section className="card attention-card">
-      <h2>ממתין להחלטה שלך ({decisions.length})</h2>
+      <h2>ממתין להחלטה שלך ({total})</h2>
+      {requests.length > 0 && (
+        <>
+          <h3>בקשות חילוף אליך</h3>
+          <ul className="offers">
+            {requests.map((r) => (
+              <IncomingRequest key={r.id} request={r} showShift />
+            ))}
+          </ul>
+        </>
+      )}
+      {decisions.length > 0 && requests.length > 0 && <h3>מתנדבים לבקשות שלך</h3>}
       <ul className="list">
         {decisions.map(({ shift, volunteers }) => (
           <li key={`${shift.night}/${shift.slot}`}>

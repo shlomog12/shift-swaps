@@ -22,6 +22,21 @@ export interface SwapOffer {
   decided_at: string | null;
 }
 
+/** A direct request for someone's shift, optionally offering one of the requester's shifts in exchange. */
+export interface SwapRequest {
+  id: number;
+  night: string;
+  slot: Slot;
+  owner: string;
+  requester_id: string;
+  requester: string;
+  give_night: string | null;
+  give_slot: Slot | null;
+  status: OfferStatus;
+  created_at: string;
+  decided_at: string | null;
+}
+
 export type UserStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Profile {
@@ -59,6 +74,8 @@ export interface ShiftKey {
 }
 
 export const SHIFT_COLUMNS = 'night,slot,assignee,swap_requested,updated_at';
+export const REQUEST_COLUMNS =
+  'id,night,slot,owner,requester_id,requester,give_night,give_slot,status,created_at,decided_at';
 export const OFFER_COLUMNS = 'id,night,slot,requester,volunteer_id,volunteer,status,created_at,decided_at';
 export const PROFILE_COLUMNS = 'id,display_name,is_admin,status,created_at';
 export const AUDIT_COLUMNS = 'id,at,actor_id,actor_name,action,night,slot,details';

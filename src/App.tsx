@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Admin } from './components/Admin';
 import { api } from './lib/api';
 import { Board } from './components/Board';
@@ -20,8 +20,9 @@ import {
   useSession,
   type Me,
 } from './lib/hooks';
-import { awaitingMyDecision } from './lib/attention';
-import { loadPendingOffers, loadProfile, loadUpcomingShifts } from './lib/queries';
+import { awaitingMyDecision, incomingForMe } from './lib/attention';
+import { loadIncomingRequests, loadPendingOffers, loadProfile, loadUpcomingShifts } from './lib/queries';
+import { clearSharedShift, readSharedShift } from './lib/share';
 import { isConfigured, supabase } from './lib/supabase';
 import type { Profile, ShiftKey } from './lib/types';
 
@@ -83,7 +84,9 @@ const ADMIN_MODE_KEY = 'admin-mode';
 function Shell({ profile, email }: { profile: Profile; email: string }) {
   const { refresh } = useRefresh();
   const [tab, setTab] = useState<Tab>('calendar');
-  const [open, setOpen] = useState<ShiftKey | null>(null);
+  // A shift shared by link (e.g. on WhatsApp) opens right away.
+  const [open, setOpen] = useState<ShiftKey | null>(readSharedShift);
+  useEffect(clearSharedShift, []);
   // Admins can switch to the regular user's view; the server still knows they are an admin.
   const [adminMode, setAdminMode] = useState(() => localStorage.getItem(ADMIN_MODE_KEY) !== 'off');
   useLiveRefresh(true, refresh);
@@ -107,11 +110,15 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
 
   const upcoming = useQuery(loadUpcomingShifts, []);
   const pendingOffers = useQuery(loadPendingOffers, []);
-  const roster = useMemo(() => ({ upcoming, pendingOffers }), [upcoming, pendingOffers]);
-  const decisionCount = useMemo(
-    () => awaitingMyDecision(upcoming.data ?? [], pendingOffers.data ?? [], me.isMine).length,
-    [upcoming.data, pendingOffers.data, me],
-  );
+  const incoming = useQuery(() => loadIncomingRequests(profile.display_name ?? ''), [profile.display_name]);
+  const roster = useMemo(() => ({ upcoming, pendingOffers, incoming }), [upcoming, pendingOffers, incoming]);
+  const decisionCount = useMemo(() => {
+    const shifts = upcoming.data ?? [];
+    return (
+      awaitingMyDecision(shifts, pendingOffers.data ?? [], me.isMine).length +
+      incomingForMe(shifts, incoming.data ?? [], me.isMine).length
+    );
+  }, [upcoming.data, pendingOffers.data, incoming.data, me]);
 
   const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
   const users = useQuery(() => (isAdmin ? api.adminListUsers() : Promise.resolve([])), [isAdmin]);
