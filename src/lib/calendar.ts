@@ -27,7 +27,8 @@ export function webcalUrl(feed: string): string {
   return feed.replace(/^https?:\/\//, 'webcal://');
 }
 
-/** Opens Google Calendar's "add calendar from URL" for the feed. */
-export function googleSubscribeUrl(feed: string): string {
-  return `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl(feed))}`;
-}
+/**
+ * Google Calendar's "add calendar from URL" settings page. Used instead of a ?cid= link, which the
+ * Google Calendar phone app intercepts and reports as added without adding anything.
+ */
+export const GOOGLE_ADD_BY_URL = 'https://calendar.google.com/calendar/u/0/r/settings/addbyurl';

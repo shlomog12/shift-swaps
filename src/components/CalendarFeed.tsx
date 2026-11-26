@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { feedUrl, googleSubscribeUrl, webcalUrl } from '../lib/calendar';
+import { GOOGLE_ADD_BY_URL, feedUrl, webcalUrl } from '../lib/calendar';
 import { useAction } from '../lib/hooks';
 import { supabaseUrl } from '../lib/supabase';
 import { useFeedback } from './Feedback';
@@ -8,18 +8,29 @@ import { useFeedback } from './Feedback';
 /** Profile section: subscribe to my shifts in Google Calendar or on an iPhone, and replace the link. */
 export function CalendarFeedSection() {
   const [token, setToken] = useState<string | null>(null);
+  const [showGoogleSteps, setShowGoogleSteps] = useState(false);
+  const linkField = useRef<HTMLInputElement>(null);
   const { busy, error, run } = useAction();
   const { confirm, toast } = useFeedback();
   const feed = token ? feedUrl(supabaseUrl, token) : null;
 
-  async function copy() {
+  /** Copies the link; if the browser refuses, selects it in the field so it can be copied by hand. */
+  async function copy(quiet = false) {
     if (!feed) return;
     try {
       await navigator.clipboard.writeText(feed);
-      toast('הקישור הועתק');
+      if (!quiet) toast('הקישור הועתק');
     } catch {
-      window.prompt('העתקת הקישור:', feed);
+      linkField.current?.select();
+      toast('לא הצלחנו להעתיק אוטומטית. אפשר לסמן את הקישור בשדה ולהעתיק', 'info');
     }
+  }
+
+  // The link opens Google's "add calendar from URL" page in the browser; the copy starts in the same tap,
+  // so the link is ready to paste when the page opens.
+  function openGoogle() {
+    setShowGoogleSteps(true);
+    void copy(true);
   }
 
   async function reset() {
@@ -47,17 +58,45 @@ export function CalendarFeedSection() {
       ) : (
         <>
           <div className="calendar-links">
-            <a className="button primary" href={googleSubscribeUrl(feed)} target="_blank" rel="noopener noreferrer">
+            <a
+              className="button primary"
+              href={GOOGLE_ADD_BY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={openGoogle}
+            >
               הוספה ליומן גוגל
             </a>
             <a className="button" href={webcalUrl(feed)}>
               הוספה ליומן באייפון
             </a>
-            <button onClick={copy}>העתקת הקישור</button>
+            <button onClick={() => copy()}>העתקת הקישור</button>
           </div>
+          <input
+            ref={linkField}
+            className="feed-link ltr"
+            readOnly
+            value={feed}
+            aria-label="הקישור ליומן"
+            onFocus={(e) => e.target.select()}
+          />
+          {showGoogleSteps && (
+            <ol className="small google-steps">
+              <li>הקישור הועתק, ונפתח דף "הוספת יומן מכתובת URL" של גוגל בדפדפן.</li>
+              <li>מוודאים למעלה שזה חשבון הגוגל הנכון.</li>
+              <li>
+                מדביקים את הקישור בשדה <strong>"כתובת URL של היומן"</strong> ולוחצים <strong>"הוספת יומן"</strong>.
+              </li>
+              <li>
+                בטלפון: באפליקציית Google Calendar ← הגדרות ← היומן "שמירות" ← להפעיל <strong>סנכרון</strong>.
+              </li>
+              <li className="muted">אם הדף נפתח באפליקציה במקום בדפדפן, אפשר לפתוח אותו בדפדפן במצב "אתר למחשב".</li>
+            </ol>
+          )}
           <ul className="small calendar-notes">
             <li>
-              <strong>עדכון:</strong> גוגל מרענן יומנים כאלה כל כמה שעות, ולפעמים רק אחרי יממה. לחילוף של הלילה כדאי
+              <strong>עדכון:</strong> בהוספה הראשונה ייתכן שיעברו כמה דקות עד שהמשמרות יופיעו. אחר כך גוגל מרענן
+              יומנים כאלה כל כמה שעות, ולפעמים רק אחרי יממה. לחילוף של הלילה כדאי
               להוסיף את המשמרת גם מהכפתור "הוספה ליומן גוגל" שבחלון המשמרת.
             </li>
             <li>

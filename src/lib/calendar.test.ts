@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { feedUrl, googleCalendarUrl, googleSubscribeUrl, webcalUrl } from './calendar';
+import { feedUrl, googleCalendarUrl, webcalUrl } from './calendar';
 import { myShiftsText } from './rosterText';
 
 describe('sharing my shifts', () => {
@@ -27,6 +27,5 @@ describe('sharing my shifts', () => {
     const feed = feedUrl('https://abc.supabase.co/', 'f'.repeat(64));
     expect(feed).toBe(`https://abc.supabase.co/functions/v1/calendar-feed?token=${'f'.repeat(64)}`);
     expect(webcalUrl(feed).startsWith('webcal://abc.supabase.co/')).toBe(true);
-    expect(new URL(googleSubscribeUrl(feed)).searchParams.get('cid')).toBe(webcalUrl(feed));
   });
 });

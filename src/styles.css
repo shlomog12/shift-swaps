@@ -1457,3 +1457,19 @@ a.button:not(.primary):not(.whatsapp):not(.calendar) {
 .calendar-notes li {
   margin-bottom: 0.3rem;
 }
+
+.feed-link {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0.2rem 0 0.4rem;
+}
+
+.google-steps {
+  background: var(--mine);
+  border: 1px solid var(--mine-border);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem 0.5rem 0.7rem;
+  padding-inline-start: 1.6rem;
+  margin: 0.4rem 0;
+  line-height: 1.5;
+}
