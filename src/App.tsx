@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Admin } from './components/Admin';
+import { api } from './lib/api';
 import { Board } from './components/Board';
 import { Calendar } from './components/Calendar';
 import { History } from './components/History';
-import { Login, SetupMissing } from './components/Login';
+import { AccessPending, Login, SetupMissing } from './components/Login';
 import { MyShifts } from './components/MyShifts';
 import { NamePicker } from './components/NamePicker';
 import { ShiftSheet } from './components/ShiftSheet';
@@ -67,6 +68,7 @@ function ProfileGate({ userId, email }: { userId: string; email: string }) {
     );
   }
   if (!profile.data) return <div className="center-page muted">טוען...</div>;
+  if (profile.data.status !== 'approved') return <AccessPending status={profile.data.status} email={email} />;
   if (!profile.data.display_name) return <NamePicker />;
   return <Shell profile={profile.data} email={email} />;
 }
@@ -99,6 +101,8 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   }
 
   const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
+  const users = useQuery(() => (isAdmin ? api.adminListUsers() : Promise.resolve([])), [isAdmin]);
+  const pendingCount = (users.data ?? []).filter((u) => u.status === 'pending').length;
   const activeTab = tabs.some((t) => t.id === tab) ? tab : 'calendar';
 
   return (
@@ -135,6 +139,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
           <button key={t.id} className={t.id === activeTab ? 'active' : undefined} onClick={() => setTab(t.id)}>
             <span aria-hidden="true">{t.icon}</span>
             {t.label}
+            {t.id === 'admin' && pendingCount > 0 && <b className="tab-badge">{pendingCount}</b>}
           </button>
         ))}
       </nav>

@@ -38,6 +38,12 @@ function describe(e: AuditEntry): string {
       return `מחיקת לילות ${text(d.from, '')}–${text(d.to, '')} (${text(d.deleted)} משמרות)`;
     case 'claim_name':
       return d.from ? `שינוי שם ברשימה: ${text(d.from)} ← ${text(d.to)}` : `בחר/ה שם ברשימה: ${text(d.to)}`;
+    case 'approve_user':
+      return `אישור משתמש: ${text(d.user)}`;
+    case 'reject_user':
+      return `חסימת משתמש: ${text(d.user)}`;
+    case 'unapprove_user':
+      return `החזרת משתמש להמתנה: ${text(d.user)}`;
     case 'grant_admin':
       return `הוספת מנהל: ${text(d.user)}`;
     case 'revoke_admin':

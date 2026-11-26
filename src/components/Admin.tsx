@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
-import { SLOT_HOURS, addDays, formatDate, israelToday, nightLabel } from '../lib/dates';
+import { SLOT_HOURS, addDays, formatDate, formatDateTime, israelToday, nightLabel } from '../lib/dates';
 import { useAction, useMe, useQuery } from '../lib/hooks';
 import { parseSheet, type ImportResult, type ImportRow } from '../lib/importSheet';
 import { loadShifts } from '../lib/queries';
-import type { Shift } from '../lib/types';
+import type { AdminUser, Shift } from '../lib/types';
 
 export function Admin() {
   return (
     <div className="page">
+      <PendingPanel />
       <ImportPanel />
       <NightsPanel />
       <UsersPanel />
@@ -236,10 +237,57 @@ function NightsPanel() {
   );
 }
 
+function userLabel(u: AdminUser): string {
+  return u.display_name ?? u.google_name ?? u.email;
+}
+
+function PendingPanel() {
+  const users = useQuery(api.adminListUsers, []);
+  const { busy, error, run } = useAction();
+  const pending = (users.data ?? []).filter((u) => u.status === 'pending');
+
+  if (pending.length === 0) return null;
+
+  return (
+    <section className="card pending-panel">
+      <h2>ממתינים לאישור ({pending.length})</h2>
+      <p className="muted small">אשר רק אנשים שאתה מזהה לפי השם והמייל. משתמש שלא אושר לא רואה שום מידע.</p>
+      <ul className="pending-list">
+        {pending.map((u) => (
+          <li key={u.id}>
+            <span className="list-main">
+              <strong>{u.google_name ?? 'ללא שם בגוגל'}</strong>
+              <span className="small ltr-inline">{u.email}</span>
+              <span className="muted small">נרשם/ה {formatDateTime(u.created_at)}</span>
+            </span>
+            <span className="row">
+              <button className="primary small" disabled={busy} onClick={() => run(() => api.adminSetStatus(u.id, 'approved'))}>
+                אישור
+              </button>
+              <button
+                className="small danger"
+                disabled={busy}
+                onClick={() =>
+                  window.confirm(`לחסום את ${u.email}?`) && run(() => api.adminSetStatus(u.id, 'rejected'))
+                }
+              >
+                חסימה
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {error && <p className="error">{error}</p>}
+    </section>
+  );
+}
+
 function UsersPanel() {
   const me = useMe();
   const users = useQuery(api.adminListUsers, []);
   const { busy, error, run } = useAction();
+  const approved = (users.data ?? []).filter((u) => u.status === 'approved');
+  const rejected = (users.data ?? []).filter((u) => u.status === 'rejected');
 
   function rename(userId: string, current: string | null) {
     const name = window.prompt('השם החדש ברשימה:', current ?? '');
@@ -265,10 +313,13 @@ function UsersPanel() {
             </tr>
           </thead>
           <tbody>
-            {(users.data ?? []).map((u) => (
+            {approved.map((u) => (
               <tr key={u.id}>
                 <td>{u.display_name ?? <span className="muted">לא נבחר</span>}</td>
-                <td className="small ltr">{u.email}</td>
+                <td className="small">
+                  {u.google_name && <div>{u.google_name}</div>}
+                  <div className="ltr">{u.email}</div>
+                </td>
                 <td>
                   <input
                     type="checkbox"
@@ -277,23 +328,54 @@ function UsersPanel() {
                     aria-label="מנהל"
                     onChange={(e) => {
                       const value = e.target.checked;
-                      const who = u.display_name ?? u.email;
                       if (u.id === me.profile.id && !value && !window.confirm('להסיר את עצמך מהמנהלים?')) return;
-                      if (value && !window.confirm(`להפוך את ${who} למנהל?`)) return;
+                      if (value && !window.confirm(`להפוך את ${userLabel(u)} למנהל?`)) return;
                       run(() => api.adminSetAdmin(u.id, value));
                     }}
                   />
                 </td>
-                <td>
+                <td className="actions-cell">
                   <button className="link small" disabled={busy} onClick={() => rename(u.id, u.display_name)}>
                     שינוי שם
                   </button>
+                  {u.id !== me.profile.id && !u.is_admin && (
+                    <button
+                      className="link small danger"
+                      disabled={busy}
+                      onClick={() =>
+                        window.confirm(
+                          `לחסום את ${userLabel(u)}? הוא לא יוכל להיכנס, והשם שלו ברשימה ישתחרר. המשמרות שלו נשארות.`,
+                        ) && run(() => api.adminSetStatus(u.id, 'rejected'))
+                      }
+                    >
+                      חסימה
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {rejected.length > 0 && (
+        <details>
+          <summary className="muted small">חסומים ({rejected.length})</summary>
+          <ul className="pending-list">
+            {rejected.map((u) => (
+              <li key={u.id}>
+                <span className="list-main">
+                  <span>{u.google_name ?? 'ללא שם בגוגל'}</span>
+                  <span className="small ltr-inline">{u.email}</span>
+                </span>
+                <button className="small" disabled={busy} onClick={() => run(() => api.adminSetStatus(u.id, 'approved'))}>
+                  אישור בכל זאת
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       {error && <p className="error">{error}</p>}
     </section>
   );

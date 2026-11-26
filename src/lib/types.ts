@@ -22,15 +22,19 @@ export interface SwapOffer {
   decided_at: string | null;
 }
 
+export type UserStatus = 'pending' | 'approved' | 'rejected';
+
 export interface Profile {
   id: string;
   display_name: string | null;
   is_admin: boolean;
+  status: UserStatus;
   created_at: string;
 }
 
 export interface AdminUser extends Profile {
   email: string;
+  google_name: string | null;
 }
 
 export interface AuditEntry {
@@ -56,5 +60,5 @@ export interface ShiftKey {
 
 export const SHIFT_COLUMNS = 'night,slot,assignee,swap_requested,updated_at';
 export const OFFER_COLUMNS = 'id,night,slot,requester,volunteer_id,volunteer,status,created_at,decided_at';
-export const PROFILE_COLUMNS = 'id,display_name,is_admin,created_at';
+export const PROFILE_COLUMNS = 'id,display_name,is_admin,status,created_at';
 export const AUDIT_COLUMNS = 'id,at,actor_id,actor_name,action,night,slot,details';

@@ -42,7 +42,9 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000d', 'd@example.com');
 
 select test.eq((select count(*) from public.profiles), 4::bigint, 'profiles created on sign-up');
-update public.profiles set is_admin = true, display_name = 'מנהל'
+-- The migration approves existing users; new sign-ups below start as pending.
+update public.profiles set status = 'pending';
+update public.profiles set is_admin = true, status = 'approved', display_name = 'מנהל'
  where id = '00000000-0000-0000-0000-00000000000a';
 
 -- Dates relative to today so the tests keep working.
@@ -64,8 +66,24 @@ select test.eq((select assignee from public.shifts where night = (select f1 from
 select test.eq(public.admin_import(jsonb_build_array(
   jsonb_build_object('night', (select f1 from test.d), 'slot1', 'בוסי', 'slot2', 'חסן'))), 0, 're-import is a no-op');
 
+-- Pending users see nothing and can do nothing.
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.eq((select count(*) from public.shifts), 0::bigint, 'pending user reads no shifts');
+select test.eq((select count(*) from public.profiles), 1::bigint, 'pending user reads only own profile');
+select test.eq((select status from public.profiles), 'pending', 'pending user sees own status');
+select test.expect_error('select public.claim_name(''בוסי'')', 'not_approved');
+select test.expect_error('select * from public.roster_names()', 'not_approved');
+select test.expect_error('select public.admin_set_status(''00000000-0000-0000-0000-00000000000b'', ''approved'')', 'not_approved');
+
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_set_status('00000000-0000-0000-0000-00000000000b', 'approved');
+select public.admin_set_status('00000000-0000-0000-0000-00000000000c', 'approved');
+select public.admin_set_status('00000000-0000-0000-0000-00000000000d', 'approved');
+select test.expect_error('select public.admin_set_status(''00000000-0000-0000-0000-00000000000a'', ''rejected'')', 'cannot_change_self');
+
 -- B must pick a name first.
 select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.eq((select count(*) from public.shifts) > 0, true, 'approved user reads shifts');
 select test.expect_error(format('select public.take_shift(%L, 1::smallint)', (select f2 from test.d)), 'choose_name_first');
 select public.claim_name('בוסי');
 select test.expect_error('select public.claim_name(''משהו אחר'')', 'name_already_chosen');
@@ -139,6 +157,7 @@ select test.as_user('00000000-0000-0000-0000-00000000000a');
 select test.eq((select count(*) from public.admin_list_users()), 4::bigint, 'admin sees users');
 select test.expect_error('select public.admin_set_admin(''00000000-0000-0000-0000-00000000000a'', false)', 'last_admin');
 select public.admin_set_admin('00000000-0000-0000-0000-00000000000b', true);
+select test.expect_error('select public.admin_set_status(''00000000-0000-0000-0000-00000000000b'', ''rejected'')', 'admin_must_stay_approved');
 select public.admin_set_user_name('00000000-0000-0000-0000-00000000000c', 'דהן משה', true);
 select test.eq((select assignee from public.shifts where night = (select f1 from test.d) and slot = 1), 'דהן משה', 'rename moves shifts');
 select public.admin_set_assignee((select f2 from test.d), 2::smallint, 'חדש');
@@ -149,9 +168,24 @@ select test.eq(public.admin_delete_nights((select f2 from test.d), (select f2 fr
 select test.eq((select count(*) from public.roster_names() where name = 'חסן' and not claimed), 1::bigint, 'roster names');
 
 reset role;
-select test.eq((select count(*) from public.email_outbox where to_email = 'b@example.com'), 2::bigint, 'requester e-mailed per offer');
-select test.eq((select count(*) from public.email_outbox where to_email = 'c@example.com'), 2::bigint, 'volunteer e-mails: approved, request cancelled');
-select test.eq((select count(*) from public.email_outbox where to_email = 'd@example.com'), 3::bigint, 'd e-mails: declined, two offers on own shift');
+select test.eq((select count(*) from public.email_outbox where to_email = 'b@example.com'), 3::bigint, 'b e-mails: approved, one per offer');
+select test.eq((select count(*) from public.email_outbox where to_email = 'c@example.com'), 3::bigint, 'c e-mails: approved, offer approved, request cancelled');
+select test.eq((select count(*) from public.email_outbox where to_email = 'd@example.com'), 4::bigint, 'd e-mails: approved, declined, two offers on own shift');
+
+-- A new sign-up notifies the admins (A and B by now) and can be rejected.
+insert into auth.users (id, email, raw_user_meta_data)
+values ('00000000-0000-0000-0000-00000000000e', 'e@example.com', '{"full_name": "Eve Stranger"}');
+select test.eq((select count(*) from public.email_outbox where subject like '%Eve Stranger%'), 2::bigint, 'admins told about new user');
+select test.eq((select google_name from public.profiles where email = 'e@example.com'), 'Eve Stranger', 'google name stored');
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.eq((select status from public.admin_list_users() where email = 'e@example.com'), 'pending', 'admin sees pending user');
+select public.admin_set_status('00000000-0000-0000-0000-00000000000e', 'rejected');
+select test.as_user('00000000-0000-0000-0000-00000000000e');
+select test.expect_error(format('select public.take_shift(%L, 2::smallint)', (select f1 from test.d)), 'not_approved');
+select test.eq((select status from public.profiles), 'rejected', 'rejected user sees own status');
+select test.eq((select count(*) from public.audit_log), 0::bigint, 'rejected user reads no history');
+reset role;
 select test.eq((select actor_email from public.audit_log where action = 'swap'), 'b@example.com', 'audit records actor');
 
 \echo 'All rule tests passed.'

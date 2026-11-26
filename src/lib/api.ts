@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { AdminUser, RosterName, Slot } from './types';
+import type { AdminUser, RosterName, Slot, UserStatus } from './types';
 import type { ImportRow } from './importSheet';
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -19,6 +19,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   offer_not_pending: 'ההתנדבות כבר טופלה.',
   stale_offer: 'המשמרת השתנתה מאז ההתנדבות, ולכן אי אפשר לאשר אותה.',
   admin_only: 'הפעולה הזאת זמינה רק למנהלים.',
+  not_approved: 'החשבון שלך עדיין לא אושר על ידי מנהל.',
+  cannot_change_self: 'אי אפשר לשנות את הסטטוס של עצמך.',
+  admin_must_stay_approved: 'קודם צריך להסיר את המשתמש מהמנהלים.',
   invalid_import: 'אין שורות לייבוא.',
   import_too_large: 'אפשר לייבא עד 1000 לילות בפעם אחת.',
   invalid_range: 'טווח התאריכים לא תקין (עד 400 ימים).',
@@ -58,6 +61,8 @@ export const api = {
   adminDeleteNights: (from: string, to: string) =>
     call<number>('admin_delete_nights', { p_from: from, p_to: to }),
   adminListUsers: () => call<AdminUser[]>('admin_list_users'),
+  adminSetStatus: (userId: string, status: UserStatus) =>
+    call('admin_set_status', { p_user_id: userId, p_status: status }),
   adminSetAdmin: (userId: string, isAdmin: boolean) =>
     call('admin_set_admin', { p_user_id: userId, p_is_admin: isAdmin }),
   adminSetUserName: (userId: string, name: string, renameShifts: boolean) =>

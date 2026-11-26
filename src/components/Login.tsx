@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRefresh } from '../lib/hooks';
+import type { UserStatus } from '../lib/types';
 import { supabase } from '../lib/supabase';
 
 export function Login() {
@@ -24,6 +26,9 @@ export function Login() {
         </button>
         <p className="muted small">כל פעולה נרשמת בהיסטוריה עם חשבון הגוגל שביצע אותה.</p>
         {error && <p className="error">{error}</p>}
+        <p className="small">
+          <a href="./privacy.html">מדיניות פרטיות</a>
+        </p>
       </div>
     </div>
   );
@@ -37,6 +42,50 @@ export function SetupMissing() {
         <p>
           לא הוגדרו <code>VITE_SUPABASE_URL</code> ו-<code>VITE_SUPABASE_ANON_KEY</code>. ראו את ההוראות בקובץ
           README.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Shown to users an admin has not approved yet, or has rejected. */
+export function AccessPending({ status, email }: { status: Exclude<UserStatus, 'approved'>; email: string }) {
+  const { refresh } = useRefresh();
+
+  // Check again every 20 seconds, so the app opens by itself once an admin approves.
+  useEffect(() => {
+    if (status !== 'pending') return;
+    const timer = window.setInterval(refresh, 20_000);
+    return () => window.clearInterval(timer);
+  }, [status, refresh]);
+
+  return (
+    <div className="center-page">
+      <div className="card login">
+        <img src="./icon.svg" alt="" width={72} height={72} />
+        {status === 'pending' ? (
+          <>
+            <h1>ממתין לאישור מנהל</h1>
+            <p>
+              נרשמת עם <span className="ltr-inline">{email}</span>. המנהל קיבל הודעה, ואחרי שיאשר אותך תוכל לבחור
+              את השם שלך ברשימה. תקבל גם מייל כשהחשבון יאושר.
+            </p>
+            <button className="primary" onClick={refresh}>
+              בדיקה שוב
+            </button>
+          </>
+        ) : (
+          <>
+            <h1>אין גישה</h1>
+            <p>
+              החשבון <span className="ltr-inline">{email}</span> לא אושר לשימוש באפליקציה. אם זו טעות, פנה למנהל.
+            </p>
+          </>
+        )}
+        <p>
+          <button className="link" onClick={() => supabase.auth.signOut()}>
+            התנתקות / החלפת חשבון
+          </button>
         </p>
       </div>
     </div>

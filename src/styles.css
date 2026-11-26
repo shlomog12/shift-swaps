@@ -828,3 +828,49 @@ td.cell-changed {
   color: #1b2330;
   font-weight: 600;
 }
+
+.ltr-inline {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.tab-bar button {
+  position: relative;
+}
+
+.tab-badge {
+  position: absolute;
+  top: 0.25rem;
+  inset-inline-start: calc(50% + 0.5rem);
+  min-width: 1.1rem;
+  height: 1.1rem;
+  line-height: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.7rem;
+}
+
+.pending-panel {
+  border: 2px solid var(--swap-border);
+}
+
+.pending-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
+.pending-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
