@@ -29,11 +29,12 @@ Backlog from the UX review. Numbers match the review; done tasks are kept for re
 13. Swap board and open shifts grouped by week; open shifts beyond three weeks behind "show more".
 37. Share my own shifts on WhatsApp from "My shifts" (two weeks / month, no link).
 38. "Add to Google Calendar" on each of my upcoming shifts.
+14. Installable PWA: PNG icons (192/512/maskable/apple-touch), service worker (pages network-first, assets
+    cached), install button in the profile, "no connection" bar.
 
 ## P1
 
 11. Optional note on a swap request and on volunteering (schema + RPC change).
-14. Service worker, PNG icons (192/512/apple-touch), installable PWA.
 15. Reminder by e-mail or push X hours before a shift (Supabase cron).
 39. Personal calendar subscription: an edge function serving an ICS feed of my shifts behind a secret URL,
     a table for those tokens with revoke/regenerate, and in the profile an "add to calendar" button with

@@ -1414,3 +1414,16 @@ a.button.calendar {
 .my-share .roster-share-menu {
   justify-content: flex-end;
 }
+
+/* No network */
+.offline-bar {
+  position: sticky;
+  top: calc(2.9rem + env(safe-area-inset-top));
+  z-index: 4;
+  background: var(--swap);
+  color: var(--text);
+  border-bottom: 1px solid var(--swap-border);
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  text-align: center;
+}

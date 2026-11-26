@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMe } from '../lib/hooks';
+import { isIos, isStandalone, useInstall } from '../lib/pwa';
 import { supabase } from '../lib/supabase';
 import { AdminPhonePanel } from './AdminPhone';
 import { setShareOffersEnabled, shareOffersEnabled, useFeedback } from './Feedback';
@@ -8,7 +9,9 @@ import { WhatsAppButton, inviteText } from './SwapRequests';
 /** The signed-in user's details and personal settings, opened from the name in the top bar. */
 export function ProfileSheet({ onClose }: { onClose: () => void }) {
   const me = useMe();
-  const { confirm } = useFeedback();
+  const { confirm, toast } = useFeedback();
+  const { canInstall, install } = useInstall();
+  const showInstall = !isStandalone() && (canInstall || isIos());
   const [offers, setOffers] = useState(shareOffersEnabled);
 
   useEffect(() => {
@@ -36,6 +39,27 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
         <p className="muted small">
           השם ברשימה נבחר פעם אחת. כדי לשנות אותו צריך לפנות למנהל.
         </p>
+
+        {showInstall && (
+          <section className="profile-section">
+            <h3>התקנה כאפליקציה</h3>
+            <p className="muted small">אייקון במסך הבית, פתיחה במסך מלא בלי שורת הדפדפן.</p>
+            {canInstall ? (
+              <button
+                className="primary"
+                onClick={async () => {
+                  if (await install()) toast('האפליקציה הותקנה');
+                }}
+              >
+                התקנה במסך הבית
+              </button>
+            ) : (
+              <p className="small">
+                בספארי: לחיצה על כפתור השיתוף <span aria-hidden="true">⎙</span> ואז <strong>"הוספה למסך הבית"</strong>.
+              </p>
+            )}
+          </section>
+        )}
 
         <section className="profile-section">
           <h3>הגדרות</h3>

@@ -22,6 +22,7 @@ import {
   type Me,
 } from './lib/hooks';
 import { awaitingMyDecision, incomingForMe } from './lib/attention';
+import { useOnline } from './lib/pwa';
 import { loadIncomingRequests, loadPendingOffers, loadProfile, loadUpcomingShifts } from './lib/queries';
 import { clearSharedShift, readSharedShift } from './lib/share';
 import { isConfigured, supabase } from './lib/supabase';
@@ -88,6 +89,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   // A shift shared by link (e.g. on WhatsApp) opens right away.
   const [open, setOpen] = useState<ShiftKey | null>(readSharedShift);
   const [profileOpen, setProfileOpen] = useState(false);
+  const online = useOnline();
   useEffect(clearSharedShift, []);
   // Admins can switch to the regular user's view; the server still knows they are an admin.
   const [adminMode, setAdminMode] = useState(() => localStorage.getItem(ADMIN_MODE_KEY) !== 'off');
@@ -147,6 +149,12 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
           </button>
         </span>
       </header>
+
+      {!online && (
+        <div className="offline-bar" role="status">
+          אין חיבור לאינטרנט. המידע עשוי להיות לא מעודכן, ואי אפשר לבצע פעולות עד שהחיבור יחזור.
+        </div>
+      )}
 
       <main>
         {activeTab === 'calendar' && <Calendar />}
