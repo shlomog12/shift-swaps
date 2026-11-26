@@ -53,16 +53,16 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 - [x] (already applied) `false` in admin_phone → run all of `supabase/migrations/20261202000000_admin_phones.sql`.
 - [x] (applied) `false` in calendar → run all of `supabase/migrations/20261203000000_calendar_feed.sql`
       (task 39). Expected result: "Success. No rows returned".
-- [ ] **Deploy the calendar function** (terminal, from the project folder, after the SQL above):
+- [x] (deployed from the Supabase dashboard) **Deploy the calendar function** (terminal, from the project folder, after the SQL above):
   ```sh
   git pull
   supabase functions deploy calendar-feed --no-verify-jwt
   ```
   First time on this computer: install the Supabase CLI, `supabase login`,
   `supabase link --project-ref <project-ref>` (README, step 5).
-- [ ] **Check the function**: open `https://<project-ref>.supabase.co/functions/v1/calendar-feed?token=test`.
+- [x] **Check the function**: open `https://<project-ref>.supabase.co/functions/v1/calendar-feed?token=test`.
       "not found" is correct; a 401 / JWT error means it was deployed without `--no-verify-jwt`.
-- [ ] **Check in the app**: profile → "חיבור המשמרות ליומן" → "הוספה ליומן גוגל", and confirm the shifts
+- [x] (feed verified; Google refreshes subscribed calendars on its own schedule) **Check in the app**: profile → "חיבור המשמרות ליומן" → "הוספה ליומן גוגל", and confirm the shifts
       appear on the right dates and times.
 
 ## P1
