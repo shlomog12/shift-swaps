@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Admin } from './components/Admin';
 import { api } from './lib/api';
 import { Board } from './components/Board';
@@ -20,6 +20,7 @@ import {
 } from './lib/hooks';
 import { hasStarted } from './lib/dates';
 import { loadIncomingRequests, loadProfile } from './lib/queries';
+import { clearSharedShift, readSharedShift } from './lib/share';
 import { isConfigured, supabase } from './lib/supabase';
 import type { Profile, ShiftKey } from './lib/types';
 
@@ -79,7 +80,9 @@ const ADMIN_MODE_KEY = 'admin-mode';
 function Shell({ profile, email }: { profile: Profile; email: string }) {
   const { refresh } = useRefresh();
   const [tab, setTab] = useState<Tab>('calendar');
-  const [open, setOpen] = useState<ShiftKey | null>(null);
+  // A shift shared by link (e.g. on WhatsApp) opens right away.
+  const [open, setOpen] = useState<ShiftKey | null>(readSharedShift);
+  useEffect(clearSharedShift, []);
   // Admins can switch to the regular user's view; the server still knows they are an admin.
   const [adminMode, setAdminMode] = useState(() => localStorage.getItem(ADMIN_MODE_KEY) !== 'off');
   useLiveRefresh(true, refresh);

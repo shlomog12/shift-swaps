@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
-import { formatDate, formatDateTime, hasStarted, slotTime } from '../lib/dates';
+import { formatDate, formatDateTime, hasStarted, nightLabel, slotTime } from '../lib/dates';
 import { useAction, useMe, useQuery } from '../lib/hooks';
 import { loadUpcomingShifts } from '../lib/queries';
-import type { OfferStatus, ShiftKey, SwapRequest } from '../lib/types';
+import { shiftLink, whatsappUrl } from '../lib/share';
+import type { OfferStatus, Shift, ShiftKey, SwapRequest } from '../lib/types';
 
 export const REQUEST_STATUS: Record<OfferStatus, string> = {
   pending: 'ממתין לתשובה',
@@ -19,6 +20,34 @@ export function shiftText(night: string, slot: 1 | 2): string {
 /** What the requester offers back: one of their shifts, or nothing. */
 export function giveText(r: SwapRequest): string {
   return r.give_night && r.give_slot ? `בתמורה ל־${shiftText(r.give_night, r.give_slot)}` : 'בלי משמרת בתמורה';
+}
+
+/** Opens WhatsApp with a ready message; the person picks the chat. */
+export function WhatsAppButton({ text, label = 'שיתוף בוואטסאפ' }: { text: string; label?: string }) {
+  return (
+    <a className="button whatsapp" href={whatsappUrl(text)} target="_blank" rel="noopener noreferrer">
+      {label}
+    </a>
+  );
+}
+
+/** Message for a group: someone is looking for a replacement; the link opens the shift to volunteer. */
+export function swapWantedText(shift: Shift, mine: boolean): string {
+  const who = mine ? 'אני מחפש/ת' : `${shift.assignee} מחפש/ת`;
+  return (
+    `${who} מחליף/ה למשמרת ב־${shiftText(shift.night, shift.slot)} (${nightLabel(shift.night)}).\n` +
+    `מי שיכול/ה לקחת אותה, אפשר להתנדב כאן:\n${shiftLink(shift.night, shift.slot)}`
+  );
+}
+
+/** Message to the owner about a direct request; the link opens the shift with accept and decline. */
+export function requestSentText(r: SwapRequest): string {
+  const offer =
+    r.give_night && r.give_slot
+      ? `להחליף איתך: לקחת את המשמרת שלך ב־${shiftText(r.night, r.slot)}, ` +
+        `ובתמורה לתת לך את המשמרת שלי ב־${shiftText(r.give_night, r.give_slot)}`
+      : `לקחת ממך את המשמרת ב־${shiftText(r.night, r.slot)}, בלי משמרת בתמורה`;
+  return `היי ${r.owner}, ביקשתי באפליקציית המשמרות ${offer}.\nאפשר לאשר כאן:\n${shiftLink(r.night, r.slot)}`;
 }
 
 const NOTHING = 'nothing';

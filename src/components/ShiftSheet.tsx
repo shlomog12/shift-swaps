@@ -4,7 +4,15 @@ import { SLOT_NAME, formatDate, formatDateTime, hasStarted, nightLabel, slotTime
 import { useAction, useMe, useQuery } from '../lib/hooks';
 import { loadShift, loadShiftOffers, loadShiftRequests } from '../lib/queries';
 import type { ShiftKey, SwapOffer } from '../lib/types';
-import { IncomingRequest, REQUEST_STATUS, RequestForm, giveText } from './SwapRequests';
+import {
+  IncomingRequest,
+  REQUEST_STATUS,
+  RequestForm,
+  WhatsAppButton,
+  giveText,
+  requestSentText,
+  swapWantedText,
+} from './SwapRequests';
 
 const OFFER_STATUS: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -95,6 +103,8 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                 </button>
               )}
 
+              {!started && s.swap_requested && <WhatsAppButton text={swapWantedText(s, mine)} />}
+
               {!started && s.swap_requested && !mine && !myOffer && (
                 <button
                   className="primary"
@@ -129,9 +139,12 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                 <p>
                   שלחת ל{s.assignee} בקשת חילוף ({giveText(myRequest)}). {REQUEST_STATUS.pending}.
                 </p>
-                <button disabled={busy} onClick={() => run(() => api.withdrawSwapRequest(myRequest.id))}>
-                  ביטול הבקשה שלי
-                </button>
+                <div className="row wrap">
+                  <WhatsAppButton text={requestSentText(myRequest)} label={`שליחה ל${s.assignee} בוואטסאפ`} />
+                  <button disabled={busy} onClick={() => run(() => api.withdrawSwapRequest(myRequest.id))}>
+                    ביטול הבקשה שלי
+                  </button>
+                </div>
               </section>
             )}
 
