@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
-import { SLOT_HOURS, SLOT_NAME, formatDate, formatDateTime, hasStarted, nightLabel } from '../lib/dates';
+import { SLOT_NAME, formatDate, formatDateTime, hasStarted, nightLabel, slotTime } from '../lib/dates';
 import { useAction, useMe, useQuery } from '../lib/hooks';
 import { loadShift, loadShiftOffers } from '../lib/queries';
 import type { ShiftKey, SwapOffer } from '../lib/types';
@@ -40,7 +40,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
               {formatDate(night)} · משמרת {SLOT_NAME[slot]}
             </h2>
             <p className="muted">
-              {nightLabel(night)} · {SLOT_HOURS[slot]}
+              {nightLabel(night)} · {slotTime(night, slot)}
             </p>
           </div>
           <button className="icon" aria-label="סגירה" onClick={onClose}>

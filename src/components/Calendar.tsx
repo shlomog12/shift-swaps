@@ -12,7 +12,9 @@ import {
   monthKey,
   monthTitle,
   nightLabel,
+  nightShortLabel,
   shiftMonth,
+  slotTime,
 } from '../lib/dates';
 import { useMe, useQuery, type Me } from '../lib/hooks';
 import { loadPendingOffers, loadShifts } from '../lib/queries';
@@ -137,6 +139,7 @@ export function Calendar() {
             filter={filter}
             onSelect={setSelected}
           />
+          <MidnightNote month={month} />
           <DayDetails night={selected} shifts={byNight.get(selected)} counts={counts} />
         </>
       )}
@@ -178,7 +181,17 @@ function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect
         if (day === today) classes.push('today');
         if (day === selected) classes.push('selected');
         return (
-          <button key={day} className={classes.join(' ')} onClick={() => onSelect(day)} aria-label={formatDate(day)}>
+          <button
+            key={day}
+            className={classes.join(' ')}
+            onClick={() => onSelect(day)}
+            aria-label={`${formatDate(day)}, ${nightLabel(day)}`}
+          >
+            {night && (
+              <span className="day-moon" aria-hidden="true">
+                🌙
+              </span>
+            )}
             <span className="day-number">{dayOfMonth(day)}</span>
             {([1, 2] as const).map((slot) => {
               const shift = night?.[slot];
@@ -198,6 +211,17 @@ function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect
   );
 }
 
+/** Explains that a shift sits on the day it starts at midnight, i.e. the night before that day. */
+function MidnightNote({ month }: { month: string }) {
+  const example = `${month}-05`;
+  return (
+    <p className="month-grid-note muted small">
+      🌙 כל שמירה מופיעה ביום שבו היא מתחילה, בחצות. למשל, שמירה ב־{formatShortDate(example)} היא בלילה שבין{' '}
+      {formatShortDate(addDays(example, -1))} ל־{formatShortDate(example)}.
+    </p>
+  );
+}
+
 function DayDetails({ night, shifts, counts }: { night: string; shifts?: NightShifts; counts: Map<string, number> }) {
   return (
     <section className="day-details">
@@ -213,7 +237,7 @@ function DayDetails({ night, shifts, counts }: { night: string; shifts?: NightSh
               <div key={slot} className="day-detail-row">
                 <span className="slot-label">
                   {SLOT_NAME[slot]}
-                  <span className="muted small"> {SLOT_HOURS[slot]}</span>
+                  <span className="muted small"> {slotTime(night, slot)}</span>
                 </span>
                 <ShiftCell shift={shift} offers={counts.get(`${night}/${slot}`)} />
               </div>
@@ -282,7 +306,7 @@ function RosterList({ month, today, byNight, filter, counts }: ListProps) {
         >
           <div className="night">
             <strong>{formatShortDate(night)}</strong>
-            <span className="muted small">{nightLabel(night)}</span>
+            <span className="muted small">{nightShortLabel(night)}</span>
           </div>
           {([1, 2] as const).map((slot) => {
             const shift = slots[slot];

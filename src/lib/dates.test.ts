@@ -1,10 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, hasStarted, monthBounds, monthGridBounds, nightLabel, shiftMonth } from './dates';
+import {
+  SLOT_HOURS,
+  addDays,
+  hasStarted,
+  monthBounds,
+  monthGridBounds,
+  nightLabel,
+  nightShortLabel,
+  shiftMonth,
+  slotTime,
+} from './dates';
 
 describe('dates', () => {
-  it('labels nights like the old sheet', () => {
-    expect(nightLabel('2026-10-01')).toBe('ליל חמישי – רביעי בלילה');
-    expect(nightLabel('2026-10-04')).toBe('ליל ראשון – שבת בלילה');
+  it('names both days of a night', () => {
+    expect(nightLabel('2026-10-01')).toBe('הלילה שבין רביעי לחמישי');
+    expect(nightShortLabel('2026-10-01')).toBe('רביעי ← חמישי');
+    expect(slotTime('2026-10-01', 1)).toBe(`חמישי ${SLOT_HOURS[1]}`);
+    expect(nightLabel('2026-10-04')).toBe('הלילה שבין שבת לראשון');
   });
 
   it('handles month arithmetic', () => {

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { SLOT_HOURS, formatDate, hasStarted, nightLabel, plural } from '../lib/dates';
+import { formatDate, hasStarted, nightLabel, plural, slotTime } from '../lib/dates';
 import { useMe, useQuery } from '../lib/hooks';
 import { loadPendingOffers, loadUpcomingShifts } from '../lib/queries';
 import type { Shift } from '../lib/types';
@@ -13,7 +13,7 @@ export function ShiftListItem({ shift, note }: { shift: Shift; note?: string }) 
       <button className={`list-item${shift.swap_requested ? ' swap' : ''}${mine ? ' mine' : ''}`} onClick={() => me.openShift(shift.night, shift.slot)}>
         <span className="list-main">
           <strong>
-            {formatDate(shift.night)} · {SLOT_HOURS[shift.slot]}
+            {formatDate(shift.night)} · {slotTime(shift.night, shift.slot)}
           </strong>
           <span className="muted small">{nightLabel(shift.night)}</span>
         </span>

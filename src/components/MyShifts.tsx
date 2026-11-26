@@ -1,4 +1,4 @@
-import { SLOT_HOURS, formatDate, hasStarted } from '../lib/dates';
+import { formatDate, hasStarted, nightShortLabel, slotTime } from '../lib/dates';
 import { useMe, useQuery } from '../lib/hooks';
 import { loadMyOffers, loadUpcomingShifts } from '../lib/queries';
 import type { SwapOffer } from '../lib/types';
@@ -38,9 +38,11 @@ export function MyShifts() {
             <button className="list-item" onClick={() => me.openShift(o.night, o.slot)}>
               <span className="list-main">
                 <strong>
-                  {formatDate(o.night)} · {SLOT_HOURS[o.slot]}
+                  {formatDate(o.night)} · {slotTime(o.night, o.slot)}
                 </strong>
-                <span className="muted small">במקום {o.requester}</span>
+                <span className="muted small">
+                  {nightShortLabel(o.night)} · במקום {o.requester}
+                </span>
               </span>
               <span className={`list-side status-${o.status}`}>{STATUS_TEXT[o.status]}</span>
             </button>

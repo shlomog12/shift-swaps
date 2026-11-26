@@ -60,9 +60,22 @@ export function monthGridBounds(key: string): { from: string; to: string } {
   return { from: addDays(from, -dayOfWeek(from)), to: addDays(to, 6 - dayOfWeek(to)) };
 }
 
-/** "ליל חמישי – רביעי בלילה": the shift date is the morning after the evening it starts on. */
+/**
+ * "הלילה שבין רביעי לחמישי". A shift is dated by the day its hours fall on (it starts at
+ * midnight), so the night always names both the evening before and that day.
+ */
 export function nightLabel(iso: string): string {
-  return `ליל ${dayName(iso)} – ${dayName(addDays(iso, -1))} בלילה`;
+  return `הלילה שבין ${dayName(addDays(iso, -1))} ל${dayName(iso)}`;
+}
+
+/** Compact form of nightLabel for narrow rows: "רביעי ← חמישי". */
+export function nightShortLabel(iso: string): string {
+  return `${dayName(addDays(iso, -1))} ← ${dayName(iso)}`;
+}
+
+/** Shift hours with the day they fall on: "חמישי 00:00–03:00". */
+export function slotTime(night: string, slot: Slot): string {
+  return `${dayName(night)} ${SLOT_HOURS[slot]}`;
 }
 
 export function formatDate(iso: string): string {
