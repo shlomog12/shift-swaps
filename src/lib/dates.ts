@@ -10,7 +10,8 @@ const MONTH_NAMES = [
 // Wrapped in Unicode isolates so the range reads left-to-right inside Hebrew text.
 const ltr = (text: string) => `\u2066${text}\u2069`;
 
-export const SLOT_HOURS: Record<Slot, string> = { 1: ltr('00:00–03:00'), 2: ltr('03:00–06:00') };
+// Word joiners around the dash keep a range from breaking across lines.
+export const SLOT_HOURS: Record<Slot, string> = { 1: ltr('00:00\u2060–\u206003:00'), 2: ltr('03:00\u2060–\u206006:00') };
 export const SLOT_NAME: Record<Slot, string> = { 1: 'ראשונה', 2: 'שנייה' };
 
 function parts(iso: string): [number, number, number] {

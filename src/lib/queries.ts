@@ -5,12 +5,14 @@ import {
   AUDIT_COLUMNS,
   OFFER_COLUMNS,
   PROFILE_COLUMNS,
+  REQUEST_COLUMNS,
   SHIFT_COLUMNS,
   type AuditEntry,
   type Profile,
   type Shift,
   type Slot,
   type SwapOffer,
+  type SwapRequest,
 } from './types';
 
 export async function loadShifts(from: string, to: string): Promise<Shift[]> {
@@ -63,6 +65,41 @@ export async function loadMyOffers(userId: string): Promise<SwapOffer[]> {
       .order('created_at', { ascending: false })
       .limit(20),
   ) as SwapOffer[];
+}
+
+export async function loadShiftRequests(night: string, slot: Slot): Promise<SwapRequest[]> {
+  return check(
+    await supabase
+      .from('swap_requests')
+      .select(REQUEST_COLUMNS)
+      .eq('night', night)
+      .eq('slot', slot)
+      .order('created_at', { ascending: false })
+      .limit(20),
+  ) as SwapRequest[];
+}
+
+/** Pending requests for shifts that carry the given roster name. */
+export async function loadIncomingRequests(name: string): Promise<SwapRequest[]> {
+  return check(
+    await supabase
+      .from('swap_requests')
+      .select(REQUEST_COLUMNS)
+      .eq('status', 'pending')
+      .eq('owner', name)
+      .order('created_at'),
+  ) as SwapRequest[];
+}
+
+export async function loadSentRequests(userId: string): Promise<SwapRequest[]> {
+  return check(
+    await supabase
+      .from('swap_requests')
+      .select(REQUEST_COLUMNS)
+      .eq('requester_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20),
+  ) as SwapRequest[];
 }
 
 export async function loadProfile(userId: string): Promise<Profile | null> {

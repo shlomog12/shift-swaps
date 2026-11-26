@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { api } from '../lib/api';
 import { SLOT_NAME, formatDate, formatDateTime, hasStarted, nightLabel, slotTime } from '../lib/dates';
 import { useAction, useMe, useQuery } from '../lib/hooks';
-import { loadShift, loadShiftOffers } from '../lib/queries';
+import { loadShift, loadShiftOffers, loadShiftRequests } from '../lib/queries';
 import type { ShiftKey, SwapOffer } from '../lib/types';
+import { IncomingRequest, REQUEST_STATUS, RequestForm, giveText } from './SwapRequests';
 
 const OFFER_STATUS: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -17,6 +18,8 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const { night, slot } = target;
   const shift = useQuery(() => loadShift(night, slot), [night, slot]);
   const offers = useQuery(() => loadShiftOffers(night, slot), [night, slot]);
+  const requests = useQuery(() => loadShiftRequests(night, slot), [night, slot]);
+  const [asking, setAsking] = useState(false);
   const { busy, error, run } = useAction();
 
   const s = shift.data;
@@ -26,6 +29,9 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const pending = (offers.data ?? []).filter((o) => o.status === 'pending');
   const myOffer = pending.find((o) => o.volunteer_id === me.profile.id);
   const canDecide = mine || isAdmin;
+  const pendingRequests = (requests.data ?? []).filter((r) => r.status === 'pending' && r.owner === s?.assignee);
+  const myRequest = pendingRequests.find((r) => r.requester_id === me.profile.id);
+  const pastRequests = (requests.data ?? []).filter((r) => r.status !== 'pending');
 
   function confirmThen(message: string, action: () => Promise<unknown>) {
     if (window.confirm(message)) run(action);
@@ -106,7 +112,39 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                   ביטול ההתנדבות שלי
                 </button>
               )}
+
+              {!started && s.assignee && !mine && !myRequest && !asking && (
+                <button disabled={busy} onClick={() => setAsking(true)}>
+                  בקשת חילוף מ{s.assignee}
+                </button>
+              )}
             </div>
+
+            {asking && !myRequest && s.assignee && (
+              <RequestForm target={target} owner={s.assignee} onDone={() => setAsking(false)} />
+            )}
+
+            {myRequest && (
+              <section className="my-request">
+                <p>
+                  שלחת ל{s.assignee} בקשת חילוף ({giveText(myRequest)}). {REQUEST_STATUS.pending}.
+                </p>
+                <button disabled={busy} onClick={() => run(() => api.withdrawSwapRequest(myRequest.id))}>
+                  ביטול הבקשה שלי
+                </button>
+              </section>
+            )}
+
+            {canDecide && !started && pendingRequests.length > 0 && (
+              <section>
+                <h3>בקשות חילוף{mine ? ' אליך' : ''}</h3>
+                <ul className="offers">
+                  {pendingRequests.map((r) => (
+                    <IncomingRequest key={r.id} request={r} />
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {s.swap_requested && (
               <section>
@@ -152,6 +190,19 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                         {o.volunteer} → {o.requester}: {OFFER_STATUS[o.status]}
                       </li>
                     ))}
+                </ul>
+              </details>
+            )}
+
+            {pastRequests.length > 0 && (
+              <details>
+                <summary className="muted small">בקשות חילוף קודמות</summary>
+                <ul className="offers past-offers">
+                  {pastRequests.map((r) => (
+                    <li key={r.id} className="small">
+                      {r.requester} → {r.owner} ({giveText(r)}): {REQUEST_STATUS[r.status]}
+                    </li>
+                  ))}
                 </ul>
               </details>
             )}

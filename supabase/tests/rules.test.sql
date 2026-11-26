@@ -227,4 +227,49 @@ select test.eq((select count(*) from public.email_outbox where to_email = 'd@exa
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000d', 'd@example.com');
 select test.eq((select status from public.profiles where email = 'd@example.com'), 'pending', 'returning user starts over');
 
+-- Direct swap requests: C (דהן משה) asks B (בוסי) for a shift, in exchange or without.
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select (f1 + 2)::text as f3, (f1 + 3)::text as f4 from test.d \gset
+select public.admin_add_nights(:'f3', :'f4');
+select public.admin_set_assignee(:'f3', 1::smallint, 'בוסי');
+select public.admin_set_assignee(:'f3', 2::smallint, 'דהן משה');
+select public.admin_set_assignee(:'f4', 1::smallint, 'בוסי');
+select public.admin_set_assignee(:'f4', 2::smallint, 'חסן');
+
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error(format('select public.send_swap_request(%L, 2::smallint)', :'f3'), 'already_assignee');
+select test.expect_error(format('select public.send_swap_request(%L, 1::smallint, %L, 1::smallint)', :'f3', :'f4'),
+                         'not_your_shift');
+select test.expect_error(format('select public.send_swap_request(%L, 1::smallint, %L, 1::smallint)', :'f3', (select past from test.d)),
+                         'shift_in_past');
+select public.send_swap_request(:'f3', 1::smallint, :'f3', 2::smallint) as r1 \gset
+select test.expect_error(format('select public.send_swap_request(%L, 1::smallint)', :'f3'), 'request_exists');
+select test.expect_error(format('select public.accept_swap_request(%s)', :r1), 'not_your_shift');
+select public.send_swap_request(:'f4', 1::smallint) as r2 \gset
+
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.accept_swap_request(:r1);
+select test.eq((select assignee from public.shifts where night = :'f3' and slot = 1), 'דהן משה', 'exchange: requester gets the shift');
+select test.eq((select assignee from public.shifts where night = :'f3' and slot = 2), 'בוסי', 'exchange: owner gets the given shift');
+select test.eq((select status from public.swap_requests where id = :r1), 'accepted', 'request accepted');
+select test.expect_error(format('select public.accept_swap_request(%s)', :r1), 'request_not_pending');
+select public.decline_swap_request(:r2);
+select test.eq((select status from public.swap_requests where id = :r2), 'declined', 'request declined');
+
+-- A request is cancelled when either shift changes hands; the requester can also withdraw.
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.send_swap_request(:'f4', 1::smallint, :'f3', 1::smallint) as r3 \gset
+select public.send_swap_request(:'f4', 2::smallint) as r4 \gset
+select public.withdraw_swap_request(:r4);
+select test.eq((select status from public.swap_requests where id = :r4), 'cancelled', 'request withdrawn');
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_set_assignee(:'f3', 1::smallint, 'חסן');
+select test.eq((select status from public.swap_requests where id = :r3), 'cancelled', 'request cancelled when shift changes');
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.expect_error(format('select public.accept_swap_request(%s)', :r3), 'request_not_pending');
+reset role;
+select test.eq((select count(*) from public.email_outbox where subject like '%מבקש/ת %את המשמרת שלך%'
+                or subject like '%מבקש/ת להחליף%'), 3::bigint, 'owners told about requests (חסן has no account)');
+
 \echo 'All rule tests passed.'

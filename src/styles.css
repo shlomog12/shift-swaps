@@ -568,6 +568,49 @@ main {
   border-top: 1px dashed var(--border);
 }
 
+/* Direct swap requests */
+.request-form,
+.my-request {
+  margin-top: 0.8rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius);
+  background: var(--swap);
+  border: 1px solid var(--swap-border);
+}
+
+.request-form h3 {
+  margin: 0 0 0.3rem;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.5rem 0;
+}
+
+.choice {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.choice input {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: none;
+  margin: 0;
+}
+
+.my-request p {
+  margin: 0 0 0.4rem;
+}
+
+.request-item {
+  gap: 0.5rem;
+}
+
 /* History */
 .history {
   list-style: none;

@@ -72,6 +72,7 @@ export function useLiveRefresh(enabled: boolean, refresh: () => void) {
       .channel('roster-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, debounced)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'swap_offers' }, debounced)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'swap_requests' }, debounced)
       .subscribe();
     const onVisible = () => document.visibilityState === 'visible' && debounced();
     document.addEventListener('visibilitychange', onVisible);

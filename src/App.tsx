@@ -18,7 +18,8 @@ import {
   useSession,
   type Me,
 } from './lib/hooks';
-import { loadProfile } from './lib/queries';
+import { hasStarted } from './lib/dates';
+import { loadIncomingRequests, loadProfile } from './lib/queries';
 import { isConfigured, supabase } from './lib/supabase';
 import type { Profile, ShiftKey } from './lib/types';
 
@@ -103,6 +104,8 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
   const users = useQuery(() => (isAdmin ? api.adminListUsers() : Promise.resolve([])), [isAdmin]);
   const pendingCount = (users.data ?? []).filter((u) => u.status === 'pending').length;
+  const incoming = useQuery(() => loadIncomingRequests(profile.display_name ?? ''), [profile.display_name]);
+  const incomingCount = (incoming.data ?? []).filter((r) => !hasStarted(r.night, r.slot)).length;
   const activeTab = tabs.some((t) => t.id === tab) ? tab : 'calendar';
 
   return (
@@ -140,6 +143,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
             <span aria-hidden="true">{t.icon}</span>
             {t.label}
             {t.id === 'admin' && pendingCount > 0 && <b className="tab-badge">{pendingCount}</b>}
+            {t.id === 'mine' && incomingCount > 0 && <b className="tab-badge">{incomingCount}</b>}
           </button>
         ))}
       </nav>
