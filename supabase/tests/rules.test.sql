@@ -1,0 +1,156 @@
+-- Rule tests for the schema. Run with ./run.sh against a throwaway database.
+\set ON_ERROR_STOP on
+\set QUIET on
+\o /dev/null
+
+create schema test;
+grant usage on schema test to authenticated;
+
+create function test.as_user(p_id uuid) returns void language sql as $$
+  select set_config('request.jwt.claim.sub', p_id::text, false);
+$$;
+
+create function test.expect_error(p_sql text, p_message text) returns void language plpgsql as $$
+begin
+  begin
+    execute p_sql;
+  exception when others then
+    if sqlerrm not like p_message || '%' then
+      raise exception 'expected "%" from [%], got "%"', p_message, p_sql, sqlerrm;
+    end if;
+    return;
+  end;
+  raise exception 'expected "%" from [%], but it succeeded', p_message, p_sql;
+end;
+$$;
+
+create function test.eq(p_actual anyelement, p_expected anyelement, p_what text) returns void
+language plpgsql as $$
+begin
+  if p_actual is distinct from p_expected then
+    raise exception '%: expected %, got %', p_what, p_expected, p_actual;
+  end if;
+end;
+$$;
+
+grant execute on all functions in schema test to authenticated;
+
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-00000000000a', 'admin@example.com'),
+  ('00000000-0000-0000-0000-00000000000b', 'b@example.com'),
+  ('00000000-0000-0000-0000-00000000000c', 'c@example.com'),
+  ('00000000-0000-0000-0000-00000000000d', 'd@example.com');
+
+select test.eq((select count(*) from public.profiles), 4::bigint, 'profiles created on sign-up');
+update public.profiles set is_admin = true, display_name = 'מנהל'
+ where id = '00000000-0000-0000-0000-00000000000a';
+
+-- Dates relative to today so the tests keep working.
+create table test.d as
+select (now() at time zone 'Asia/Jerusalem')::date + 10 as f1,
+       (now() at time zone 'Asia/Jerusalem')::date + 11 as f2,
+       (now() at time zone 'Asia/Jerusalem')::date - 3  as past;
+grant select on test.d to authenticated;
+
+set role authenticated;
+
+-- Admin builds the roster.
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.eq(public.admin_add_nights((select f1 from test.d), (select f2 from test.d)), 4, 'empty nights created');
+select test.eq(public.admin_import(jsonb_build_array(
+  jsonb_build_object('night', (select f1 from test.d), 'slot1', '  בוסי ', 'slot2', 'חסן'),
+  jsonb_build_object('night', (select past from test.d), 'slot1', null, 'slot2', 'חסן'))), 4, 'import changes');
+select test.eq((select assignee from public.shifts where night = (select f1 from test.d) and slot = 1), 'בוסי', 'name trimmed');
+select test.eq(public.admin_import(jsonb_build_array(
+  jsonb_build_object('night', (select f1 from test.d), 'slot1', 'בוסי', 'slot2', 'חסן'))), 0, 're-import is a no-op');
+
+-- B must pick a name first.
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.expect_error(format('select public.take_shift(%L, 1::smallint)', (select f2 from test.d)), 'choose_name_first');
+select public.claim_name('בוסי');
+select test.expect_error('select public.admin_import(''[{"night":"2030-01-01"}]'')', 'admin_only');
+
+-- C cannot take B's name.
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error('select public.claim_name(''בוסי'')', 'name_taken');
+select public.claim_name('דהן');
+
+-- Swap: B asks, C and D offer, B approves C.
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.expect_error(format('select public.request_swap(%L, 2::smallint)', (select f1 from test.d)), 'not_your_shift');
+select public.request_swap((select f1 from test.d), 1::smallint);
+select test.expect_error(format('select public.offer_swap(%L, 1::smallint)', (select f1 from test.d)), 'already_assignee');
+
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error(format('select public.offer_swap(%L, 2::smallint)', (select f1 from test.d)), 'no_swap_request');
+select public.offer_swap((select f1 from test.d), 1::smallint) as c_offer \gset
+select test.eq(public.offer_swap((select f1 from test.d), 1::smallint), :c_offer::bigint, 'offering twice returns the same offer');
+select test.expect_error(format('select public.accept_offer(%s)', :c_offer), 'not_your_shift');
+
+select test.as_user('00000000-0000-0000-0000-00000000000d');
+select public.claim_name('לוי');
+select public.offer_swap((select f1 from test.d), 1::smallint) as d_offer \gset
+
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.accept_offer(:c_offer);
+select test.eq((select assignee from public.shifts where night = (select f1 from test.d) and slot = 1), 'דהן', 'shift handed over');
+select test.eq((select swap_requested from public.shifts where night = (select f1 from test.d) and slot = 1), false, 'swap flag cleared');
+select test.eq((select status from public.swap_offers where id = :d_offer), 'declined', 'other offer declined');
+select test.expect_error(format('select public.accept_offer(%s)', :d_offer), 'offer_not_pending');
+
+-- Taking open shifts, races and past shifts.
+select test.as_user('00000000-0000-0000-0000-00000000000d');
+select public.take_shift((select f2 from test.d), 1::smallint);
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error(format('select public.take_shift(%L, 1::smallint)', (select f2 from test.d)), 'shift_taken');
+select test.expect_error(format('select public.take_shift(%L, 1::smallint)', (select past from test.d)), 'shift_in_past');
+select test.expect_error('select public.take_shift(''2099-01-01'', 1::smallint)', 'shift_not_found');
+
+-- Cancelling a request cancels its offers.
+select test.as_user('00000000-0000-0000-0000-00000000000d');
+select public.request_swap((select f2 from test.d), 1::smallint);
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.offer_swap((select f2 from test.d), 1::smallint) as c_offer2 \gset
+select test.as_user('00000000-0000-0000-0000-00000000000d');
+select public.cancel_swap_request((select f2 from test.d), 1::smallint);
+select test.eq((select status from public.swap_offers where id = :c_offer2), 'cancelled', 'offer cancelled with request');
+
+-- Withdrawing an offer.
+select public.request_swap((select f2 from test.d), 1::smallint);
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.offer_swap((select f2 from test.d), 1::smallint) as c_offer3 \gset
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.expect_error(format('select public.withdraw_offer(%s)', :c_offer3), 'offer_not_found');
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.withdraw_offer(:c_offer3);
+
+-- Direct writes and private columns are blocked.
+select test.expect_error('update public.shifts set assignee = ''x''', 'permission denied');
+select test.expect_error('insert into public.audit_log (action) values (''x'')', 'permission denied');
+select test.expect_error('select email from public.profiles', 'permission denied');
+select test.expect_error('select actor_email from public.audit_log', 'permission denied');
+select test.expect_error('select * from public.email_outbox', 'permission denied');
+select test.expect_error('select public._assign(''2030-01-01'', 1::smallint, ''x'')', 'permission denied');
+select test.expect_error('select * from public.admin_list_users()', 'admin_only');
+
+-- Admin tools.
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.eq((select count(*) from public.admin_list_users()), 4::bigint, 'admin sees users');
+select test.expect_error('select public.admin_set_admin(''00000000-0000-0000-0000-00000000000a'', false)', 'last_admin');
+select public.admin_set_admin('00000000-0000-0000-0000-00000000000b', true);
+select public.admin_set_user_name('00000000-0000-0000-0000-00000000000c', 'דהן משה', true);
+select test.eq((select assignee from public.shifts where night = (select f1 from test.d) and slot = 1), 'דהן משה', 'rename moves shifts');
+select public.admin_set_assignee((select f2 from test.d), 2::smallint, 'חדש');
+select public.admin_set_assignee((select f2 from test.d), 1::smallint, '');
+select test.eq((select assignee from public.shifts where night = (select f2 from test.d) and slot = 1), null::text, 'admin clears shift');
+select test.eq((select swap_requested from public.shifts where night = (select f2 from test.d) and slot = 1), false, 'clearing drops request');
+select test.eq(public.admin_delete_nights((select f2 from test.d), (select f2 from test.d)), 2, 'nights deleted');
+select test.eq((select count(*) from public.roster_names() where name = 'חסן' and not claimed), 1::bigint, 'roster names');
+
+reset role;
+select test.eq((select count(*) from public.email_outbox where to_email = 'b@example.com'), 2::bigint, 'requester e-mailed per offer');
+select test.eq((select count(*) from public.email_outbox where to_email = 'c@example.com'), 2::bigint, 'volunteer e-mails: approved, request cancelled');
+select test.eq((select count(*) from public.email_outbox where to_email = 'd@example.com'), 3::bigint, 'd e-mails: declined, two offers on own shift');
+select test.eq((select actor_email from public.audit_log where action = 'swap'), 'b@example.com', 'audit records actor');
+
+\echo 'All rule tests passed.'
