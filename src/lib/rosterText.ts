@@ -16,3 +16,14 @@ export function rosterText(title: string, shifts: Shift[], link: string): string
   });
   return `${title}\n\n${lines.join('\n')}\n\nלחילופים ולפרטים:\n${link}`;
 }
+
+/**
+ * My own shifts as a personal WhatsApp message (e.g. to family): one line per shift, both days of the night
+ * named, no link, since the reader may not use the app.
+ */
+export function myShiftsText(title: string, shifts: Shift[]): string {
+  const lines = [...shifts]
+    .sort((a, b) => a.night.localeCompare(b.night) || a.slot - b.slot)
+    .map((s) => `• ${formatShortDate(s.night)} · הלילה שבין ${dayName(addDays(s.night, -1))} ל${dayName(s.night)} · ${SLOT_HOURS[s.slot]}`);
+  return lines.length > 0 ? `${title}\n${lines.join('\n')}` : `${title}\nאין משמרות.`;
+}

@@ -4,6 +4,9 @@ import {
   addDays,
   hasStarted,
   formatDateRange,
+  urgencyLabel,
+  weekLabel,
+  weekStart,
   monthBounds,
   monthGridBounds,
   nightLabel,
@@ -39,5 +42,17 @@ describe('dates', () => {
   it('keeps a date range in reading order inside Hebrew text', () => {
     expect(formatDateRange('2026-11-26', '2026-12-02')).toBe('\u206626.11\u2060–\u20602.12\u2069');
     expect(formatDateRange('2026-11-26', '2026-12-02', true)).toBe('\u206626.11.2026\u2060–\u20602.12.2026\u2069');
+  });
+  it('groups nights by week and flags the urgent ones', () => {
+    // 10:00 in Israel on Thursday 2026-10-01.
+    const now = new Date('2026-10-01T07:00:00Z');
+    expect(urgencyLabel('2026-10-02', 1, now)).toBe('הלילה');
+    expect(urgencyLabel('2026-10-03', 2, now)).toBe('מחר בלילה');
+    expect(urgencyLabel('2026-10-04', 1, now)).toBeNull();
+    expect(weekStart('2026-10-01')).toBe('2026-09-27');
+    expect(weekStart('2026-09-27')).toBe('2026-09-27');
+    expect(weekLabel('2026-09-27', '2026-10-01')).toBe('השבוע');
+    expect(weekLabel('2026-10-04', '2026-10-01')).toBe('שבוע הבא');
+    expect(weekLabel('2026-10-11', '2026-10-01')).toBe(`שבוע ${formatDateRange('2026-10-11', '2026-10-17')}`);
   });
 });

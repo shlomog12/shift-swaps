@@ -4,6 +4,8 @@ import { SLOT_NAME, formatDate, formatDateTime, hasStarted, nightLabel, slotTime
 import { useAction, useMe, useQuery } from '../lib/hooks';
 import { loadShift, loadShiftOffers, loadShiftRequests } from '../lib/queries';
 import type { ShiftKey, SwapOffer } from '../lib/types';
+import { googleCalendarUrl } from '../lib/calendar';
+import { appLink } from '../lib/share';
 import { useFeedback, type ConfirmOptions } from './Feedback';
 import {
   IncomingRequest,
@@ -244,6 +246,16 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
               )}
 
               {/* Sharing comes after the main actions. */}
+              {mine && !started && (
+                <a
+                  className="button calendar"
+                  href={googleCalendarUrl(night, slot, appLink())}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <span aria-hidden="true">📅</span> הוספה ליומן גוגל
+                </a>
+              )}
               {!started && s.swap_requested && (
                 <WhatsAppButton text={swapWantedText(s, mine)} label="שיתוף הבקשה בוואטסאפ" />
               )}

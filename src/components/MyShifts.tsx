@@ -1,12 +1,15 @@
-import { formatDate, hasStarted, nightShortLabel, slotTime } from '../lib/dates';
+import { useState } from 'react';
+import { addDays, formatDate, hasStarted, israelToday, nightShortLabel, slotTime } from '../lib/dates';
 import { useAction, useMe, useQuery, useRoster } from '../lib/hooks';
 import { api } from '../lib/api';
 import { loadMyOffers, loadSentRequests } from '../lib/queries';
-import type { SwapOffer } from '../lib/types';
+import { myShiftsText } from '../lib/rosterText';
+import type { Shift, SwapOffer } from '../lib/types';
 import { ShiftListItem } from './Board';
 import { useFeedback } from './Feedback';
 import { DecisionsCard } from './Summary';
-import { REQUEST_STATUS, giveText, shiftText } from './SwapRequests';
+import { REQUEST_STATUS, WhatsAppButton, giveText, shiftText } from './SwapRequests';
+import { WhatsAppIcon } from './WhatsAppIcon';
 
 const STATUS_TEXT: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -33,7 +36,10 @@ export function MyShifts() {
   return (
     <div className="page">
       <DecisionsCard />
-      <h2>המשמרות הקרובות שלי</h2>
+      <div className="section-head">
+        <h2>המשמרות הקרובות שלי</h2>
+        {mine.length > 0 && <MyShiftsShare shifts={mine} />}
+      </div>
       {shifts.error && <p className="error">{shifts.error}</p>}
       {shifts.loading && !shifts.data && <p className="muted">טוען...</p>}
       {shifts.data && mine.length === 0 && <p className="empty">אין לך משמרות קרובות.</p>}
@@ -88,6 +94,42 @@ export function MyShifts() {
         ))}
       </ul>
       {error && <p className="error">{error}</p>}
+    </div>
+  );
+}
+
+/** Shares my own shifts as a personal message, e.g. with family, for the coming two weeks or month. */
+function MyShiftsShare({ shifts }: { shifts: Shift[] }) {
+  const [open, setOpen] = useState(false);
+  const today = israelToday();
+  const within = (days: number) => shifts.filter((s) => s.night <= addDays(today, days));
+  const twoWeeks = within(14);
+  const month = within(31);
+
+  return (
+    <div className="my-share">
+      <button
+        className={open ? 'share-toggle selected' : 'share-toggle'}
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <WhatsAppIcon />
+        שיתוף המשמרות שלי
+      </button>
+      {open && (
+        <div className="roster-share-menu">
+          <WhatsAppButton
+            className="small"
+            label={`השבועיים הקרובים (${twoWeeks.length})`}
+            text={myShiftsText('המשמרות שלי בשבועיים הקרובים:', twoWeeks)}
+          />
+          <WhatsAppButton
+            className="small"
+            label={`החודש הקרוב (${month.length})`}
+            text={myShiftsText('המשמרות שלי בחודש הקרוב:', month)}
+          />
+        </div>
+      )}
     </div>
   );
 }

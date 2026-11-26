@@ -864,26 +864,17 @@ td.cell-changed {
   position: relative;
 }
 
-/* Marks a day that has shifts: they are on the night leading into it. */
-.day-moon {
-  position: absolute;
-  top: 2px;
-  inset-inline-start: 3px;
-  font-size: 0.6rem;
-  line-height: 1;
-  opacity: 0.7;
-}
-
-.month-grid-note {
-  margin: 0.4rem 0.2rem 0;
-}
 
 .day-number {
   font-size: 0.75rem;
   font-weight: 600;
   align-self: center;
-  min-width: 1.4rem;
-  line-height: 1.4rem;
+  min-width: 1.6rem;
+  line-height: 1.6rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
   border-radius: 999px;
 }
 
@@ -893,18 +884,25 @@ td.cell-changed {
 }
 
 .day-chip {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  display: block;
+  width: 100%;
+  min-height: 1.5rem;
   overflow: hidden;
-  font-size: 0.62rem;
-  line-height: 1.2;
-  padding: 1px 2px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.74rem;
+  line-height: 1.4rem;
+  padding: 0 2px;
   border-radius: 4px;
   background: var(--chip-bg);
   border: 1px solid transparent;
-  word-break: break-word;
+  color: var(--text);
+  text-align: center;
+}
+
+.chip-glyph {
+  font-weight: 700;
+  margin-inline-end: 1px;
 }
 
 .day-chip.open {
@@ -938,8 +936,9 @@ td.cell-changed {
     padding: 4px;
   }
   .day-chip {
-    font-size: 0.8rem;
-    padding: 2px 4px;
+    font-size: 0.85rem;
+    line-height: 1.6rem;
+    padding: 0 4px;
   }
 }
 
@@ -1313,4 +1312,105 @@ button.icon.small-icon {
   border-inline-start: 3px solid var(--swap-border);
   padding: 0.4rem 0.6rem;
   border-radius: 6px;
+}
+
+.day {
+  cursor: pointer;
+}
+
+.day-chip.swap {
+  color: var(--swap-text);
+  font-weight: 600;
+}
+
+/* Legend and the one-time midnight explanation */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.3rem 0.8rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.legend .day-chip {
+  display: inline-block;
+  width: auto;
+  min-height: 0;
+  line-height: 1.2rem;
+  padding: 0 0.4rem;
+}
+
+.midnight-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: var(--mine);
+  border: 1px solid var(--mine-border);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  margin-bottom: 0.6rem;
+}
+
+.midnight-note p {
+  margin: 0;
+  flex: 1;
+  line-height: 1.45;
+}
+
+.midnight-note button {
+  flex: none;
+}
+
+/* Swap board: weeks and urgency */
+.week-group {
+  margin-bottom: 0.6rem;
+}
+
+.week-heading {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin: 0.6rem 0 0.3rem;
+}
+
+.tag.urgent {
+  background: var(--danger);
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+a.button.calendar {
+  gap: 0.4rem;
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.my-share {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+}
+
+.my-share .roster-share-menu {
+  justify-content: flex-end;
 }

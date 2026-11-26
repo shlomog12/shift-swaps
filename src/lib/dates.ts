@@ -179,3 +179,21 @@ export function startsInLabel(night: string, slot: Slot, now: Date = new Date())
   if (days === 2) return 'מחר בלילה';
   return `בעוד ${days} ימים`;
 }
+
+/** "הלילה", "מחר בלילה" or "עוד מעט" for a shift starting within two days; null otherwise. */
+export function urgencyLabel(night: string, slot: Slot, now: Date = new Date()): string | null {
+  return daysBetween(israelNow(now).date, night) <= 2 ? startsInLabel(night, slot, now) : null;
+}
+
+/** The Sunday that starts the week of the given night. */
+export function weekStart(iso: string): string {
+  return addDays(iso, -dayOfWeek(iso));
+}
+
+/** Heading for a week of nights: "השבוע", "שבוע הבא", or its date range. */
+export function weekLabel(start: string, today: string): string {
+  const diff = daysBetween(weekStart(today), start) / 7;
+  if (diff <= 0) return 'השבוע';
+  if (diff === 1) return 'שבוע הבא';
+  return `שבוע ${formatDateRange(start, addDays(start, 6))}`;
+}

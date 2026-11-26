@@ -135,6 +135,7 @@ export function Calendar() {
 
       {shifts.data && view === 'month' && (
         <>
+          <Legend month={month} />
           <MonthGrid
             month={month}
             from={from}
@@ -145,7 +146,6 @@ export function Calendar() {
             filter={filter}
             onSelect={setSelected}
           />
-          <MidnightNote month={month} />
           <DayDetails night={selected} shifts={byNight.get(selected)} counts={counts} />
         </>
       )}
@@ -174,9 +174,9 @@ function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect
   for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
 
   return (
-    <div className="month-grid">
+    <div className="month-grid" role="grid" aria-label={monthTitle(month)}>
       {WEEKDAYS.map((name) => (
-        <div key={name} className="weekday">
+        <div key={name} className="weekday" role="columnheader">
           {name}
         </div>
       ))}
@@ -186,45 +186,101 @@ function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect
         if (monthKey(day) !== month) classes.push('other-month');
         if (day === today) classes.push('today');
         if (day === selected) classes.push('selected');
+        // The cell selects the day; each name inside opens its shift directly.
         return (
-          <button
-            key={day}
-            className={classes.join(' ')}
-            onClick={() => onSelect(day)}
-            aria-label={`${formatDate(day)}, ${nightLabel(day)}`}
-          >
-            {night && (
-              <span className="day-moon" aria-hidden="true">
-                🌙
-              </span>
-            )}
-            <span className="day-number">{dayOfMonth(day)}</span>
+          <div key={day} className={classes.join(' ')} role="gridcell" onClick={() => onSelect(day)}>
+            <button
+              className="day-number"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(day);
+              }}
+              aria-label={`${formatDate(day)}, ${nightLabel(day)}`}
+              aria-pressed={day === selected}
+            >
+              {dayOfMonth(day)}
+            </button>
             {([1, 2] as const).map((slot) => {
               const shift = night?.[slot];
               if (!shift) return null;
-              const chipClasses = shiftClasses(shift, me.isMine(shift.assignee)).replace('shift-cell', 'day-chip');
+              const mine = me.isMine(shift.assignee);
+              const chipClasses = shiftClasses(shift, mine).replace('shift-cell', 'day-chip');
               const dim = matchesFilter(shift, filter, me) ? '' : ' dim';
+              const name = shift.assignee ?? 'פנוי';
               return (
-                <span key={slot} className={chipClasses + dim}>
-                  {shift.assignee ?? 'פנוי'}
-                </span>
+                <button
+                  key={slot}
+                  className={chipClasses + dim}
+                  title={name}
+                  aria-label={`${SLOT_HOURS[slot]} ${name}${shift.swap_requested ? ', בקשת חילוף' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelect(day);
+                    me.openShift(shift.night, shift.slot);
+                  }}
+                >
+                  {shift.swap_requested && (
+                    <span className="chip-glyph" aria-hidden="true">
+                      ⇄
+                    </span>
+                  )}
+                  {name}
+                </button>
               );
             })}
-          </button>
+          </div>
         );
       })}
     </div>
   );
 }
 
-/** Explains that a shift sits on the day it starts at midnight, i.e. the night before that day. */
-function MidnightNote({ month }: { month: string }) {
+const NOTE_KEY = 'midnight-note-seen';
+
+/** Colour legend, and the midnight rule: explained once, then one tap away. */
+function Legend({ month }: { month: string }) {
+  const [showNote, setShowNote] = useState(() => localStorage.getItem(NOTE_KEY) !== 'yes');
   const example = `${month}-05`;
+
+  function dismiss() {
+    localStorage.setItem(NOTE_KEY, 'yes');
+    setShowNote(false);
+  }
+
   return (
-    <p className="month-grid-note muted small">
-      🌙 כל שמירה מופיעה ביום שבו היא מתחילה, בחצות. למשל, שמירה ב־{formatShortDate(example)} היא בלילה שבין{' '}
-      {formatShortDate(addDays(example, -1))} ל־{formatShortDate(example)}.
-    </p>
+    <>
+      <div className="legend" aria-label="מקרא">
+        <span className="legend-item">
+          <span className="day-chip mine">שם</span> שלי
+        </span>
+        <span className="legend-item">
+          <span className="day-chip open">פנוי</span> פנויה
+        </span>
+        <span className="legend-item">
+          <span className="day-chip swap">
+            <span className="chip-glyph">⇄</span>שם
+          </span>{' '}
+          בקשת חילוף
+        </span>
+        {!showNote && (
+          <button className="link small" onClick={() => setShowNote(true)}>
+            איך לקרוא את היומן?
+          </button>
+        )}
+      </div>
+      {showNote && (
+        <div className="midnight-note small">
+          <p>
+            <strong>כל שמירה מופיעה ביום שבו היא מתחילה, בחצות.</strong> למשל, שמירה ב־{formatShortDate(example)}{' '}
+            היא בלילה שבין {formatShortDate(addDays(example, -1))} ל־{formatShortDate(example)}. בכל יום מופיעה
+            המשמרת הראשונה ({SLOT_HOURS[1]}) ומתחתיה השנייה ({SLOT_HOURS[2]}).
+          </p>
+          <button className="small" onClick={dismiss}>
+            הבנתי
+          </button>
+        </div>
+      )}
+    </>
   );
 }
 
