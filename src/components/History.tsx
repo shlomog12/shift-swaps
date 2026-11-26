@@ -15,19 +15,19 @@ function describe(e: AuditEntry): string {
   const d = e.details;
   switch (e.action) {
     case 'take':
-      return 'לקח/ה משמרת פנויה';
+      return 'לקיחת משמרת פנויה';
     case 'request_swap':
-      return `ביקש/ה חילוף (${text(d.assignee)})`;
+      return `בקשת חילוף (${text(d.assignee)})`;
     case 'cancel_swap_request':
-      return `ביטל/ה בקשת חילוף (${text(d.assignee)})`;
+      return `ביטול בקשת חילוף (${text(d.assignee)})`;
     case 'offer':
-      return `התנדב/ה לקחת את המשמרת של ${text(d.requester)}`;
+      return `התנדבות לקחת את המשמרת של ${text(d.requester)}`;
     case 'withdraw_offer':
-      return `ביטל/ה התנדבות (במקום ${text(d.requester)})`;
+      return `ביטול התנדבות (במקום ${text(d.requester)})`;
     case 'swap':
-      return `אישר/ה חילוף: ${text(d.from)} ← ${text(d.to)}`;
+      return `אישור חילוף: ${text(d.from)} ← ${text(d.to)}`;
     case 'decline_offer':
-      return `דחה/תה את ההתנדבות של ${text(d.volunteer)}`;
+      return `דחיית ההתנדבות של ${text(d.volunteer)}`;
     case 'admin_set':
       return `שינוי מנהל: ${text(d.from)} ← ${text(d.to)}`;
     case 'import':
@@ -37,7 +37,7 @@ function describe(e: AuditEntry): string {
     case 'delete_nights':
       return `מחיקת לילות ${text(d.from, '')}–${text(d.to, '')} (${text(d.deleted)} משמרות)`;
     case 'claim_name':
-      return d.from ? `שינוי שם ברשימה: ${text(d.from)} ← ${text(d.to)}` : `בחר/ה שם ברשימה: ${text(d.to)}`;
+      return d.from ? `שינוי שם ברשימה: ${text(d.from)} ← ${text(d.to)}` : `בחירת שם ברשימה: ${text(d.to)}`;
     case 'approve_user':
       return `אישור משתמש: ${text(d.user)}`;
     case 'reject_user':

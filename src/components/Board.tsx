@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { formatDate, hasStarted, nightLabel, plural, slotTime } from '../lib/dates';
-import { useMe, useQuery } from '../lib/hooks';
-import { loadPendingOffers, loadUpcomingShifts } from '../lib/queries';
+import { useMe, useRoster } from '../lib/hooks';
 import type { Shift } from '../lib/types';
 import { offerCounts } from './Calendar';
 
@@ -28,8 +27,7 @@ export function ShiftListItem({ shift, note }: { shift: Shift; note?: string }) 
 
 export function Board() {
   const me = useMe();
-  const shifts = useQuery(loadUpcomingShifts, []);
-  const offers = useQuery(loadPendingOffers, []);
+  const { upcoming: shifts, pendingOffers: offers } = useRoster();
   const counts = useMemo(() => offerCounts(offers.data), [offers.data]);
 
   const upcoming = (shifts.data ?? []).filter((s) => !hasStarted(s.night, s.slot));

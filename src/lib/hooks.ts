@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import type { Profile, Slot } from './types';
+import type { Profile, Shift, Slot, SwapOffer } from './types';
 
 /** Bumped whenever shared data may have changed, so every query reloads. */
 export const RefreshContext = createContext<{ version: number; refresh: () => void }>({
@@ -97,6 +97,20 @@ export function useMe(): Me {
   const me = useContext(MeContext);
   if (!me) throw new Error('useMe must be used inside MeContext');
   return me;
+}
+
+/** Upcoming shifts and pending offers, loaded once in the shell and shared by every screen. */
+export interface Roster {
+  upcoming: QueryState<Shift[]>;
+  pendingOffers: QueryState<SwapOffer[]>;
+}
+
+export const RosterContext = createContext<Roster | null>(null);
+
+export function useRoster(): Roster {
+  const roster = useContext(RosterContext);
+  if (!roster) throw new Error('useRoster must be used inside RosterContext');
+  return roster;
 }
 
 export function sameName(a: string | null | undefined, b: string | null | undefined): boolean {

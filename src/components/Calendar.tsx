@@ -16,10 +16,11 @@ import {
   shiftMonth,
   slotTime,
 } from '../lib/dates';
-import { useMe, useQuery, type Me } from '../lib/hooks';
-import { loadPendingOffers, loadShifts } from '../lib/queries';
+import { useMe, useQuery, useRoster, type Me } from '../lib/hooks';
+import { loadShifts } from '../lib/queries';
 import type { Shift } from '../lib/types';
 import { ShiftCell, shiftClasses } from './ShiftCell';
+import { DecisionsCard, NextShiftCard } from './Summary';
 
 type Filter = 'all' | 'mine' | 'open' | 'swap';
 type View = 'month' | 'list';
@@ -69,7 +70,7 @@ export function Calendar() {
   const [selected, setSelected] = useState<string>(today);
   const { from, to } = monthGridBounds(month);
   const shifts = useQuery(() => loadShifts(from, to), [from, to]);
-  const offers = useQuery(loadPendingOffers, []);
+  const offers = useRoster().pendingOffers;
   const counts = useMemo(() => offerCounts(offers.data), [offers.data]);
 
   const byNight = useMemo(() => {
@@ -90,6 +91,9 @@ export function Calendar() {
 
   return (
     <div className="page">
+      <NextShiftCard />
+      <DecisionsCard />
+
       <div className="month-nav">
         <button className="icon" aria-label="החודש הקודם" onClick={() => goToMonth(shiftMonth(month, -1))}>
           ›

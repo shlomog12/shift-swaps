@@ -12,9 +12,17 @@
   --mine-border: #3b6fd8;
   --swap: #fff3c4;
   --swap-border: #e0a800;
+  --swap-text: #7a5b00;
+  --chip-bg: #e9edf3;
+  --bar-bg: #1d3557;
+  --bar-text: #ffffff;
+  --accent: #f1c453;
+  --accent-text: #1b2330;
+  --shadow: rgb(0 0 0 / 8%);
   --danger: #c62828;
   --success: #2e7d32;
   --radius: 12px;
+  color-scheme: light;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   color: var(--text);
   background: var(--bg);
@@ -194,7 +202,7 @@ code {
   background: var(--card);
   border-radius: var(--radius);
   padding: 1rem 1.1rem;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  box-shadow: 0 1px 3px var(--shadow);
   margin-bottom: 1rem;
 }
 
@@ -246,8 +254,8 @@ code {
   align-items: center;
   padding: 0.6rem 1rem;
   padding-top: calc(0.6rem + env(safe-area-inset-top));
-  background: var(--primary);
-  color: var(--primary-text);
+  background: var(--bar-bg);
+  color: var(--bar-text);
 }
 
 .top-bar .app-title {
@@ -255,7 +263,7 @@ code {
 }
 
 .top-bar button.link {
-  color: var(--primary-text);
+  color: var(--bar-text);
 }
 
 main {
@@ -404,7 +412,7 @@ main {
 .badge {
   font-size: 0.68rem;
   font-weight: 600;
-  color: #7a5b00;
+  color: var(--swap-text);
 }
 
 /* Lists */
@@ -526,7 +534,7 @@ main {
 
 .tag.swap {
   background: var(--swap);
-  color: #7a5b00;
+  color: var(--swap-text);
 }
 
 .actions {
@@ -757,7 +765,7 @@ td.cell-changed {
   line-height: 1.2;
   padding: 1px 2px;
   border-radius: 4px;
-  background: #e9edf3;
+  background: var(--chip-bg);
   border: 1px solid transparent;
   word-break: break-word;
 }
@@ -837,13 +845,13 @@ td.cell-changed {
   border-radius: 999px;
   background: transparent;
   border: 1px solid rgb(255 255 255 / 60%);
-  color: var(--primary-text);
+  color: var(--bar-text);
 }
 
 .mode-toggle.admin {
-  background: #f1c453;
-  border-color: #f1c453;
-  color: #1b2330;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
   font-weight: 600;
 }
 
@@ -890,5 +898,199 @@ td.cell-changed {
 }
 
 .actions-cell {
+  white-space: nowrap;
+}
+
+/* Dark mode: follows the device setting. Night shifts mean the app is often opened in the dark. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f141b;
+    --card: #19202a;
+    --text: #e6eaf0;
+    --muted: #98a2b3;
+    --border: #2c3644;
+    --primary: #7aa5f5;
+    --primary-text: #0d1420;
+    --open: #12301f;
+    --open-border: #3f9e64;
+    --mine: #172a4d;
+    --mine-border: #7aa5f5;
+    --swap: #382d0b;
+    --swap-border: #c99a1a;
+    --swap-text: #f1d27a;
+    --chip-bg: #242d3a;
+    --bar-bg: #141b26;
+    --bar-text: #e6eaf0;
+    --shadow: rgb(0 0 0 / 40%);
+    --danger: #ef6b6b;
+    --success: #5fcf86;
+    color-scheme: dark;
+  }
+
+  .sheet-backdrop,
+  .dialog-backdrop {
+    background: rgb(0 0 0 / 60%);
+  }
+}
+
+/* Keyboard focus */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+button.danger.solid {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+/* Confirmation dialog */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgb(0 0 0 / 45%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.dialog {
+  background: var(--card);
+  width: 100%;
+  max-width: 400px;
+  border-radius: 16px;
+  padding: 1.1rem 1.2rem 1rem;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 25%);
+  animation: pop-in 0.15s ease-out;
+}
+
+.dialog h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.dialog-message {
+  margin-bottom: 0.8rem;
+  line-height: 1.45;
+}
+
+.dialog-message p {
+  margin: 0 0 0.4rem;
+}
+
+.dialog input {
+  margin-bottom: 0.8rem;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.dialog-buttons button {
+  min-width: 6rem;
+  padding: 0.65rem 1rem;
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+}
+
+/* Toasts, above the tab bar */
+.toasts {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(4.6rem + env(safe-area-inset-bottom));
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  pointer-events: none;
+  padding: 0 1rem;
+}
+
+.toast {
+  max-width: 480px;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 25%);
+  animation: toast-in 0.2s ease-out;
+  text-align: center;
+}
+
+.toast.success::before {
+  content: '✓ ';
+  color: var(--success);
+  font-weight: 700;
+}
+
+.toast.error {
+  background: var(--danger);
+  color: #fff;
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(0.6rem);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dialog,
+  .toast {
+    animation: none;
+  }
+}
+
+/* Summary cards at the top of the opening screen */
+.next-shift {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  margin: 0.5rem 0 0.8rem;
+  text-align: start;
+  border: 1px solid var(--mine-border);
+  border-inline-start: 5px solid var(--mine-border);
+}
+
+.next-shift .tag {
+  margin-top: 0.3rem;
+}
+
+.next-when {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--mine-border);
+}
+
+.empty-next {
+  display: block;
+  border-inline-start-width: 1px;
+  border-color: var(--border);
+  padding: 0.7rem 1rem;
+}
+
+.attention-card {
+  border: 2px solid var(--swap-border);
+}
+
+.attention-card h2 {
+  margin-top: 0;
+}
+
+.nowrap {
   white-space: nowrap;
 }

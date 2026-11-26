@@ -67,8 +67,8 @@ export function AccessPending({ status, email }: { status: Exclude<UserStatus, '
           <>
             <h1>ממתין לאישור מנהל</h1>
             <p>
-              נרשמת עם <span className="ltr-inline">{email}</span>. המנהל קיבל הודעה, ואחרי שיאשר אותך תוכל לבחור
-              את השם שלך ברשימה. תקבל גם מייל כשהחשבון יאושר.
+              ההרשמה התבצעה עם <span className="ltr-inline">{email}</span>. המנהל קיבל הודעה, ואחרי האישור אפשר
+              יהיה לבחור את השם שלך ברשימה. יישלח גם מייל כשהחשבון יאושר.
             </p>
             <button className="primary" onClick={refresh}>
               בדיקה שוב
@@ -78,7 +78,7 @@ export function AccessPending({ status, email }: { status: Exclude<UserStatus, '
           <>
             <h1>אין גישה</h1>
             <p>
-              החשבון <span className="ltr-inline">{email}</span> לא אושר לשימוש באפליקציה. אם זו טעות, פנה למנהל.
+              החשבון <span className="ltr-inline">{email}</span> לא אושר לשימוש באפליקציה. אם זו טעות, אפשר לפנות למנהל.
             </p>
           </>
         )}

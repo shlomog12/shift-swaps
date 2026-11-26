@@ -18,7 +18,7 @@ export function ShiftCell({ shift, offers = 0 }: { shift: Shift; offers?: number
     <button className={shiftClasses(shift, mine)} onClick={() => me.openShift(shift.night, shift.slot)}>
       <span className="name">{shift.assignee ?? 'פנוי'}</span>
       {shift.swap_requested && (
-        <span className="badge">{offers > 0 ? `חילוף · ${plural(offers, 'מתנדב אחד', 'מתנדבים')}` : 'מבקש חילוף'}</span>
+        <span className="badge">{offers > 0 ? `חילוף · ${plural(offers, 'מתנדב אחד', 'מתנדבים')}` : 'בקשת חילוף'}</span>
       )}
     </button>
   );

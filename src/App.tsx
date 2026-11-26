@@ -3,6 +3,7 @@ import { Admin } from './components/Admin';
 import { api } from './lib/api';
 import { Board } from './components/Board';
 import { Calendar } from './components/Calendar';
+import { FeedbackProvider } from './components/Feedback';
 import { History } from './components/History';
 import { AccessPending, Login, SetupMissing } from './components/Login';
 import { MyShifts } from './components/MyShifts';
@@ -11,6 +12,7 @@ import { ShiftSheet } from './components/ShiftSheet';
 import {
   MeContext,
   RefreshContext,
+  RosterContext,
   sameName,
   useLiveRefresh,
   useQuery,
@@ -18,7 +20,8 @@ import {
   useSession,
   type Me,
 } from './lib/hooks';
-import { loadProfile } from './lib/queries';
+import { awaitingMyDecision } from './lib/attention';
+import { loadPendingOffers, loadProfile, loadUpcomingShifts } from './lib/queries';
 import { isConfigured, supabase } from './lib/supabase';
 import type { Profile, ShiftKey } from './lib/types';
 
@@ -41,7 +44,9 @@ export function App() {
 
   return (
     <RefreshContext.Provider value={refreshValue}>
-      <SignedInGate />
+      <FeedbackProvider>
+        <SignedInGate />
+      </FeedbackProvider>
     </RefreshContext.Provider>
   );
 }
@@ -61,7 +66,7 @@ function ProfileGate({ userId, email }: { userId: string; email: string }) {
     return (
       <div className="center-page">
         <div className="card">
-          <p className="error">{profile.error ?? 'לא נמצא פרופיל למשתמש הזה. נסה להתחבר מחדש, ואם זה חוזר פנה למנהל.'}</p>
+          <p className="error">{profile.error ?? 'לא נמצא פרופיל למשתמש הזה. כדאי להתחבר מחדש, ואם זה חוזר – לפנות למנהל.'}</p>
           <button onClick={() => supabase.auth.signOut()}>התנתקות</button>
         </div>
       </div>
@@ -100,6 +105,14 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
     localStorage.setItem(ADMIN_MODE_KEY, next ? 'on' : 'off');
   }
 
+  const upcoming = useQuery(loadUpcomingShifts, []);
+  const pendingOffers = useQuery(loadPendingOffers, []);
+  const roster = useMemo(() => ({ upcoming, pendingOffers }), [upcoming, pendingOffers]);
+  const decisionCount = useMemo(
+    () => awaitingMyDecision(upcoming.data ?? [], pendingOffers.data ?? [], me.isMine).length,
+    [upcoming.data, pendingOffers.data, me],
+  );
+
   const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
   const users = useQuery(() => (isAdmin ? api.adminListUsers() : Promise.resolve([])), [isAdmin]);
   const pendingCount = (users.data ?? []).filter((u) => u.status === 'pending').length;
@@ -107,6 +120,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
 
   return (
     <MeContext.Provider value={me}>
+    <RosterContext.Provider value={roster}>
       <header className="top-bar">
         <span className="app-title">משמרות וחילופים</span>
         <span className="user">
@@ -140,11 +154,17 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
             <span aria-hidden="true">{t.icon}</span>
             {t.label}
             {t.id === 'admin' && pendingCount > 0 && <b className="tab-badge">{pendingCount}</b>}
+            {t.id === 'mine' && decisionCount > 0 && (
+              <b className="tab-badge" aria-label={`${decisionCount} ממתינים להחלטה שלך`}>
+                {decisionCount}
+              </b>
+            )}
           </button>
         ))}
       </nav>
 
       {open && <ShiftSheet key={`${open.night}/${open.slot}`} target={open} onClose={() => setOpen(null)} />}
+    </RosterContext.Provider>
     </MeContext.Provider>
   );
 }

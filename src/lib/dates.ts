@@ -9,8 +9,10 @@ const MONTH_NAMES = [
 
 // Wrapped in Unicode isolates so the range reads left-to-right inside Hebrew text.
 const ltr = (text: string) => `\u2066${text}\u2069`;
+// Word joiners keep a time range on one line.
+const range = (from: string, to: string) => ltr(`${from}\u2060–\u2060${to}`);
 
-export const SLOT_HOURS: Record<Slot, string> = { 1: ltr('00:00–03:00'), 2: ltr('03:00–06:00') };
+export const SLOT_HOURS: Record<Slot, string> = { 1: range('00:00', '03:00'), 2: range('03:00', '06:00') };
 export const SLOT_NAME: Record<Slot, string> = { 1: 'ראשונה', 2: 'שנייה' };
 
 function parts(iso: string): [number, number, number] {
@@ -154,4 +156,18 @@ export function formatDateTime(timestamp: string): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(timestamp));
+}
+
+/** Whole days from `from` to `to` (both "YYYY-MM-DD"). */
+export function daysBetween(from: string, to: string): number {
+  return Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / 86_400_000);
+}
+
+/** How soon an upcoming shift starts, in words: "הלילה", "מחר בלילה", "בעוד 5 ימים". */
+export function startsInLabel(night: string, slot: Slot, now: Date = new Date()): string {
+  const days = daysBetween(israelNow(now).date, night);
+  if (days <= 0) return `עוד מעט, ב־${ltr(slot === 1 ? '00:00' : '03:00')}`;
+  if (days === 1) return 'הלילה';
+  if (days === 2) return 'מחר בלילה';
+  return `בעוד ${days} ימים`;
 }

@@ -5,6 +5,7 @@ import { useAction, useMe, useQuery } from '../lib/hooks';
 import { parseSheet, type ImportResult, type ImportRow } from '../lib/importSheet';
 import { loadShifts } from '../lib/queries';
 import type { AdminUser, Shift } from '../lib/types';
+import { useFeedback } from './Feedback';
 
 export function Admin() {
   return (
@@ -27,16 +28,15 @@ interface Preview extends ImportResult {
 function ImportPanel() {
   const [text, setText] = useState('');
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const { busy, error, setError, run } = useAction();
+  const { confirm, toast } = useFeedback();
 
   async function analyze(source: string) {
-    setMessage(null);
     setError(null);
     const parsed = parseSheet(source);
     if (parsed.rows.length === 0) {
       setPreview(null);
-      setError('לא נמצאו שורות עם תאריך. ודא שהטבלה כוללת את עמודת התאריך.');
+      setError('לא נמצאו שורות עם תאריך. כדאי לבדוק שהטבלה כוללת את עמודת התאריך.');
       return;
     }
     const from = parsed.rows[0].night;
@@ -52,12 +52,17 @@ function ImportPanel() {
     }
   }
 
-  function doImport() {
+  async function doImport() {
     if (!preview) return;
     const changed = preview.rows.filter((r) => preview.states.get(r.night) !== 'same');
-    if (!window.confirm(`לייבא ${changed.length} לילות שהשתנו? בקשות חילוף על משמרות שהשם בהן משתנה יבוטלו.`)) return;
+    const ok = await confirm({
+      title: `לייבא ${changed.length} לילות?`,
+      message: 'לילות חדשים ייווצרו ולילות שהשתנו יתעדכנו. בקשות חילוף על משמרות שהשם בהן משתנה יבוטלו.',
+      confirmLabel: 'ייבוא',
+    });
+    if (!ok) return;
     run(
-      () => api.adminImport(changed).then((count) => setMessage(`הייבוא הסתיים: ${count} משמרות עודכנו.`)),
+      () => api.adminImport(changed).then((count) => toast(`הייבוא הסתיים: ${count} משמרות עודכנו`)),
       () => {
         setPreview(null);
         setText('');
@@ -119,7 +124,6 @@ function ImportPanel() {
         )}
       </div>
       {error && <p className="error">{error}</p>}
-      {message && <p className="success">{message}</p>}
 
       {preview && (
         <>
@@ -189,8 +193,8 @@ function NightsPanel() {
   const today = israelToday();
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(addDays(today, 90));
-  const [message, setMessage] = useState<string | null>(null);
   const { busy, error, run } = useAction();
+  const { confirm, toast } = useFeedback();
 
   return (
     <section className="card">
@@ -212,7 +216,7 @@ function NightsPanel() {
           className="primary"
           disabled={busy || !from || !to}
           onClick={() =>
-            run(() => api.adminAddNights(from, to).then((n) => setMessage(`נוצרו ${n} משמרות חדשות.`)))
+            run(() => api.adminAddNights(from, to).then((n) => toast(`נוצרו ${n} משמרות חדשות`)))
           }
         >
           יצירת לילות ריקים
@@ -220,19 +224,21 @@ function NightsPanel() {
         <button
           className="danger"
           disabled={busy || !from || !to}
-          onClick={() => {
-            const answer = window.prompt(
-              `למחוק את כל המשמרות בין ${formatDate(from)} ל-${formatDate(to)}, כולל השיבוצים? כדי לאשר הקלד "מחק".`,
-            );
-            if (answer?.trim() !== 'מחק') return;
-            run(() => api.adminDeleteNights(from, to).then((n) => setMessage(`נמחקו ${n} משמרות.`)));
+          onClick={async () => {
+            const ok = await confirm({
+              title: 'למחוק את הלילות בטווח?',
+              message: `כל המשמרות בין ${formatDate(from)} ל־${formatDate(to)} יימחקו, כולל השיבוצים. אי אפשר לבטל את זה. לאישור יש להקליד "מחק".`,
+              confirmLabel: 'מחיקה',
+              danger: true,
+              requireText: 'מחק',
+            });
+            if (ok) run(() => api.adminDeleteNights(from, to).then((n) => toast(`נמחקו ${n} משמרות`)));
           }}
         >
           מחיקת לילות בטווח
         </button>
       </div>
       {error && <p className="error">{error}</p>}
-      {message && <p className="success">{message}</p>}
     </section>
   );
 }
@@ -241,16 +247,49 @@ function userLabel(u: AdminUser): string {
   return u.display_name ?? u.google_name ?? u.email;
 }
 
-function confirmDelete(u: AdminUser): boolean {
-  return window.confirm(
-    `למחוק את ${u.email}? זה כאילו הוא מעולם לא נכנס: החשבון וההתנדבויות שלו נמחקים, ` +
-      'והמשמרות נשארות על השם. אם ייכנס שוב, הוא יחכה לאישור כמו משתמש חדש. כדי שלא יוכל להיכנס בכלל, השתמש בחסימה.',
-  );
+/** Admin actions on a user, each behind an in-app confirmation and followed by a toast. */
+function useUserActions() {
+  const { busy, error, run } = useAction();
+  const { confirm, toast } = useFeedback();
+
+  async function remove(u: AdminUser) {
+    const ok = await confirm({
+      title: `למחוק את ${userLabel(u)}?`,
+      message: (
+        <>
+          <p className="ltr-inline">{u.email}</p>
+          <p>
+            כאילו המשתמש מעולם לא נכנס: החשבון וההתנדבויות נמחקים, והמשמרות נשארות על השם. בכניסה הבאה יידרש אישור
+            מחדש. כדי למנוע כניסה בכלל, יש להשתמש בחסימה.
+          </p>
+        </>
+      ),
+      confirmLabel: 'מחיקה',
+      danger: true,
+    });
+    if (ok) run(() => api.adminDeleteUser(u.id), () => toast('המשתמש נמחק'));
+  }
+
+  async function block(u: AdminUser) {
+    const ok = await confirm({
+      title: `לחסום את ${userLabel(u)}?`,
+      message: 'המשתמש לא יוכל להיכנס, והשם ברשימה ישתחרר. המשמרות נשארות על השם.',
+      confirmLabel: 'חסימה',
+      danger: true,
+    });
+    if (ok) run(() => api.adminSetStatus(u.id, 'rejected'), () => toast('המשתמש נחסם'));
+  }
+
+  function approve(u: AdminUser) {
+    run(() => api.adminSetStatus(u.id, 'approved'), () => toast('המשתמש אושר'));
+  }
+
+  return { busy, error, run, confirm, toast, remove, block, approve };
 }
 
 function PendingPanel() {
   const users = useQuery(api.adminListUsers, []);
-  const { busy, error, run } = useAction();
+  const { busy, error, remove, block, approve } = useUserActions();
   const pending = (users.data ?? []).filter((u) => u.status === 'pending');
 
   if (pending.length === 0) return null;
@@ -258,33 +297,23 @@ function PendingPanel() {
   return (
     <section className="card pending-panel">
       <h2>ממתינים לאישור ({pending.length})</h2>
-      <p className="muted small">אשר רק אנשים שאתה מזהה לפי השם והמייל. משתמש שלא אושר לא רואה שום מידע.</p>
+      <p className="muted small">כדאי לאשר רק אנשים מוכרים לפי השם והמייל. משתמש שלא אושר לא רואה שום מידע.</p>
       <ul className="pending-list">
         {pending.map((u) => (
           <li key={u.id}>
             <span className="list-main">
               <strong>{u.google_name ?? 'ללא שם בגוגל'}</strong>
               <span className="small ltr-inline">{u.email}</span>
-              <span className="muted small">נרשם/ה {formatDateTime(u.created_at)}</span>
+              <span className="muted small">הצטרפות: {formatDateTime(u.created_at)}</span>
             </span>
             <span className="row">
-              <button className="primary small" disabled={busy} onClick={() => run(() => api.adminSetStatus(u.id, 'approved'))}>
+              <button className="primary small" disabled={busy} onClick={() => approve(u)}>
                 אישור
               </button>
-              <button
-                className="small danger"
-                disabled={busy}
-                onClick={() =>
-                  window.confirm(`לחסום את ${u.email}?`) && run(() => api.adminSetStatus(u.id, 'rejected'))
-                }
-              >
+              <button className="small danger" disabled={busy} onClick={() => block(u)}>
                 חסימה
               </button>
-              <button
-                className="small danger"
-                disabled={busy}
-                onClick={() => confirmDelete(u) && run(() => api.adminDeleteUser(u.id))}
-              >
+              <button className="small danger" disabled={busy} onClick={() => remove(u)}>
                 מחיקה
               </button>
             </span>
@@ -299,16 +328,53 @@ function PendingPanel() {
 function UsersPanel() {
   const me = useMe();
   const users = useQuery(api.adminListUsers, []);
-  const { busy, error, run } = useAction();
+  const { busy, error, run, confirm, toast, remove, block, approve } = useUserActions();
+  const { ask } = useFeedback();
   const approved = (users.data ?? []).filter((u) => u.status === 'approved');
   const rejected = (users.data ?? []).filter((u) => u.status === 'rejected');
 
-  function rename(userId: string, current: string | null) {
-    const name = window.prompt('השם החדש ברשימה:', current ?? '');
+  async function rename(u: AdminUser) {
+    const current = u.display_name;
+    const name = await ask({
+      title: `שינוי השם ברשימה של ${userLabel(u)}`,
+      initial: current ?? '',
+      placeholder: 'השם החדש ברשימה',
+      confirmLabel: 'המשך',
+    });
     if (name === null || name.trim() === (current ?? '')) return;
     const renameShifts =
-      current !== null && name.trim() !== '' && window.confirm(`להעביר גם את כל המשמרות של "${current}" לשם החדש?`);
-    run(() => api.adminSetUserName(userId, name, renameShifts));
+      current !== null &&
+      name.trim() !== '' &&
+      (await confirm({
+        title: 'להעביר גם את המשמרות?',
+        message: `להעביר את כל המשמרות של "${current}" לשם "${name.trim()}"?`,
+        confirmLabel: 'כן, להעביר',
+        cancelLabel: 'לא, רק את השם',
+      }));
+    run(() => api.adminSetUserName(u.id, name, renameShifts), () => toast('השם עודכן'));
+  }
+
+  async function toggleAdmin(u: AdminUser, value: boolean) {
+    const ok = await confirm(
+      value
+        ? { title: `להפוך את ${userLabel(u)} למנהל?`, message: 'מנהל יכול לערוך כל משמרת ולנהל משתמשים.', confirmLabel: 'הוספת מנהל' }
+        : {
+            title: u.id === me.profile.id ? 'להסיר את עצמך מהמנהלים?' : `להסיר את ${userLabel(u)} מהמנהלים?`,
+            confirmLabel: 'הסרה',
+            danger: true,
+          },
+    );
+    if (ok) run(() => api.adminSetAdmin(u.id, value), () => toast(value ? 'המנהל נוסף' : 'המנהל הוסר'));
+  }
+
+  async function clearName(u: AdminUser) {
+    const ok = await confirm({
+      title: `לנתק את ${userLabel(u)} מהשם "${u.display_name}"?`,
+      message: 'המשמרות נשארות על השם, וההתנדבויות הממתינות של המשתמש יבוטלו. בכניסה הבאה תתבקש בחירת שם מחדש.',
+      confirmLabel: 'ניתוק',
+      danger: true,
+    });
+    if (ok) run(() => api.adminSetUserName(u.id, '', false), () => toast('המשתמש נותק מהשם'));
   }
 
   return (
@@ -340,50 +406,25 @@ function UsersPanel() {
                     checked={u.is_admin}
                     disabled={busy}
                     aria-label="מנהל"
-                    onChange={(e) => {
-                      const value = e.target.checked;
-                      if (u.id === me.profile.id && !value && !window.confirm('להסיר את עצמך מהמנהלים?')) return;
-                      if (value && !window.confirm(`להפוך את ${userLabel(u)} למנהל?`)) return;
-                      run(() => api.adminSetAdmin(u.id, value));
-                    }}
+                    onChange={(e) => toggleAdmin(u, e.target.checked)}
                   />
                 </td>
                 <td className="actions-cell">
-                  <button className="link small" disabled={busy} onClick={() => rename(u.id, u.display_name)}>
+                  <button className="link small" disabled={busy} onClick={() => rename(u)}>
                     שינוי שם
                   </button>
                   {u.display_name && (
-                    <button
-                      className="link small danger"
-                      disabled={busy}
-                      onClick={() =>
-                        window.confirm(
-                          `לנתק את ${u.email} מהשם "${u.display_name}"? המשמרות נשארות על השם, וההתנדבויות הממתינות שלו יבוטלו. בכניסה הבאה הוא יבחר שם מחדש.`,
-                        ) && run(() => api.adminSetUserName(u.id, '', false))
-                      }
-                    >
+                    <button className="link small danger" disabled={busy} onClick={() => clearName(u)}>
                       הסרת שם
                     </button>
                   )}
                   {u.id !== me.profile.id && !u.is_admin && (
-                    <button
-                      className="link small danger"
-                      disabled={busy}
-                      onClick={() =>
-                        window.confirm(
-                          `לחסום את ${userLabel(u)}? הוא לא יוכל להיכנס, והשם שלו ברשימה ישתחרר. המשמרות שלו נשארות.`,
-                        ) && run(() => api.adminSetStatus(u.id, 'rejected'))
-                      }
-                    >
+                    <button className="link small danger" disabled={busy} onClick={() => block(u)}>
                       חסימה
                     </button>
                   )}
                   {u.id !== me.profile.id && !u.is_admin && (
-                    <button
-                      className="link small danger"
-                      disabled={busy}
-                      onClick={() => confirmDelete(u) && run(() => api.adminDeleteUser(u.id))}
-                    >
+                    <button className="link small danger" disabled={busy} onClick={() => remove(u)}>
                       מחיקה
                     </button>
                   )}
@@ -405,18 +446,10 @@ function UsersPanel() {
                   <span className="small ltr-inline">{u.email}</span>
                 </span>
                 <span className="row">
-                  <button
-                    className="small"
-                    disabled={busy}
-                    onClick={() => run(() => api.adminSetStatus(u.id, 'approved'))}
-                  >
+                  <button className="small" disabled={busy} onClick={() => approve(u)}>
                     אישור בכל זאת
                   </button>
-                  <button
-                    className="small danger"
-                    disabled={busy}
-                    onClick={() => confirmDelete(u) && run(() => api.adminDeleteUser(u.id))}
-                  >
+                  <button className="small danger" disabled={busy} onClick={() => remove(u)}>
                     מחיקה
                   </button>
                 </span>
