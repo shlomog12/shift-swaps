@@ -40,7 +40,7 @@ Backlog from the UX review. Numbers match the review; done tasks are kept for re
 
 Done in code, waiting for steps in Supabase. Order matters: database first, then the function.
 
-- [ ] **Check which migrations are applied** (SQL Editor → New query → Run). It only checks, it changes nothing:
+- [x] **Check which migrations are applied** (SQL Editor → New query → Run). It only checks, it changes nothing:
   ```sql
   select
     to_regclass('public.swap_requests')   is not null as swap_requests,
@@ -49,8 +49,8 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
     to_regclass('public.calendar_tokens') is not null as calendar;
   ```
   For every `false`, run its file below, in this order.
-- [ ] `false` in swap_requests → run all of `supabase/migrations/20261201000000_swap_requests.sql`.
-- [ ] `false` in admin_phone → run all of `supabase/migrations/20261202000000_admin_phones.sql`.
+- [x] (already applied) `false` in swap_requests → run all of `supabase/migrations/20261201000000_swap_requests.sql`.
+- [x] (already applied) `false` in admin_phone → run all of `supabase/migrations/20261202000000_admin_phones.sql`.
 - [ ] `false` in calendar → run all of `supabase/migrations/20261203000000_calendar_feed.sql`
       (task 39). Expected result: "Success. No rows returned".
 - [ ] **Deploy the calendar function** (terminal, from the project folder, after the SQL above):
