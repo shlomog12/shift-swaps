@@ -31,6 +31,9 @@ export function ShiftListItem({ shift, note }: { shift: Shift; note?: string }) 
             {formatDate(shift.night)} · {slotTime(shift.night, shift.slot)}
           </strong>
           <span className="muted small">{nightLabel(shift.night)}</span>
+          {shift.swap_requested && shift.swap_note && (
+            <span className="small list-note">💬 {shift.swap_note}</span>
+          )}
         </span>
         <span className="list-side">
           {urgent && <span className="tag urgent">{urgent}</span>}

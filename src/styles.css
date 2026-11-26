@@ -1473,3 +1473,31 @@ a.button:not(.primary):not(.whatsapp):not(.calendar) {
   margin: 0.4rem 0;
   line-height: 1.5;
 }
+
+/* Notes on swap requests and offers */
+.note-line {
+  margin: 0.2rem 0 0.4rem;
+  padding: 0.35rem 0.6rem;
+  background: var(--chip-bg);
+  border-radius: 8px;
+  border-inline-start: 3px solid var(--swap-border);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.note-line.small {
+  margin: 0.25rem 0 0;
+}
+
+.list-note {
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.request-form input {
+  margin-bottom: 0.4rem;
+}

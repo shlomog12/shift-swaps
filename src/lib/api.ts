@@ -21,6 +21,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   request_not_found: 'הצעת ההחלפה לא נמצאה.',
   request_not_pending: 'הצעת ההחלפה כבר טופלה.',
   stale_request: 'אחת המשמרות השתנתה מאז שנשלחה ההצעה, ולכן אי אפשר לאשר אותה.',
+  note_too_long: 'ההערה ארוכה מדי (עד 300 תווים).',
   stale_offer: 'המשמרת השתנתה מאז ההתנדבות, ולכן אי אפשר לאשר אותה.',
   admin_only: 'הפעולה הזאת זמינה רק למנהלים.',
   not_approved: 'החשבון שלך עדיין לא אושר על ידי מנהל.',
@@ -41,29 +42,39 @@ export function translateError(message: string): string {
 }
 
 async function call<T = void>(fn: string, args?: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args);
+  let { data, error } = await supabase.rpc(fn, args);
+  // Before the swap-notes migration is applied the functions take no note: do the action without it.
+  if (error && args && 'p_note' in args && /could not find the function/i.test(error.message)) {
+    const { p_note: _note, ...rest } = args;
+    ({ data, error } = await supabase.rpc(fn, rest));
+  }
   if (error) throw new Error(translateError(error.message));
   return data as T;
 }
 
 const shiftArgs = (night: string, slot: Slot) => ({ p_night: night, p_slot: slot });
+/** Sent only when there is a note, so calls also work before the swap-notes migration is applied. */
+const noteArg = (note?: string) => (note?.trim() ? { p_note: note.trim() } : {});
 
 export const api = {
   rosterNames: () => call<RosterName[]>('roster_names'),
   claimName: (name: string) => call('claim_name', { p_name: name }),
 
   takeShift: (night: string, slot: Slot) => call('take_shift', shiftArgs(night, slot)),
-  requestSwap: (night: string, slot: Slot) => call('request_swap', shiftArgs(night, slot)),
+  requestSwap: (night: string, slot: Slot, note?: string) =>
+    call('request_swap', { ...shiftArgs(night, slot), ...noteArg(note) }),
   cancelSwapRequest: (night: string, slot: Slot) => call('cancel_swap_request', shiftArgs(night, slot)),
-  offerSwap: (night: string, slot: Slot) => call<number>('offer_swap', shiftArgs(night, slot)),
+  offerSwap: (night: string, slot: Slot, note?: string) =>
+    call<number>('offer_swap', { ...shiftArgs(night, slot), ...noteArg(note) }),
   withdrawOffer: (offerId: number) => call('withdraw_offer', { p_offer_id: offerId }),
   acceptOffer: (offerId: number) => call('accept_offer', { p_offer_id: offerId }),
   declineOffer: (offerId: number) => call('decline_offer', { p_offer_id: offerId }),
-  sendSwapRequest: (night: string, slot: Slot, give: { night: string; slot: Slot } | null) =>
+  sendSwapRequest: (night: string, slot: Slot, give: { night: string; slot: Slot } | null, note?: string) =>
     call<number>('send_swap_request', {
       ...shiftArgs(night, slot),
       p_give_night: give?.night ?? null,
       p_give_slot: give?.slot ?? null,
+      ...noteArg(note),
     }),
   withdrawSwapRequest: (requestId: number) => call('withdraw_swap_request', { p_request_id: requestId }),
   acceptSwapRequest: (requestId: number) => call('accept_swap_request', { p_request_id: requestId }),

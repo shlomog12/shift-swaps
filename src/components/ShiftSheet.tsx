@@ -6,7 +6,8 @@ import { loadShift, loadShiftOffers, loadShiftRequests } from '../lib/queries';
 import type { ShiftKey, SwapOffer } from '../lib/types';
 import { googleCalendarUrl } from '../lib/calendar';
 import { appLink } from '../lib/share';
-import { useFeedback, type ConfirmOptions } from './Feedback';
+import { useFeedback, type AskOptions, type ConfirmOptions } from './Feedback';
+import { NoteLine } from './NoteLine';
 import {
   IncomingRequest,
   REQUEST_STATUS,
@@ -18,6 +19,8 @@ import {
   swapWantedText,
   volunteeredText,
 } from './SwapRequests';
+
+const NOTE_MAX = 300;
 
 const OFFER_STATUS: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -34,7 +37,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const requests = useQuery(() => loadShiftRequests(night, slot), [night, slot]);
   const [asking, setAsking] = useState(false);
   const { busy, error, run } = useAction();
-  const { confirm, toast, shareOffer } = useFeedback();
+  const { confirm, ask, toast, shareOffer } = useFeedback();
 
   // Escape closes the sheet (an open confirmation dialog handles Escape itself first).
   useEffect(() => {
@@ -89,6 +92,18 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
     if (await confirm(options)) act(action, done, closeAfter, then);
   }
 
+  /** Like confirmThen, with an optional note field in the dialog that is passed to the action. */
+  async function askThen(
+    options: AskOptions,
+    action: (note: string) => Promise<unknown>,
+    done: string,
+    closeAfter = true,
+    then?: (note: string) => void,
+  ) {
+    const note = await ask({ maxLength: NOTE_MAX, ...options });
+    if (note !== null) act(() => action(note), done, closeAfter, then && (() => then(note)));
+  }
+
   const when = `${formatDate(night)}, ${slotTime(night, slot)}`;
 
   return (
@@ -120,6 +135,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
               {s.swap_requested && <span className="tag swap">בקשת חילוף פתוחה</span>}
               {started && <span className="tag">עברה</span>}
             </div>
+            {s.swap_requested && s.swap_note && <NoteLine note={s.swap_note} />}
 
             <div className="actions">
               {!started && !s.assignee && (
@@ -143,9 +159,10 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                   className="warn"
                   disabled={busy}
                   onClick={() =>
-                    confirmThen(
+                    askThen(
                       {
                         title: mine ? 'לפרסם בקשת חילוף?' : `לפרסם בקשת חילוף בשם ${s.assignee}?`,
+                        placeholder: 'הערה (לא חובה), למשל: אפשר להחליף ביום חמישי',
                         message: (
                           <>
                             <p>{when}</p>
@@ -157,7 +174,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                         ),
                         confirmLabel: 'פרסום הבקשה',
                       },
-                      () => api.requestSwap(night, slot),
+                      (note) => api.requestSwap(night, slot, note),
                       'הבקשה פורסמה בלוח החילופים',
                     )
                   }
@@ -171,9 +188,10 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                   className="primary"
                   disabled={busy}
                   onClick={() =>
-                    confirmThen(
+                    askThen(
                       {
                         title: `להתנדב לקחת את המשמרת של ${s.assignee}?`,
+                        placeholder: `הערה ל${s.assignee} (לא חובה)`,
                         message: (
                           <>
                             <p>{when}</p>
@@ -182,13 +200,13 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                         ),
                         confirmLabel: 'התנדבות',
                       },
-                      () => api.offerSwap(night, slot),
+                      (note) => api.offerSwap(night, slot, note),
                       'ההתנדבות נשלחה. תישלח הודעה במייל כשתתקבל החלטה',
                       true,
-                      () =>
+                      (note) =>
                         shareOffer({
                           message: `נשלח מייל ל${s.assignee}. אפשר גם לשלוח הודעה בוואטסאפ עם קישור לאישור`,
-                          text: volunteeredText(s),
+                          text: volunteeredText(s, note),
                           label: `הודעה ל${s.assignee}`,
                         }),
                     )
@@ -260,7 +278,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                 <WhatsAppButton text={swapWantedText(s, mine)} label="שיתוף הבקשה בוואטסאפ" />
               )}
               {myOffer && !started && (
-                <WhatsAppButton text={volunteeredText(s)} label={`הודעה ל${s.assignee} על ההתנדבות`} />
+                <WhatsAppButton text={volunteeredText(s, myOffer.note)} label={`הודעה ל${s.assignee} על ההתנדבות`} />
               )}
             </div>
 
@@ -318,6 +336,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                       <span>
                         <strong>{o.volunteer}</strong>
                         <span className="muted small"> · {formatDateTime(o.created_at)}</span>
+                        {o.note && <NoteLine note={o.note} className="small" />}
                       </span>
                       {canDecide && !started && (
                         <span className="row">

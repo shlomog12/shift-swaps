@@ -5,6 +5,8 @@ export interface Shift {
   slot: Slot;
   assignee: string | null;
   swap_requested: boolean;
+  /** Optional note on the swap request (missing until the swap-notes migration is applied). */
+  swap_note?: string | null;
   updated_at: string;
 }
 
@@ -18,6 +20,7 @@ export interface SwapOffer {
   volunteer_id: string;
   volunteer: string;
   status: OfferStatus;
+  note?: string | null;
   created_at: string;
   decided_at: string | null;
 }
@@ -32,6 +35,7 @@ export interface SwapRequest {
   requester: string;
   give_night: string | null;
   give_slot: Slot | null;
+  note?: string | null;
   status: OfferStatus;
   created_at: string;
   decided_at: string | null;
@@ -80,9 +84,10 @@ export interface ShiftKey {
   slot: Slot;
 }
 
-export const SHIFT_COLUMNS = 'night,slot,assignee,swap_requested,updated_at';
-export const REQUEST_COLUMNS =
-  'id,night,slot,owner,requester_id,requester,give_night,give_slot,status,created_at,decided_at';
-export const OFFER_COLUMNS = 'id,night,slot,requester,volunteer_id,volunteer,status,created_at,decided_at';
+// All columns of these tables are readable; '*' keeps the app working whether or not a migration that adds
+// a column (such as the swap notes) has been applied yet.
+export const SHIFT_COLUMNS = '*';
+export const REQUEST_COLUMNS = '*';
+export const OFFER_COLUMNS = '*';
 export const PROFILE_COLUMNS = 'id,display_name,is_admin,status,created_at';
 export const AUDIT_COLUMNS = 'id,at,actor_id,actor_name,action,night,slot,details';

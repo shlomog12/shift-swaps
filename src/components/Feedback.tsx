@@ -19,6 +19,7 @@ export interface AskOptions {
   confirmLabel: string;
   initial?: string;
   placeholder?: string;
+  maxLength?: number;
 }
 
 type ToastKind = 'success' | 'error' | 'info';
@@ -201,6 +202,7 @@ function Dialog({ state, onClose }: { state: DialogState; onClose: (ok: boolean,
             value={text}
             placeholder={state.type === 'ask' ? state.options.placeholder : `הקלדת "${required}" לאישור`}
             aria-label={state.type === 'ask' ? options.title : `הקלדת "${required}" לאישור`}
+            maxLength={state.type === 'ask' ? state.options.maxLength : undefined}
             onChange={(e) => setText(e.target.value)}
           />
         )}

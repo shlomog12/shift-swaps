@@ -316,4 +316,43 @@ reset role;
 select test.eq((select count(*) from public.calendar_feed(:'cal_token')), 0::bigint, 'old token stops working');
 select test.eq((select count(*) > 0 from public.calendar_feed(:'cal_token2')), true, 'new token works');
 
+-- Notes on swap requests, volunteering and direct offers.
+reset role;
+select display_name as b_name from public.profiles where id = '00000000-0000-0000-0000-00000000000b' \gset
+select display_name as c_name from public.profiles where id = '00000000-0000-0000-0000-00000000000c' \gset
+select (f1 + 20)::text as n1, (f1 + 21)::text as n2 from test.d \gset
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_add_nights(:'n1', :'n2');
+select public.admin_set_assignee(:'n1', 1::smallint, :'b_name');
+select public.admin_set_assignee(:'n2', 1::smallint, :'c_name');
+
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.expect_error(format('select public.request_swap(%L, 1::smallint, %L)', :'n1', repeat('א', 301)), 'note_too_long');
+select public.request_swap(:'n1', 1::smallint, '  מוכן   להחליף ביום ה׳  ');
+select test.eq((select swap_note from public.shifts where night = :'n1' and slot = 1), 'מוכן להחליף ביום ה׳',
+               'request note stored, whitespace collapsed');
+select public.request_swap(:'n1', 1::smallint, 'עדכון');
+select test.eq((select swap_note from public.shifts where night = :'n1' and slot = 1), 'עדכון', 'note replaced');
+
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.offer_swap(:'n1', 1::smallint, 'יכול/ה רק עד 05:00') as noted_offer \gset
+select test.eq((select note from public.swap_offers where id = :noted_offer), 'יכול/ה רק עד 05:00', 'offer note stored');
+select public.send_swap_request(:'n1', 1::smallint, :'n2', 1::smallint, 'נוח לי יותר') as noted_request \gset
+select test.eq((select note from public.swap_requests where id = :noted_request), 'נוח לי יותר', 'request note stored');
+reset role;
+select test.eq((select count(*) from public.email_outbox where body like '%הערה: יכול/ה רק עד 05:00'), 1::bigint,
+               'offer e-mail carries the note');
+select test.eq((select count(*) from public.email_outbox where body like '%הערה: נוח לי יותר'), 1::bigint,
+               'direct offer e-mail carries the note');
+set role authenticated;
+
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.cancel_swap_request(:'n1', 1::smallint);
+select test.eq((select swap_note from public.shifts where night = :'n1' and slot = 1), null::text,
+               'note cleared when the request is cancelled');
+select public.request_swap(:'n1', 1::smallint);
+select test.eq((select swap_note from public.shifts where night = :'n1' and slot = 1), null::text, 'no note is fine');
+reset role;
+
 \echo 'All rule tests passed.'

@@ -11,25 +11,30 @@ function text(value: unknown, empty = 'פנוי'): string {
   return value === null || value === undefined || value === '' ? empty : String(value);
 }
 
+/** ' – "note"' when the action carried a note. */
+function quote(note: unknown): string {
+  return typeof note === 'string' && note ? ` – "${note}"` : '';
+}
+
 function describe(e: AuditEntry): string {
   const d = e.details;
   switch (e.action) {
     case 'take':
       return 'לקיחת משמרת פנויה';
     case 'request_swap':
-      return `בקשת חילוף (${text(d.assignee)})`;
+      return `בקשת חילוף (${text(d.assignee)})${quote(d.note)}`;
     case 'cancel_swap_request':
       return `ביטול בקשת חילוף (${text(d.assignee)})`;
     case 'offer':
-      return `התנדבות לקחת את המשמרת של ${text(d.requester)}`;
+      return `התנדבות לקחת את המשמרת של ${text(d.requester)}${quote(d.note)}`;
     case 'withdraw_offer':
       return `ביטול התנדבות (במקום ${text(d.requester)})`;
     case 'swap':
       return `אישור חילוף: ${text(d.from)} ← ${text(d.to)}`;
     case 'send_swap_request':
       return d.give_night
-        ? `הצעת החלפה ל${text(d.owner)} (בתמורה ל־${formatDate(String(d.give_night))})`
-        : `הצעה ל${text(d.owner)} לקחת את המשמרת, בלי תמורה`;
+        ? `הצעת החלפה ל${text(d.owner)} (בתמורה ל־${formatDate(String(d.give_night))})${quote(d.note)}`
+        : `הצעה ל${text(d.owner)} לקחת את המשמרת, בלי תמורה${quote(d.note)}`;
     case 'withdraw_swap_request':
       return `ביטול הצעת החלפה ל${text(d.owner)}`;
     case 'accept_swap_request':

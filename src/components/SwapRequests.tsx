@@ -5,6 +5,7 @@ import { useAction, useMe, useRoster } from '../lib/hooks';
 import { appLink, shiftLink, whatsappUrl } from '../lib/share';
 import type { OfferStatus, Shift, ShiftKey, SwapRequest } from '../lib/types';
 import { useFeedback } from './Feedback';
+import { NoteLine } from './NoteLine';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 export const REQUEST_STATUS: Record<OfferStatus, string> = {
@@ -53,6 +54,7 @@ export function swapWantedText(shift: Shift, mine: boolean): string {
   const whom = mine ? 'אותי' : `את ${shift.assignee}`;
   return (
     `מישהו יכול להחליף ${whom} במשמרת ב־${shiftText(shift.night, shift.slot)} (${nightLabel(shift.night)})?\n` +
+    (shift.swap_note ? `"${shift.swap_note}"\n` : '') +
     `אפשר להתנדב כאן:\n${shiftLink(shift.night, shift.slot)}`
   );
 }
@@ -64,13 +66,15 @@ export function requestSentText(r: SwapRequest): string {
       ? `להחליף איתך: לקחת את המשמרת שלך ב־${shiftText(r.night, r.slot)}, ` +
         `ובתמורה לתת לך את המשמרת שלי ב־${shiftText(r.give_night, r.give_slot)}`
       : `לקחת ממך את המשמרת ב־${shiftText(r.night, r.slot)}, בלי משמרת בתמורה`;
-  return `היי ${r.owner}, שלחתי לך הצעה באפליקציית המשמרות ${offer}.\nאפשר לאשר כאן:\n${shiftLink(r.night, r.slot)}`;
+  const note = r.note?.trim() ? `\n${r.note.trim()}` : '';
+  return `היי ${r.owner}, שלחתי לך הצעה באפליקציית המשמרות ${offer}.${note}\nאפשר לאשר כאן:\n${shiftLink(r.night, r.slot)}`;
 }
 
 /** To the owner after volunteering; the link opens the shift with the approve button. */
-export function volunteeredText(shift: Shift): string {
+export function volunteeredText(shift: Shift, note?: string | null): string {
   return (
     `היי ${shift.assignee}, התנדבתי באפליקציית המשמרות לקחת את המשמרת שלך ב־${shiftText(shift.night, shift.slot)}.\n` +
+    (note?.trim() ? `${note.trim()}\n` : '') +
     `אפשר לאשר כאן:\n${shiftLink(shift.night, shift.slot)}`
   );
 }
@@ -131,6 +135,7 @@ export function RequestForm({
   const shifts = useRoster().upcoming;
   const [choice, setChoice] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [note, setNote] = useState('');
   const { busy, error, run } = useAction();
   const { toast, shareOffer } = useFeedback();
   const mine = (shifts.data ?? []).filter((s) => me.isMine(s.assignee) && !hasStarted(s.night, s.slot));
@@ -142,7 +147,7 @@ export function RequestForm({
     if (!choice) return;
     const give = choice === NOTHING ? null : mine.find((s) => `${s.night}/${s.slot}` === choice) ?? null;
     run(
-      () => api.sendSwapRequest(target.night, target.slot, give && { night: give.night, slot: give.slot }),
+      () => api.sendSwapRequest(target.night, target.slot, give && { night: give.night, slot: give.slot }, note),
       () => {
         toast(`ההצעה נשלחה ל${owner}`);
         shareOffer({
@@ -156,6 +161,7 @@ export function RequestForm({
             requester: me.profile.display_name ?? '',
             give_night: give?.night ?? null,
             give_slot: give?.slot ?? null,
+            note: note.trim() || null,
             status: 'pending',
             created_at: '',
             decided_at: null,
@@ -198,6 +204,13 @@ export function RequestForm({
         )}
         {mine.length === 0 && !allowNothing && <p className="muted small">אין לך משמרות קרובות להציע בתמורה.</p>}
       </div>
+      <input
+        value={note}
+        maxLength={300}
+        placeholder="הערה (לא חובה)"
+        aria-label="הערה להצעה"
+        onChange={(e) => setNote(e.target.value)}
+      />
       <div className="row">
         <button className="primary" disabled={busy || !choice} onClick={send}>
           שליחת ההצעה
@@ -276,6 +289,7 @@ export function IncomingRequest({ request: r, showShift }: { request: SwapReques
         <span>
           <strong>{r.requester}</strong> · {giveText(r)}
         </span>
+        {r.note && <NoteLine note={r.note} className="small" />}
         <span className="muted small">{formatDateTime(r.created_at)}</span>
         {error && <span className="error small">{error}</span>}
       </span>

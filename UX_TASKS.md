@@ -29,6 +29,8 @@ Backlog from the UX review. Numbers match the review; done tasks are kept for re
 13. Swap board and open shifts grouped by week; open shifts beyond three weeks behind "show more".
 37. Share my own shifts on WhatsApp from "My shifts" (two weeks / month, no link).
 38. "Add to Google Calendar" on each of my upcoming shifts.
+11. Optional notes on a swap request, on volunteering and on a direct swap offer: shown in the app,
+    in WhatsApp messages, in history and in the owner's e-mail; cleared when the request ends.
 14. Installable PWA: PNG icons (192/512/maskable/apple-touch), service worker (pages network-first, assets
     cached), install button in the profile, "no connection" bar.
 39. Personal calendar subscription: `calendar_tokens` table and RPCs (create / replace token), the
@@ -65,9 +67,11 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 - [x] (feed verified; Google refreshes subscribed calendars on its own schedule) **Check in the app**: profile → "חיבור המשמרות ליומן" → "הוספה ליומן גוגל", and confirm the shifts
       appear on the right dates and times.
 
+- [ ] **Swap notes (task 11)**: SQL Editor → run all of `supabase/migrations/20261204000000_swap_notes.sql`.
+      Until then the app works as before, and notes are simply not saved.
+
 ## P1
 
-11. Optional note on a swap request and on volunteering (schema + RPC change).
 15. Reminder by e-mail or push X hours before a shift (Supabase cron).
 
 ## P2
