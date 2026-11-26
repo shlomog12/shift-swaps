@@ -31,14 +31,15 @@ Backlog from the UX review. Numbers match the review; done tasks are kept for re
 38. "Add to Google Calendar" on each of my upcoming shifts.
 14. Installable PWA: PNG icons (192/512/maskable/apple-touch), service worker (pages network-first, assets
     cached), install button in the profile, "no connection" bar.
+39. Personal calendar subscription: `calendar_tokens` table and RPCs (create / replace token), the
+    `calendar-feed` edge function serving an iCalendar feed, and a profile section with Google / iPhone
+    subscribe links, copy, sharing and privacy notes, and "new link". Needs the migration applied and the
+    function deployed (README, step 6).
 
 ## P1
 
 11. Optional note on a swap request and on volunteering (schema + RPC change).
 15. Reminder by e-mail or push X hours before a shift (Supabase cron).
-39. Personal calendar subscription: an edge function serving an ICS feed of my shifts behind a secret URL,
-    a table for those tokens with revoke/regenerate, and in the profile an "add to calendar" button with
-    a note on sharing the calendar with a partner. (Replaces the old task 16.)
 
 ## P2
 

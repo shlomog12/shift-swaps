@@ -3,6 +3,7 @@ import { useMe } from '../lib/hooks';
 import { isIos, isStandalone, useInstall } from '../lib/pwa';
 import { supabase } from '../lib/supabase';
 import { AdminPhonePanel } from './AdminPhone';
+import { CalendarFeedSection } from './CalendarFeed';
 import { setShareOffersEnabled, shareOffersEnabled, useFeedback } from './Feedback';
 import { WhatsAppButton, inviteText } from './SwapRequests';
 
@@ -60,6 +61,8 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
             )}
           </section>
         )}
+
+        <CalendarFeedSection />
 
         <section className="profile-section">
           <h3>הגדרות</h3>

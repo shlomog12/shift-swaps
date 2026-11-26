@@ -16,3 +16,18 @@ export function googleCalendarUrl(night: string, slot: Slot, link: string): stri
   });
   return `https://calendar.google.com/calendar/render?${params}`;
 }
+
+/** The address of my calendar feed (served by the calendar-feed edge function). */
+export function feedUrl(base: string, token: string): string {
+  return `${base.replace(/\/$/, '')}/functions/v1/calendar-feed?token=${token}`;
+}
+
+/** webcal:// makes iPhones and desktop calendar apps offer to subscribe. */
+export function webcalUrl(feed: string): string {
+  return feed.replace(/^https?:\/\//, 'webcal://');
+}
+
+/** Opens Google Calendar's "add calendar from URL" for the feed. */
+export function googleSubscribeUrl(feed: string): string {
+  return `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl(feed))}`;
+}

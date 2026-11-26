@@ -18,6 +18,7 @@ a full history of who did what, and admin tools for building the roster. See [PL
 | `supabase/migrations` | Database schema, permissions and business rules |
 | `supabase/tests` | Rule tests that run the schema on a plain Postgres |
 | `supabase/functions/send-emails` | Edge function that sends queued e-mails through Brevo |
+| `supabase/functions/calendar-feed` | Edge function that serves a user's shifts as an iCalendar feed |
 | `.github/workflows/ci.yml` | Tests on every push; deploys `main` to GitHub Pages |
 
 ## Setup
@@ -79,7 +80,23 @@ Users pick their roster name once, on first sign-in; after that only an admin ca
 Failed sends keep their error in `email_outbox.error`. Without this step the app works the same, just
 without e-mails.
 
-### 6. Moving the roster over
+### 6. Calendar subscription (optional)
+
+Lets each user subscribe to their own shifts in Google Calendar or on an iPhone (profile → "המשמרות שלי ביומן").
+
+1. Run `supabase/migrations/20261203000000_calendar_feed.sql` in the SQL Editor (if you have not applied all
+   migrations yet).
+2. Deploy the function. It must run without a login, because calendar apps send none; the secret token in the
+   URL is the key, and users can replace it from the app:
+   ```sh
+   supabase functions deploy calendar-feed --no-verify-jwt
+   ```
+   It uses `APP_URL` (set in step 5) for the link in each event; without it the events simply have no link.
+
+Google refreshes subscribed calendars on its own schedule (usually every few hours, sometimes a day), so the
+shift sheet also keeps a one-off "add to Google Calendar" button.
+
+### 7. Moving the roster over
 
 In the **ניהול** tab, copy the table from Google Sheets (date, day, first shift, second shift), paste it,
 check the preview and import. Each person then signs in and picks their name from the roster names.

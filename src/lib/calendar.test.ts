@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { googleCalendarUrl } from './calendar';
+import { feedUrl, googleCalendarUrl, googleSubscribeUrl, webcalUrl } from './calendar';
 import { myShiftsText } from './rosterText';
 
 describe('sharing my shifts', () => {
@@ -22,5 +22,11 @@ describe('sharing my shifts', () => {
     expect(lines[1]).toContain('הלילה שבין רביעי לחמישי');
     expect(lines[2]).toContain('הלילה שבין שני לשלישי');
     expect(text).not.toContain('http');
+  });
+  it('builds the subscription addresses', () => {
+    const feed = feedUrl('https://abc.supabase.co/', 'f'.repeat(64));
+    expect(feed).toBe(`https://abc.supabase.co/functions/v1/calendar-feed?token=${'f'.repeat(64)}`);
+    expect(webcalUrl(feed).startsWith('webcal://abc.supabase.co/')).toBe(true);
+    expect(new URL(googleSubscribeUrl(feed)).searchParams.get('cid')).toBe(webcalUrl(feed));
   });
 });

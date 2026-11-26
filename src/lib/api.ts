@@ -85,4 +85,6 @@ export const api = {
   adminDeleteUser: (userId: string) => call('admin_delete_user', { p_user_id: userId }),
   setMyPhone: (phone: string) => call<string | null>('set_my_phone', { p_phone: phone }),
   adminContacts: () => call<AdminContact[]>('admin_contacts'),
+  myCalendarToken: () => call<string>('my_calendar_token'),
+  resetCalendarToken: () => call<string>('reset_calendar_token'),
 };

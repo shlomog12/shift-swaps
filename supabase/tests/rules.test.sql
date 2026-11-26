@@ -289,4 +289,31 @@ select test.eq((select phone from public.admin_contacts()), '972501234567', 'adm
 select test.expect_error('select phone from public.profiles', 'permission denied');
 reset role;
 
+-- Calendar feed: a user's own token, the feed behind it, and replacing it.
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000d');
+select test.expect_error('select public.my_calendar_token()', 'not_approved');
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.my_calendar_token() as cal_token \gset
+select test.eq(length(:'cal_token'), 64, 'token is 64 characters');
+select test.eq(public.my_calendar_token(), :'cal_token', 'same token on the next call');
+select test.expect_error(format('select * from public.calendar_feed(%L)', :'cal_token'), 'permission denied');
+select test.expect_error('select * from public.calendar_tokens', 'permission denied');
+reset role;
+select display_name as b_name from public.profiles where id = '00000000-0000-0000-0000-00000000000b' \gset
+select test.eq(
+  (select count(*) from public.calendar_feed(:'cal_token')),
+  (select count(*) from public.shifts where lower(assignee) = lower(:'b_name')
+     and night between current_date - 31 and current_date + 366),
+  'feed lists the owner''s shifts');
+select test.eq((select count(*) > 0 from public.calendar_feed(:'cal_token')), true, 'feed is not empty');
+select test.eq(public.calendar_feed_owner(:'cal_token'), :'b_name', 'feed owner name');
+select test.eq((select count(*) from public.calendar_feed('nope')), 0::bigint, 'unknown token lists nothing');
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.reset_calendar_token() as cal_token2 \gset
+reset role;
+select test.eq((select count(*) from public.calendar_feed(:'cal_token')), 0::bigint, 'old token stops working');
+select test.eq((select count(*) > 0 from public.calendar_feed(:'cal_token2')), true, 'new token works');
+
 \echo 'All rule tests passed.'

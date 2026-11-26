@@ -1427,3 +1427,33 @@ a.button.calendar {
   font-size: 0.85rem;
   text-align: center;
 }
+
+/* Calendar subscription in the profile */
+.calendar-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.4rem 0;
+}
+
+a.button.primary {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: var(--primary-text);
+}
+
+a.button:not(.primary):not(.whatsapp):not(.calendar) {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.calendar-notes {
+  margin: 0.5rem 0;
+  padding-inline-start: 1.1rem;
+  line-height: 1.5;
+}
+
+.calendar-notes li {
+  margin-bottom: 0.3rem;
+}
