@@ -25,7 +25,7 @@ a full history of who did what, and admin tools for building the roster. See [PL
 ### 1. Supabase project
 
 1. Create a free project at [supabase.com](https://supabase.com) (region: Frankfurt is closest to Israel).
-2. **SQL Editor** → paste the contents of `supabase/migrations/20261126000000_init.sql` → **Run**.
+2. **SQL Editor** → for each file in `supabase/migrations`, oldest first: paste its contents → **Run**.
 3. **Project Settings → API**: note the *Project URL* and the *anon public* key.
 
 ### 2. Google sign-in
@@ -56,7 +56,10 @@ Sign in to the app once, pick your name, then run in the Supabase SQL Editor:
 update public.profiles set is_admin = true where email = 'your-address@gmail.com';
 ```
 
-From then on, admins can promote others from the **ניהול** tab.
+From then on, admins can promote others from the **ניהול** tab. Admins can switch between the admin view
+and the regular user's view with the button in the top bar.
+
+Users pick their roster name once, on first sign-in; after that only an admin can change it.
 
 ### 5. E-mail notifications
 

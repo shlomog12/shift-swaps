@@ -806,3 +806,25 @@ td.cell-changed {
   flex-direction: column;
   font-weight: 600;
 }
+
+.top-bar .user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mode-toggle {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 60%);
+  color: var(--primary-text);
+}
+
+.mode-toggle.admin {
+  background: #f1c453;
+  border-color: #f1c453;
+  color: #1b2330;
+  font-weight: 600;
+}

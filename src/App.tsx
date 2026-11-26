@@ -54,7 +54,6 @@ function SignedInGate() {
 
 function ProfileGate({ userId, email }: { userId: string; email: string }) {
   const profile = useQuery(() => loadProfile(userId), [userId]);
-  const [renaming, setRenaming] = useState(false);
 
   const missing = !profile.loading && !profile.error && profile.data === null;
   if ((profile.error && !profile.data) || missing) {
@@ -68,37 +67,38 @@ function ProfileGate({ userId, email }: { userId: string; email: string }) {
     );
   }
   if (!profile.data) return <div className="center-page muted">טוען...</div>;
-
-  if (!profile.data.display_name || renaming) {
-    return (
-      <NamePicker
-        currentName={profile.data.display_name}
-        onDone={() => setRenaming(false)}
-        onCancel={profile.data.display_name ? () => setRenaming(false) : undefined}
-      />
-    );
-  }
-
-  return <Shell profile={profile.data} email={email} onRename={() => setRenaming(true)} />;
+  if (!profile.data.display_name) return <NamePicker />;
+  return <Shell profile={profile.data} email={email} />;
 }
 
-function Shell({ profile, email, onRename }: { profile: Profile; email: string; onRename: () => void }) {
+const ADMIN_MODE_KEY = 'admin-mode';
+
+function Shell({ profile, email }: { profile: Profile; email: string }) {
   const { refresh } = useRefresh();
   const [tab, setTab] = useState<Tab>('calendar');
   const [open, setOpen] = useState<ShiftKey | null>(null);
+  // Admins can switch to the regular user's view; the server still knows they are an admin.
+  const [adminMode, setAdminMode] = useState(() => localStorage.getItem(ADMIN_MODE_KEY) !== 'off');
   useLiveRefresh(true, refresh);
 
+  const isAdmin = profile.is_admin && adminMode;
   const me: Me = useMemo(
     () => ({
-      profile,
+      profile: { ...profile, is_admin: isAdmin },
       email,
       isMine: (assignee) => sameName(assignee, profile.display_name),
       openShift: (night, slot) => setOpen({ night, slot }),
     }),
-    [profile, email],
+    [profile, email, isAdmin],
   );
 
-  const tabs = TABS.filter((t) => !t.adminOnly || profile.is_admin);
+  function toggleAdminMode() {
+    const next = !adminMode;
+    setAdminMode(next);
+    localStorage.setItem(ADMIN_MODE_KEY, next ? 'on' : 'off');
+  }
+
+  const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
   const activeTab = tabs.some((t) => t.id === tab) ? tab : 'calendar';
 
   return (
@@ -106,9 +106,16 @@ function Shell({ profile, email, onRename }: { profile: Profile; email: string; 
       <header className="top-bar">
         <span className="app-title">משמרות וחילופים</span>
         <span className="user">
-          <button className="link" onClick={onRename} title="שינוי השם ברשימה">
-            {profile.display_name}
-          </button>
+          {profile.is_admin && (
+            <button
+              className={isAdmin ? 'mode-toggle admin' : 'mode-toggle'}
+              onClick={toggleAdminMode}
+              title="מעבר בין תצוגת מנהל לתצוגת משתמש רגיל"
+            >
+              {isAdmin ? 'מצב מנהל' : 'תצוגת משתמש'}
+            </button>
+          )}
+          <span className="user-name">{profile.display_name}</span>
           <button className="link small" onClick={() => supabase.auth.signOut()}>
             התנתקות
           </button>

@@ -68,6 +68,7 @@ select test.eq(public.admin_import(jsonb_build_array(
 select test.as_user('00000000-0000-0000-0000-00000000000b');
 select test.expect_error(format('select public.take_shift(%L, 1::smallint)', (select f2 from test.d)), 'choose_name_first');
 select public.claim_name('בוסי');
+select test.expect_error('select public.claim_name(''משהו אחר'')', 'name_already_chosen');
 select test.expect_error('select public.admin_import(''[{"night":"2030-01-01"}]'')', 'admin_only');
 
 -- C cannot take B's name.

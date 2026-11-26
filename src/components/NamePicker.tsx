@@ -1,14 +1,9 @@
 import { useMemo, useState } from 'react';
 import { api } from '../lib/api';
 import { useAction, useQuery } from '../lib/hooks';
+import { supabase } from '../lib/supabase';
 
-interface Props {
-  currentName: string | null;
-  onDone: () => void;
-  onCancel?: () => void;
-}
-
-export function NamePicker({ currentName, onDone, onCancel }: Props) {
+export function NamePicker() {
   const names = useQuery(api.rosterNames, []);
   const [filter, setFilter] = useState('');
   const [custom, setCustom] = useState('');
@@ -20,8 +15,8 @@ export function NamePicker({ currentName, onDone, onCancel }: Props) {
   );
 
   function choose(name: string) {
-    if (!window.confirm(`לאשר שהשם שלך ברשימה הוא "${name}"?`)) return;
-    run(() => api.claimName(name), onDone);
+    if (!window.confirm(`השם שלך ברשימה הוא "${name}"?\n\nהבחירה היא חד־פעמית. כדי לשנות אותה אחר כך צריך לפנות למנהל.`)) return;
+    run(() => api.claimName(name));
   }
 
   return (
@@ -43,13 +38,13 @@ export function NamePicker({ currentName, onDone, onCancel }: Props) {
           {visible.map((n) => (
             <button
               key={n.name}
-              className={n.name === currentName ? 'chip selected' : 'chip'}
-              disabled={busy || (n.claimed && n.name !== currentName)}
+              className="chip"
+              disabled={busy || n.claimed}
               title={n.claimed ? 'השם כבר שייך למשתמש אחר' : undefined}
               onClick={() => choose(n.name)}
             >
               {n.name}
-              {n.claimed && n.name !== currentName && ' 🔒'}
+              {n.claimed && ' 🔒'}
             </button>
           ))}
         </div>
@@ -69,13 +64,13 @@ export function NamePicker({ currentName, onDone, onCancel }: Props) {
             שמירה
           </button>
         </form>
-        <p className="muted small">שם שכבר שייך למישהו אחר נעול. אם זה השם שלך, פנה למנהל.</p>
+        <p className="muted small">
+          הבחירה היא חד־פעמית. שם שכבר שייך למישהו אחר נעול. אם זה השם שלך, או שבחרת בטעות, פנה למנהל.
+        </p>
         {error && <p className="error">{error}</p>}
-        {onCancel && (
-          <button className="link" onClick={onCancel}>
-            ביטול
-          </button>
-        )}
+        <button className="link" onClick={() => supabase.auth.signOut()}>
+          התנתקות
+        </button>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   not_signed_in: 'צריך להתחבר מחדש.',
   choose_name_first: 'קודם צריך לבחור את השם שלך ברשימה.',
   invalid_name: 'השם צריך להיות באורך 2 עד 60 תווים.',
+  name_already_chosen: 'כבר בחרת שם. כדי לשנות אותו פנה למנהל.',
   name_taken: 'השם הזה כבר שייך למשתמש אחר. אם זה השם שלך, פנה למנהל.',
   shift_not_found: 'המשמרת לא קיימת.',
   shift_taken: 'מישהו אחר כבר לקח את המשמרת הזאת.',
