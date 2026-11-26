@@ -241,6 +241,13 @@ function userLabel(u: AdminUser): string {
   return u.display_name ?? u.google_name ?? u.email;
 }
 
+function confirmDelete(u: AdminUser): boolean {
+  return window.confirm(
+    `למחוק את ${u.email}? זה כאילו הוא מעולם לא נכנס: החשבון וההתנדבויות שלו נמחקים, ` +
+      'והמשמרות נשארות על השם. אם ייכנס שוב, הוא יחכה לאישור כמו משתמש חדש. כדי שלא יוכל להיכנס בכלל, השתמש בחסימה.',
+  );
+}
+
 function PendingPanel() {
   const users = useQuery(api.adminListUsers, []);
   const { busy, error, run } = useAction();
@@ -272,6 +279,13 @@ function PendingPanel() {
                 }
               >
                 חסימה
+              </button>
+              <button
+                className="small danger"
+                disabled={busy}
+                onClick={() => confirmDelete(u) && run(() => api.adminDeleteUser(u.id))}
+              >
+                מחיקה
               </button>
             </span>
           </li>
@@ -364,6 +378,15 @@ function UsersPanel() {
                       חסימה
                     </button>
                   )}
+                  {u.id !== me.profile.id && !u.is_admin && (
+                    <button
+                      className="link small danger"
+                      disabled={busy}
+                      onClick={() => confirmDelete(u) && run(() => api.adminDeleteUser(u.id))}
+                    >
+                      מחיקה
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -381,9 +404,22 @@ function UsersPanel() {
                   <span>{u.google_name ?? 'ללא שם בגוגל'}</span>
                   <span className="small ltr-inline">{u.email}</span>
                 </span>
-                <button className="small" disabled={busy} onClick={() => run(() => api.adminSetStatus(u.id, 'approved'))}>
-                  אישור בכל זאת
-                </button>
+                <span className="row">
+                  <button
+                    className="small"
+                    disabled={busy}
+                    onClick={() => run(() => api.adminSetStatus(u.id, 'approved'))}
+                  >
+                    אישור בכל זאת
+                  </button>
+                  <button
+                    className="small danger"
+                    disabled={busy}
+                    onClick={() => confirmDelete(u) && run(() => api.adminDeleteUser(u.id))}
+                  >
+                    מחיקה
+                  </button>
+                </span>
               </li>
             ))}
           </ul>

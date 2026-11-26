@@ -22,6 +22,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   not_approved: 'החשבון שלך עדיין לא אושר על ידי מנהל.',
   cannot_change_self: 'אי אפשר לשנות את הסטטוס של עצמך.',
   admin_must_stay_approved: 'קודם צריך להסיר את המשתמש מהמנהלים.',
+  cannot_delete_admin: 'קודם צריך להסיר את המשתמש מהמנהלים.',
   invalid_import: 'אין שורות לייבוא.',
   import_too_large: 'אפשר לייבא עד 1000 לילות בפעם אחת.',
   invalid_range: 'טווח התאריכים לא תקין (עד 400 ימים).',
@@ -67,4 +68,5 @@ export const api = {
     call('admin_set_admin', { p_user_id: userId, p_is_admin: isAdmin }),
   adminSetUserName: (userId: string, name: string, renameShifts: boolean) =>
     call('admin_set_user_name', { p_user_id: userId, p_name: name, p_rename_shifts: renameShifts }),
+  adminDeleteUser: (userId: string) => call('admin_delete_user', { p_user_id: userId }),
 };

@@ -205,4 +205,26 @@ select test.as_user('00000000-0000-0000-0000-00000000000d');
 select public.claim_name('לוי חדש');
 reset role;
 
+-- Deleting a user removes the account, the profile and their offers; signing in again starts over.
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.request_swap((select f1 from test.d), 2::smallint);
+select test.as_user('00000000-0000-0000-0000-00000000000d');
+select public.offer_swap((select f1 from test.d), 2::smallint);
+select test.expect_error('select public.admin_delete_user(''00000000-0000-0000-0000-00000000000c'')', 'admin_only');
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.expect_error('select public.admin_delete_user(''00000000-0000-0000-0000-00000000000a'')', 'cannot_change_self');
+select test.expect_error('select public.admin_delete_user(''00000000-0000-0000-0000-00000000000b'')', 'cannot_delete_admin');
+select public.admin_delete_user('00000000-0000-0000-0000-00000000000d');
+select test.eq((select count(*) from public.admin_list_users() where email = 'd@example.com'), 0::bigint, 'user deleted');
+select test.eq((select count(*) from public.swap_offers where night = (select f1 from test.d) and slot = 2), 0::bigint,
+               'deleted user offers removed');
+select test.eq((select details->>'user' from public.audit_log where action = 'delete_user'), 'לוי חדש', 'delete logged');
+reset role;
+select test.eq((select count(*) from auth.users where email = 'd@example.com'), 0::bigint, 'auth account removed');
+select test.eq((select count(*) from public.email_outbox where to_email = 'd@example.com' and sent_at is null), 0::bigint,
+               'unsent e-mails dropped');
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000d', 'd@example.com');
+select test.eq((select status from public.profiles where email = 'd@example.com'), 'pending', 'returning user starts over');
+
 \echo 'All rule tests passed.'
