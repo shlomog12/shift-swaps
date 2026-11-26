@@ -338,6 +338,19 @@ function UsersPanel() {
                   <button className="link small" disabled={busy} onClick={() => rename(u.id, u.display_name)}>
                     שינוי שם
                   </button>
+                  {u.display_name && (
+                    <button
+                      className="link small danger"
+                      disabled={busy}
+                      onClick={() =>
+                        window.confirm(
+                          `לנתק את ${u.email} מהשם "${u.display_name}"? המשמרות נשארות על השם, וההתנדבויות הממתינות שלו יבוטלו. בכניסה הבאה הוא יבחר שם מחדש.`,
+                        ) && run(() => api.adminSetUserName(u.id, '', false))
+                      }
+                    >
+                      הסרת שם
+                    </button>
+                  )}
                   {u.id !== me.profile.id && !u.is_admin && (
                     <button
                       className="link small danger"

@@ -188,4 +188,21 @@ select test.eq((select count(*) from public.audit_log), 0::bigint, 'rejected use
 reset role;
 select test.eq((select actor_email from public.audit_log where action = 'swap'), 'b@example.com', 'audit records actor');
 
+-- An admin unlinks D from the name 'לוי': D's pending offer is cancelled and D picks a name again.
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.request_swap((select f1 from test.d), 1::smallint);
+select test.as_user('00000000-0000-0000-0000-00000000000d');
+select public.offer_swap((select f1 from test.d), 1::smallint);
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_set_user_name('00000000-0000-0000-0000-00000000000d', '', false);
+select test.eq((select display_name from public.admin_list_users() where email = 'd@example.com'), null::text, 'name cleared');
+select test.eq((select count(*) from public.swap_offers where volunteer_id = '00000000-0000-0000-0000-00000000000d'
+                and status = 'pending'), 0::bigint, 'clearing a name cancels pending offers');
+select test.eq((select count(*) from public.roster_names() where name = 'לוי' and claimed), 0::bigint, 'cleared name is free');
+select test.eq((select details->>'from' from public.audit_log where action = 'admin_clear_user_name'), 'לוי', 'clear logged');
+select test.as_user('00000000-0000-0000-0000-00000000000d');
+select public.claim_name('לוי חדש');
+reset role;
+
 \echo 'All rule tests passed.'

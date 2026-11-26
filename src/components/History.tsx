@@ -48,6 +48,8 @@ function describe(e: AuditEntry): string {
       return `הוספת מנהל: ${text(d.user)}`;
     case 'revoke_admin':
       return `הסרת מנהל: ${text(d.user)}`;
+    case 'admin_clear_user_name':
+      return `ניתוק משתמש מהשם: ${text(d.from, '—')} (${text(d.user)})`;
     case 'admin_rename_user':
       return `שינוי שם משתמש: ${text(d.from, '—')} ← ${text(d.to, '—')}`;
     default:
