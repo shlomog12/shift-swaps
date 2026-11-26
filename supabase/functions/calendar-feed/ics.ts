@@ -42,7 +42,7 @@ function stamp(date: Date): string {
 }
 
 function escapeText(text: string): string {
-  return text.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
+  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n');
 }
 
 /** Folds a content line at 75 octets, never splitting a UTF-8 character. */

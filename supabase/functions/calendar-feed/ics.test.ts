@@ -39,4 +39,8 @@ describe('calendar feed', () => {
     }
     expect(unfold(ics)).toContain('שם ארוך מאוד '.repeat(10).trim());
   });
+  it('escapes commas, semicolons and backslashes in text', () => {
+    const text = unfold(buildIcs('א;ב,ג\\ד', [], ''));
+    expect(text).toContain('X-WR-CALNAME:שמירות – א\\;ב\\,ג\\\\ד');
+  });
 });

@@ -6,7 +6,7 @@ import { buildIcs, type FeedShift } from './ics.ts';
 
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-Deno.serve(async (request) => {
+Deno.serve(async (request: Request) => {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return new Response('method not allowed', { status: 405 });
   }
