@@ -70,11 +70,11 @@ export function AccessPending({ status, email }: { status: Exclude<UserStatus, '
           <>
             <h1>ממתין לאישור מנהל</h1>
             <p>
-              ההרשמה התבצעה עם <span className="ltr-inline">{email}</span>. המנהל קיבל הודעה, ואחרי האישור אפשר
-              יהיה לבחור את השם שלך ברשימה. יישלח גם מייל כשהחשבון יאושר.
+              ההרשמה התבצעה עם <span className="ltr-inline">{email}</span>. אחרי שהמנהל יאשר, אפשר יהיה לבחור את
+              השם שלך ברשימה. המסך הזה יתעדכן לבד ברגע האישור.
             </p>
             <AskAdmins
-              intro="כדי לזרז את האישור, אפשר לשלוח למנהל הודעה בוואטסאפ:"
+              intro="כדי לזרז את האישור, אפשר לשלוח לו הודעה:"
               text={`היי, נרשמתי לאפליקציית המשמרות עם ${email}. אפשר לאשר אותי?\n${appLink()}`}
             />
             <button className="primary" onClick={refresh}>
