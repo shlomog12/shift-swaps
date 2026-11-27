@@ -10,7 +10,8 @@ import { AccessPending, Login, SetupMissing } from './components/Login';
 import { MyShifts } from './components/MyShifts';
 import { NamePicker } from './components/NamePicker';
 import { ProfileSheet } from './components/Profile';
-import { CalendarIcon, EyeIcon, HistoryIcon, SettingsIcon, SwapIcon, UserIcon } from './components/Icons';
+import { CalendarIcon, HistoryIcon, SettingsIcon, SwapIcon, UserIcon } from './components/Icons';
+import { InboxButton, InboxSheet, useInbox } from './components/Inbox';
 import { ShiftSheet } from './components/ShiftSheet';
 import { ViewAsPicker } from './components/ViewAs';
 import {
@@ -30,7 +31,7 @@ import { loadIncomingRequests, loadPendingOffers, loadProfile, loadUpcomingShift
 import { clearSharedShift, readSharedShift } from './lib/share';
 import { isConfigured, supabase } from './lib/supabase';
 import { SYSTEM_ADMIN_LABEL, type Profile, type ShiftKey } from './lib/types';
-import { paymentsNeedingMe } from './components/PaidSwap';
+import { paymentsNeedingMe, stuckPayments } from './components/PaidSwap';
 import { SkeletonPage } from './components/Skeleton';
 
 type Tab = 'calendar' | 'board' | 'mine' | 'history' | 'admin';
@@ -96,6 +97,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   // A shift shared by link (e.g. on WhatsApp) opens right away.
   const [open, setOpen] = useState<ShiftKey | null>(readSharedShift);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const online = useOnline();
   useEffect(clearSharedShift, []);
   // Admins can switch to the regular user's view; the server still knows they are an admin.
@@ -196,7 +198,15 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   }, [upcoming.data, pendingOffers.data, incoming.data, payments.data, me]);
 
   const tabs = TABS.filter((t) => (!t.adminOnly || isAdmin) && !(system && !viewing && t.id === 'mine'));
-  const pendingCount = isAdmin ? (users.data ?? []).filter((u) => u.status === 'pending').length : 0;
+  // Payments open for a few days need an admin's eye (a forgotten payment, or a disagreement).
+  const adminPayments = useQuery(
+    () => (isAdmin ? api.adminOpenPayments().catch(() => []) : Promise.resolve([])),
+    [isAdmin],
+  );
+  const pendingCount = isAdmin
+    ? (users.data ?? []).filter((u) => u.status === 'pending').length + stuckPayments(adminPayments.data ?? []).length
+    : 0;
+  const inbox = useInbox();
   const activeTab = tabs.some((t) => t.id === tab) ? tab : 'calendar';
 
   return (
@@ -205,28 +215,10 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
       <header className={isAdmin ? 'top-bar admin-mode' : 'top-bar'}>
         <span className="app-title">משמרות וחילופים</span>
         <span className="user">
-          {profile.is_admin && !system && !viewing && (
-            <button
-              className={isAdmin ? 'mode-toggle admin' : 'mode-toggle'}
-              onClick={toggleAdminMode}
-              aria-label={isAdmin ? 'כרגע במצב מנהל. מעבר למצב משתמש' : 'כרגע במצב משתמש. מעבר למצב מנהל'}
-            >
-              <SwapIcon size={15} />
-              {isAdmin ? 'מעבר למצב משתמש' : 'מעבר למצב מנהל'}
-            </button>
-          )}
-          {isAdmin && (
-            <button
-              className="mode-toggle icon-only"
-              onClick={() => setPickingViewAs(true)}
-              aria-label="כניסה בשם משתמש"
-              title="כניסה בשם משתמש"
-            >
-              <EyeIcon size={17} />
-            </button>
-          )}
+          {inbox.data && <InboxButton items={inbox.data} onOpen={() => setInboxOpen(true)} />}
           <button className="user-button" onClick={() => setProfileOpen(true)} aria-label="פרופיל והגדרות">
             <UserIcon size={18} /> {profile.display_name ?? SYSTEM_ADMIN_LABEL}
+            {isAdmin && <span className="mode-pill">מנהל</span>}
           </button>
         </span>
       </header>
@@ -281,7 +273,11 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
           >
             <span aria-hidden="true">{t.icon}</span>
             {t.label}
-            {t.id === 'admin' && pendingCount > 0 && <b className="tab-badge">{pendingCount}</b>}
+            {t.id === 'admin' && pendingCount > 0 && (
+              <b className="tab-badge" aria-label={`${pendingCount} דברים שמחכים למנהל`}>
+                {pendingCount}
+              </b>
+            )}
             {t.id === 'mine' && decisionCount > 0 && (
               <b className="tab-badge" aria-label={`${decisionCount} ממתינים להחלטה שלך`}>
                 {decisionCount}
@@ -301,7 +297,27 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
           onClose={() => setPickingViewAs(false)}
         />
       )}
-      {profileOpen && <ProfileSheet onClose={() => setProfileOpen(false)} />}
+      {profileOpen && (
+        <ProfileSheet
+          onClose={() => setProfileOpen(false)}
+          admin={
+            profile.is_admin && !viewing
+              ? {
+                  mode: isAdmin,
+                  canSwitch: !system,
+                  onToggleMode: toggleAdminMode,
+                  onActAs: isAdmin
+                    ? () => {
+                        setProfileOpen(false);
+                        setPickingViewAs(true);
+                      }
+                    : undefined,
+                }
+              : undefined
+          }
+        />
+      )}
+      {inboxOpen && <InboxSheet items={inbox.data ?? undefined} onClose={() => setInboxOpen(false)} />}
       {open && <ShiftSheet key={`${open.night}/${open.slot}`} target={open} onClose={() => setOpen(null)} />}
     </RosterContext.Provider>
     </MeContext.Provider>

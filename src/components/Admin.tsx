@@ -13,7 +13,7 @@ import { AdminNamePicker } from './AdminNamePicker';
 import { MoreIcon } from './Icons';
 import { ContinuationPanel } from './ContinuationPanel';
 import { ExportPanel } from './ExportPanel';
-import { OpenPaymentsPanel } from './PaidSwap';
+import { OpenPaymentsPanel, stuckPayments } from './PaidSwap';
 import { PlanPanel } from './PlanPanel';
 import { OpenSoonAlert, ReportsPanel } from './Reports';
 import { SkeletonList } from './Skeleton';
@@ -26,6 +26,8 @@ export function Admin() {
   const [tab, setTab] = useState<AdminTab>(() => (sessionStorage.getItem(ADMIN_TAB_KEY) as AdminTab) || 'users');
   const users = useQuery(api.adminListUsers, []);
   const pending = (users.data ?? []).filter((u) => u.status === 'pending').length;
+  const payments = useQuery(() => api.adminOpenPayments().catch(() => []), []);
+  const stuck = stuckPayments(payments.data ?? []).length;
 
   function choose(next: AdminTab) {
     setTab(next);
@@ -53,6 +55,11 @@ export function Admin() {
           >
             {label}
             {id === 'users' && pending > 0 && <b className="inline-badge">{pending}</b>}
+            {id === 'reports' && stuck > 0 && (
+              <b className="inline-badge" aria-label={`${stuck} תשלומים פתוחים כבר כמה ימים`}>
+                {stuck}
+              </b>
+            )}
           </button>
         ))}
       </div>

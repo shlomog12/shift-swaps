@@ -8,12 +8,23 @@ import { supabase } from '../lib/supabase';
 import { MyPhoneSection } from './MyPhone';
 import { CalendarFeedSection } from './CalendarFeed';
 import { PushSection } from './PushSection';
-import { ShareIosIcon } from './Icons';
+import { EyeIcon, ShareIosIcon } from './Icons';
 import { setShareOffersEnabled, shareOffersEnabled, useFeedback } from './Feedback';
 import { WhatsAppButton, inviteText } from './SwapRequests';
 
+/** Admin controls shown in the profile: the admin/user mode switch and acting as a user. */
+export interface ProfileAdmin {
+  /** Admin mode is on. */
+  mode: boolean;
+  /** False for a system admin, who is always in admin mode. */
+  canSwitch: boolean;
+  onToggleMode: () => void;
+  /** Only in admin mode. */
+  onActAs?: () => void;
+}
+
 /** The signed-in user's details and personal settings, opened from the name in the top bar. */
-export function ProfileSheet({ onClose }: { onClose: () => void }) {
+export function ProfileSheet({ onClose, admin }: { onClose: () => void; admin?: ProfileAdmin }) {
   const me = useMe();
   const acting = me.actingFor;
   const { confirm, toast } = useFeedback();
@@ -65,6 +76,35 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
               ? 'השם ברשימה נבחר פעם אחת. כדי לשנות אותו צריך לפנות למנהל.'
               : 'חשבון אחראי מערכת: מנהל בלי שם ברשימה, שלא משובץ למשמרות.'}
           </p>
+        )}
+
+        {admin && (
+          <section className="profile-section admin-section">
+            <h3>ניהול</h3>
+            {admin.canSwitch && (
+              <>
+                <p className="muted small">
+                  {admin.mode
+                    ? 'כרגע במצב מנהל: לשונית "ניהול", עריכת משמרות ופעולה בשם משתמשים.'
+                    : 'כרגע במצב משתמש: האפליקציה מוצגת כמו לכל משתמש רגיל. ההרשאות שלך נשארות.'}
+                </p>
+                <button className={admin.mode ? undefined : 'primary'} onClick={admin.onToggleMode}>
+                  {admin.mode ? 'מעבר למצב משתמש' : 'מעבר למצב מנהל'}
+                </button>
+              </>
+            )}
+            {admin.onActAs && (
+              <>
+                <p className="muted small">
+                  לראות את האפליקציה כפי שהיא נראית בחשבון של מישהו אחר ולפעול בשם החשבון, למשל כשמבקשים עזרה. כל פעולה תירשם
+                  עם השם שלך.
+                </p>
+                <button onClick={admin.onActAs}>
+                  <EyeIcon size={17} /> פעולה בשם משתמש…
+                </button>
+              </>
+            )}
+          </section>
         )}
 
         {showInstall && (

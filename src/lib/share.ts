@@ -47,3 +47,13 @@ export function readSharedShift(): ShiftKey | null {
 export function clearSharedShift(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
+
+/** The shift a notification's link points to ("./?shift=2026-12-03_1"), if any. */
+export function shiftFromUrl(url: string | null): ShiftKey | null {
+  if (!url) return null;
+  try {
+    return parse(new URL(url, window.location.href).searchParams.get(PARAM));
+  } catch {
+    return null;
+  }
+}

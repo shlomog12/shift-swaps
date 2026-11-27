@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { AdminContact, AdminUser, RosterName, Slot, SwapPayment, UserStatus } from './types';
+import type { AdminContact, AppNotification, AdminUser, RosterName, Slot, SwapPayment, UserStatus } from './types';
 import type { ImportRow } from './importSheet';
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -145,6 +145,9 @@ export const api = {
   setMyPhone: (phone: string) => call<string | null>('set_my_phone', { p_phone: phone }),
   myPhone: () => call<string | null>('my_phone'),
   /** Roster names with a phone (approved members only); empty before the member-phones migration. */
+  // Before the inbox migration the function does not exist: null hides the bell.
+  myNotifications: () => call<AppNotification[]>('my_notifications').catch(() => null),
+  markNotificationsRead: () => call('mark_notifications_read'),
   memberPhones: () => call<{ name: string; phone: string }[]>('member_phones').catch(() => []),
   adminContacts: () => call<AdminContact[]>('admin_contacts'),
   myCalendarToken: () => call<string>('my_calendar_token'),

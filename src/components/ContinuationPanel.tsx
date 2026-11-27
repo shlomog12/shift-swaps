@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { alignedStart, generateContinuation, type PeopleChange } from '../lib/continuation';
 import { SLOT_HOURS, addDays, dayName, daysBetween, formatDate, formatDateRange, nightLabel } from '../lib/dates';
@@ -8,7 +8,9 @@ import { loadAllShifts, loadShifts } from '../lib/queries';
 import type { Shift } from '../lib/types';
 import { useFeedback } from './Feedback';
 import { rowState } from './ImportPreview';
+import { RosterNameField } from './RosterNameField';
 import { SkeletonList } from './Skeleton';
+import { checkName } from '../lib/rosterCheck';
 
 const IMPORT_CHUNK = 1000;
 type SlotKey = 'slot1' | 'slot2';
@@ -29,6 +31,32 @@ interface Draft {
   left: Map<string, string>;
 }
 
+type Show = 'all' | 'attention' | 'changed';
+
+/** Everything the admin set up and edited, kept in this browser until the roster is created or discarded. */
+interface Saved {
+  savedAt: string;
+  from: string;
+  to: string;
+  start: string;
+  keepWeekday: boolean;
+  swapSlots: boolean;
+  changes: PeopleChange[];
+  joiners: string[];
+  draft: { rows: ImportRow[]; left: [string, string][] } | null;
+}
+
+const SAVED_KEY = 'continuation-draft';
+
+function readSaved(): Saved | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVED_KEY) ?? 'null') as Saved | null;
+    return saved && Array.isArray(saved.changes) ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Builds the next roster from the original one: same order, optionally the same weekday and first/second
  * shifts swapped, with people replaced or leaving. Nothing is assigned automatically: the preview is an
@@ -39,16 +67,70 @@ export function ContinuationPanel() {
   const names = useQuery(api.rosterNames, []);
   const lastNight = useMemo(() => (all.data ?? []).reduce((m, s) => (s.night > m ? s.night : m), ''), [all.data]);
 
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [start, setStart] = useState('');
-  const [keepWeekday, setKeepWeekday] = useState(true);
-  const [swapSlots, setSwapSlots] = useState(false);
-  const [changes, setChanges] = useState<PeopleChange[]>([]);
-  const [joiners, setJoiners] = useState<string[]>([]);
+  // Work in progress survives switching tabs, reloading and a dropped connection.
+  const [restored] = useState(readSaved);
+  const [from, setFrom] = useState(restored?.from ?? '');
+  const [to, setTo] = useState(restored?.to ?? '');
+  const [start, setStart] = useState(restored?.start ?? '');
+  const [keepWeekday, setKeepWeekday] = useState(restored?.keepWeekday ?? true);
+  const [swapSlots, setSwapSlots] = useState(restored?.swapSlots ?? false);
+  const [changes, setChanges] = useState<PeopleChange[]>(restored?.changes ?? []);
+  const [joiners, setJoiners] = useState<string[]>(restored?.joiners ?? []);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [showRestored, setShowRestored] = useState(Boolean(restored));
+  // Until a saved table is back, saving would overwrite it with an empty one.
+  const [restoring, setRestoring] = useState(Boolean(restored?.draft?.rows.length));
+  const [show, setShow] = useState<Show>('all');
+  const tableRef = useRef<HTMLDivElement>(null);
   const { busy, error, setError, run } = useAction();
   const { confirm, toast } = useFeedback();
+
+  // A saved draft's table comes back with the current state of those nights, to mark what is new or changed.
+  useEffect(() => {
+    const saved = restored?.draft;
+    if (!saved || saved.rows.length === 0) return;
+    loadShifts(saved.rows[0].night, saved.rows[saved.rows.length - 1].night).then(
+      (existing) =>
+        setDraft({
+          rows: saved.rows,
+          existing: new Map(existing.map((s) => [`${s.night}/${s.slot}`, s])),
+          left: new Map(saved.left),
+        }),
+      (e: Error) => setError(e.message),
+    ).finally(() => setRestoring(false));
+  }, [restored, setError]);
+
+  const touched = changes.length > 0 || joiners.length > 0 || draft !== null;
+  useEffect(() => {
+    if (!from || !to || restoring) return;
+    if (!touched) {
+      localStorage.removeItem(SAVED_KEY);
+      return;
+    }
+    const saved: Saved = {
+      savedAt: new Date().toISOString(),
+      from,
+      to,
+      start,
+      keepWeekday,
+      swapSlots,
+      changes,
+      joiners,
+      draft: draft && { rows: draft.rows, left: [...draft.left] },
+    };
+    localStorage.setItem(SAVED_KEY, JSON.stringify(saved));
+  }, [from, to, start, keepWeekday, swapSlots, changes, joiners, draft, touched, restoring]);
+
+  function startOver() {
+    localStorage.removeItem(SAVED_KEY);
+    setChanges([]);
+    setJoiners([]);
+    setDraft(null);
+    setShowRestored(false);
+    setFrom(lastNight ? addDays(lastNight, -90) : '');
+    setTo(lastNight);
+    setStart(lastNight ? addDays(lastNight, 1) : '');
+  }
 
   // Defaults once the roster is loaded: the last three months as the source, starting the day after.
   useEffect(() => {
@@ -69,10 +151,16 @@ export function ContinuationPanel() {
     () => [...counts(sourceShifts.map(planned)).keys()].sort((a, b) => a.localeCompare(b, 'he')),
     [sourceShifts],
   );
-  const suggestions = useMemo(
-    () => [...new Set([...(names.data ?? []).map((n) => n.name), ...joiners.filter(Boolean)])],
-    [names.data, joiners],
+  const roster = useMemo(() => (names.data ?? []).map((n) => n.name), [names.data]);
+  // People declared as joining or replacing someone are expected to be new names.
+  const declared = useMemo(
+    () => [
+      ...joiners.map((j) => j.trim()),
+      ...changes.flatMap((c) => (c.kind === 'replace' ? [c.to.trim()] : [])),
+    ].filter(Boolean),
+    [joiners, changes],
   );
+  const suggestions = useMemo(() => [...new Set([...roster, ...declared])], [roster, declared]);
 
   function changed<T>(set: (v: T) => void) {
     return (v: T) => {
@@ -127,6 +215,11 @@ export function ContinuationPanel() {
       const [night, slot] = k.split('/') as [string, SlotKey];
       return !rows.find((r) => r.night === night)?.[slot];
     }).length;
+    const unknown = [
+      ...new Set(
+        rows.flatMap((r) => [r.slot1, r.slot2]).filter((n): n is string => !!n && checkName(n, suggestions).status === 'new'),
+      ),
+    ];
     const toWrite = rows.filter((r) => rowState(r, draft.existing) !== 'same');
     const replacing = rows.filter((r) => rowState(r, draft.existing) === 'changed').length;
     const ok = await confirm({
@@ -140,6 +233,12 @@ export function ContinuationPanel() {
           {unfilled > 0 && (
             <p className="warning-note">
               {unfilled === 1 ? 'משמרת אחת של מי שעזב עדיין פנויה.' : `${unfilled} משמרות של מי שעזב עדיין פנויות.`}
+            </p>
+          )}
+          {unknown.length > 0 && (
+            <p className="warning-note">
+              {unknown.length === 1 ? 'שם שלא ברשימה ייווצר כשם חדש' : `${unknown.length} שמות שלא ברשימה ייווצרו כשמות חדשים`}:{' '}
+              {unknown.join(', ')}. אם זו טעות הקלדה, כדאי לתקן לפני היצירה.
             </p>
           )}
           {doubled.length > 0 && (
@@ -158,6 +257,9 @@ export function ContinuationPanel() {
       },
       () => {
         toast(`הלוח נוצר: ${rows.length} לילות`);
+        localStorage.removeItem(SAVED_KEY);
+        setChanges([]);
+        setJoiners([]);
         setDraft(null);
       },
     );
@@ -171,6 +273,30 @@ export function ContinuationPanel() {
       )
     : [];
   const openCount = draft ? draft.rows.reduce((n, r) => n + (r.slot1 ? 0 : 1) + (r.slot2 ? 0 : 1), 0) : 0;
+  // Average shifts per person in the new roster, so a joiner's load can be set close to everyone else's.
+  const average = after && after.size > 0 ? [...after.values()].reduce((a, b) => a + b, 0) / after.size : 0;
+
+  /** A cell needs the admin: empty, a name not on the roster, or the same person in both shifts. */
+  function cellNeeds(row: ImportRow, slot: SlotKey): boolean {
+    const name = row[slot]?.trim();
+    if (!name) return true;
+    if (checkName(name, suggestions).status === 'new') return true;
+    const other = row[slot === 'slot1' ? 'slot2' : 'slot1']?.trim();
+    return Boolean(other && other.toLowerCase() === name.toLowerCase());
+  }
+  const attentionCount = draft
+    ? draft.rows.reduce((n, r) => n + (cellNeeds(r, 'slot1') ? 1 : 0) + (cellNeeds(r, 'slot2') ? 1 : 0), 0)
+    : 0;
+
+  /** Focuses the next cell that needs attention after the focused one (from the top when at the end). */
+  function nextCell() {
+    const cells = [...(tableRef.current?.querySelectorAll<HTMLInputElement>('[data-attention="1"] input') ?? [])];
+    if (cells.length === 0) return;
+    const at = cells.findIndex((c) => c === document.activeElement);
+    const next = cells[(at + 1) % cells.length];
+    next.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    next.focus({ preventScroll: true });
+  }
 
   return (
     <section className="card">
@@ -179,6 +305,14 @@ export function ContinuationPanel() {
         בונה את התקופה הבאה מתוך <strong>הלוח המקורי</strong> של תקופה קיימת (לא מהחילופים): אותו סדר, באותם מרווחים.
         שום שיבוץ לא נעשה אוטומטית: בתצוגה המקדימה אפשר לערוך כל משמרת לפני השמירה.
       </p>
+      {showRestored && restored && (
+        <p className="plan-banner small" role="status">
+          נטענה הטיוטה שנשמרה ב־{new Date(restored.savedAt).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}.{' '}
+          <button className="link small" onClick={startOver}>
+            התחלה מחדש
+          </button>
+        </p>
+      )}
       {all.loading && !all.data && <SkeletonList rows={2} />}
       {all.error && <p className="error">{all.error}</p>}
 
@@ -240,11 +374,15 @@ export function ContinuationPanel() {
                       ))}
                     </select>
                     <span>←</span>
-                    <input
-                      list="continuation-names"
+                    <RosterNameField
                       value={c.to}
-                      placeholder="שם חדש"
-                      onChange={(e) => changed(setChanges)(changes.map((x, j) => (j === i ? { ...c, to: e.target.value } : x)))}
+                      onChange={(v) => changed(setChanges)(changes.map((x, j) => (j === i ? { ...c, to: v } : x)))}
+                      roster={roster}
+                      listId="continuation-names"
+                      placeholder="מי במקום"
+                      label="מי מחליף"
+                      expectNew
+                      newNote="שם חדש: יתווסף לרשימה"
                     />
                   </>
                 ) : (
@@ -274,13 +412,21 @@ export function ContinuationPanel() {
             {joiners.map((name, i) => (
               <li key={`j${i}`}>
                 <span className="small">הצטרפות:</span>
-                <input
-                  list="continuation-names"
+                <RosterNameField
                   value={name}
+                  onChange={(v) => setJoiners(joiners.map((x, j) => (j === i ? v : x)))}
+                  roster={roster}
+                  listId="continuation-names"
                   placeholder="שם"
-                  onChange={(e) => setJoiners(joiners.map((x, j) => (j === i ? e.target.value : x)))}
+                  label="מי מצטרף"
+                  expectNew
+                  newNote="שם חדש: יתווסף לרשימה"
                 />
-                <span className="muted small">את המשמרות קובעים בטבלה בתצוגה המקדימה</span>
+                <span className="muted small">
+                  {after && name.trim()
+                    ? `שובצו בטבלה: ${after.get(name.trim()) ?? 0} · ממוצע: ${average.toFixed(1)}`
+                    : 'את המשמרות קובעים בטבלה בתצוגה המקדימה'}
+                </span>
                 <button
                   className="icon small-icon"
                   aria-label="הסרת השינוי"
@@ -320,7 +466,7 @@ export function ContinuationPanel() {
               <thead>
                 <tr>
                   <th>שם</th>
-                  <th>במקור</th>
+                  <th>בלוח המקורי</th>
                   <th>בלוח החדש</th>
                 </tr>
               </thead>
@@ -338,11 +484,28 @@ export function ContinuationPanel() {
             </table>
           </div>
           <p className="small">
-            משמרות פנויות: <strong>{openCount}</strong>
+            ממוצע בלוח החדש: <strong>{average.toFixed(1)}</strong> משמרות לאדם · משמרות פנויות: <strong>{openCount}</strong>
             {draft.left.size > 0 && ' · המשמרות של מי שעזב מסומנות בצהוב'}. כל תא אפשר לערוך: בחירה מהרשימה או
             הקלדת שם (ריק = פנוי).
           </p>
-          <div className="table-wrap">
+          <div className="row wrap draft-tools">
+            <div className="segmented" role="group" aria-label="אילו לילות להציג">
+              <button className={show === 'all' ? 'selected' : undefined} onClick={() => setShow('all')}>
+                הכול
+              </button>
+              <button className={show === 'attention' ? 'selected' : undefined} onClick={() => setShow('attention')}>
+                דורשות טיפול ({attentionCount})
+              </button>
+              <button className={show === 'changed' ? 'selected' : undefined} onClick={() => setShow('changed')}>
+                חדשים ושינויים
+              </button>
+            </div>
+            <button className="small" disabled={attentionCount === 0} onClick={nextCell}>
+              לתא הבא שדורש טיפול
+            </button>
+          </div>
+          {show === 'attention' && attentionCount === 0 && <p className="success small">אין תאים שדורשים טיפול.</p>}
+          <div className="table-wrap" ref={tableRef}>
             <table className="preview editable">
               <thead>
                 <tr>
@@ -355,6 +518,9 @@ export function ContinuationPanel() {
               <tbody>
                 {draft.rows.map((row, i) => {
                   const state = rowState(row, draft.existing);
+                  const needs = cellNeeds(row, 'slot1') || cellNeeds(row, 'slot2');
+                  if (show === 'attention' && !needs) return null;
+                  if (show === 'changed' && state === 'same') return null;
                   return (
                     <tr key={row.night} className={`state-${state}`}>
                       <td>
@@ -365,13 +531,18 @@ export function ContinuationPanel() {
                         const leaver = draft.left.get(cellKey(row.night, slot));
                         return (
                           <td key={slot} className={leaver && !row[slot] ? 'cell-left' : undefined}>
-                            <input
-                              list="continuation-names"
-                              value={row[slot] ?? ''}
-                              placeholder="פנוי"
-                              aria-label={`${formatDate(row.night)} ${SLOT_HOURS[slot === 'slot1' ? 1 : 2]}`}
-                              onChange={(e) => setCell(i, slot, e.target.value)}
-                            />
+                            <span className="cell-field" data-attention={cellNeeds(row, slot) ? '1' : '0'}>
+                              <RosterNameField
+                                value={row[slot] ?? ''}
+                                onChange={(v) => setCell(i, slot, v)}
+                                roster={suggestions}
+                                listId="continuation-names"
+                                placeholder="פנוי"
+                                label={`${formatDate(row.night)} ${SLOT_HOURS[slot === 'slot1' ? 1 : 2]}`}
+                                compact
+                                newNote="לא ברשימה"
+                              />
+                            </span>
                             {leaver && <div className="small muted">היה: {leaver} · עזיבה</div>}
                           </td>
                         );
@@ -388,7 +559,10 @@ export function ContinuationPanel() {
               יצירת הלוח ({draft.rows.length} לילות)
             </button>
             <button disabled={busy} onClick={() => setDraft(null)}>
-              ביטול
+              סגירת הטבלה
+            </button>
+            <button className="link small danger" disabled={busy} onClick={startOver}>
+              מחיקת הטיוטה
             </button>
           </div>
         </>

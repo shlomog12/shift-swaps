@@ -111,6 +111,22 @@ Second review (after the paid swaps, notifications, phones and act-as work):
     when it is empty or out of range (it used to send ₪250 silently).
 61. Gender-neutral wording in the act-as picker, the view-only error, act-as toasts and the bar, and the
     payment notices (no "סימן/ה").
+62. Names checked against the roster: the admin edit in the shift sheet and the next-roster inputs (replace,
+    join, every table cell) mark a name that is not on the roster, offer "אולי <close name>?", and ask before
+    creating a new name; spacing/case variants are saved in the roster's spelling.
+63. One term: "הלוח המקורי" in text, "בפועל / מקורי" on the switches (no more "הרשימה המקורית", "לפי המקור").
+64. Next roster: the setup and the edited table are kept in this browser until created or deleted ("התחלה
+    מחדש" / "מחיקת הטיוטה"); filter all / needing attention (empty, not on the roster, same person twice) /
+    new and changed; "next cell needing attention"; the average per person, and each joiner's count beside it.
+66. Top bar: only the inbox bell and the profile button (with a "מנהל" pill in admin mode). The admin/user
+    switch and "פעולה בשם משתמש…" moved to a "ניהול" section in the profile.
+70. After volunteering, a swap offer or a swap request, a one-time dialog offers phone notifications ("not
+    now" waits 30 days); not while acting for someone, nor when they are on, blocked or unsupported.
+71. In-app inbox: a bell with the unread count; every notice the app sends is kept 60 days, read or not,
+    with or without phone notifications; entries about a shift open it. Reading while acting for someone
+    does not mark their entries read.
+72. Payments open over 3 days count in the admin tab badge and the "דוחות" inner tab, flagged in the list;
+    admins can mark a payment paid or received for the two sides, besides cancelling it.
 
 ## Setup still to do (owner)
 
@@ -170,26 +186,19 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 - [x] (applied) **Phones for everyone**: SQL Editor → run all of `supabase/migrations/20261211000000_member_phones.sql`.
       Until then only admins can save a phone, and WhatsApp messages open the chat picker as before.
 
-- [ ] **Payment confirmation (task 59)**: SQL Editor → run all of
+- [x] (applied) **Payment confirmation (task 59)**: SQL Editor → run all of
       `supabase/migrations/20261212000000_payment_confirmation.sql`. Until then "לא קיבלתי" shows an error,
       and the admin's open payments list drops a payment as soon as it is marked paid.
 
+- [ ] **Inbox (task 71)**: SQL Editor → run all of `supabase/migrations/20261213000000_inbox.sql`.
+      Until then the bell is hidden; nothing else changes.
+
 ## Next, in recommended order
 
-62. Admin assignment (shift sheet) and the next-roster table / replace / join inputs pick names from the roster
-    (the existing picker), with a "name not on the roster, create it?" warning instead of free text.
-63. One term everywhere: "הלוח המקורי" vs "בפועל" (today also "הרשימה המקורית", "לפי המקור", "מקורי").
-64. Next roster: keep the draft (localStorage) across tabs and reloads; filter the table to open / leaver /
-    changed cells; "next open cell"; show the average next to each joiner.
 65. "בניית לוח" order: next roster first, then nights, and "restore from history" under a folded "advanced".
-66. Top bar: move the admin/user mode switch and "act as" into the profile sheet (or one admin menu); rename the
-    eye to "פעולה בשם…".
 67. Calendar toolbar: Hebrew dates only in the profile; "original" behind a small "⋯" menu.
 68. Shift sheet, admin edit: show "במקור: X" when the current assignee differs from the original roster.
 69. Notifications: say the reminder time; a toast when the reminder switch changes.
-70. Ask for notification permission in context (after the first volunteering or offer), not only in the profile.
-71. In-app notification inbox (bell) from `push_outbox`, for people who did not turn on notifications.
-72. Open payments in the admin tab badge; admins can mark a payment paid/received for the two sides.
 73. "Undo" in the toast after admin assignment, clearing and acting-for actions (about 10 seconds).
 74. Reports: payments balance (paid / received per person per month) and a swaps balance (given / taken).
 75. Export: one line on "original" vs "actual", and "this month" / "next month" shortcuts.

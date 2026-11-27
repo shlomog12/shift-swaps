@@ -13,6 +13,9 @@ import { CalendarIcon } from './Icons';
 import { HebrewLine } from './HolidayTag';
 import { NoteLine } from './NoteLine';
 import { PriceTag, SwapRequestDialog } from './PaidSwap';
+import { RosterNameField } from './RosterNameField';
+import { checkName } from '../lib/rosterCheck';
+import { usePushNudge } from './PushNudge';
 import { SkeletonList } from './Skeleton';
 import {
   IncomingRequest,
@@ -49,6 +52,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const { busy, error, run } = useAction();
   const { confirm, ask, toast, shareOffer } = useFeedback();
   const phoneOf = usePhoneOf();
+  const nudgePush = usePushNudge();
 
   // Escape closes the sheet (an open confirmation dialog handles Escape itself first).
   useEffect(() => {
@@ -223,7 +227,8 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                       (note) => api.offerSwap(night, slot, note),
                       'ההתנדבות נשלחה',
                       true,
-                      (note) =>
+                      (note) => {
+                        nudgePush(`כש${s.assignee} יענו להתנדבות`);
                         shareOffer({
                           message:
                             ownerRegistered === false
@@ -232,7 +237,8 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                           text: volunteeredText(s, note, ownerRegistered !== false),
                           label: `הודעה ל${s.assignee}`,
                           phone: phoneOf(s.assignee),
-                        }),
+                        });
+                      },
                     )
                   }
                 >
@@ -474,6 +480,8 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
             act(
               () => api.requestSwap(night, slot, note, price),
               price ? `הבקשה פורסמה בלוח החילופים, עם תשלום של ₪${price}` : 'הבקשה פורסמה בלוח החילופים',
+              true,
+              () => nudgePush('כשיש מתנדבים למשמרת'),
             );
           }}
         />
@@ -496,14 +504,17 @@ function AdminAssign({
   const { confirm, toast } = useFeedback();
   // `planned` is undefined until the planned-roster migration is applied; then there is no checkbox.
   const hasPlan = planned !== undefined;
-  const target = name.trim() || null;
+  const roster = (names.data ?? []).map((n) => n.name);
+  const check = checkName(name, roster);
+  // A name that differs from a roster name only in spacing or case is saved as the roster's spelling.
+  const target = check.status === 'known' ? check.name : name.trim() || null;
   const changes = target !== current || (updatePlan && hasPlan && target !== (planned ?? null));
 
   function save(to: string | null) {
     const plan = hasPlan && updatePlan;
     run(
       () => api.adminSetAssignee(night, slot, to, plan),
-      () => toast((to ? `המשמרת שובצה ל${to}` : 'המשמרת פונתה') + (plan ? ', גם ברשימה המקורית' : '')),
+      () => toast((to ? `המשמרת שובצה ל${to}` : 'המשמרת פונתה') + (plan ? ', גם בלוח המקורי' : '')),
     );
   }
 
@@ -512,12 +523,34 @@ function AdminAssign({
       <h3>עריכת מנהל</h3>
       <form
         className="row"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
+          if (check.status === 'new') {
+            const ok = await confirm({
+              title: `להוסיף את "${target}" כשם חדש?`,
+              message: (
+                <>
+                  <p>השם לא מופיע ברשימה, ולכן ייווצר שם חדש בלוח.</p>
+                  {check.suggestion && <p>יש ברשימה שם דומה: {check.suggestion}.</p>}
+                </>
+              ),
+              confirmLabel: 'שם חדש',
+              cancelLabel: 'חזרה לתיקון',
+            });
+            if (!ok) return;
+          }
           save(target);
         }}
       >
-        <input list="roster-names" value={name} placeholder="שם (ריק = פנוי)" onChange={(e) => setName(e.target.value)} />
+        <RosterNameField
+          value={name}
+          onChange={setName}
+          roster={roster}
+          listId="roster-names"
+          placeholder="שם (ריק = פנוי)"
+          label="שיבוץ למשמרת"
+          newNote="שם שלא ברשימה: ייווצר שם חדש"
+        />
         <datalist id="roster-names">
           {(names.data ?? []).map((n) => (
             <option key={n.name} value={n.name} />
@@ -530,7 +563,7 @@ function AdminAssign({
       {hasPlan && (
         <label className="toggle-row small">
           <input type="checkbox" checked={updatePlan} onChange={(e) => setUpdatePlan(e.target.checked)} />
-          <span>להחליף גם ברשימה המקורית</span>
+          <span>להחליף גם בלוח המקורי</span>
         </label>
       )}
       {current && (
@@ -540,7 +573,7 @@ function AdminAssign({
           onClick={async () => {
             const ok = await confirm({
               title: 'לפנות את המשמרת?',
-              message: `המשמרת של ${current} תסומן כפנויה${hasPlan && updatePlan ? ', גם ברשימה המקורית' : ''}.`,
+              message: `המשמרת של ${current} תסומן כפנויה${hasPlan && updatePlan ? ', גם בלוח המקורי' : ''}.`,
               confirmLabel: 'פינוי',
               danger: true,
             });

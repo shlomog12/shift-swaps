@@ -8,6 +8,7 @@ import { useIsRegistered } from '../lib/registered';
 import { useFeedback } from './Feedback';
 import { NoteLine } from './NoteLine';
 import { PriceField, priceInvalid } from './PaidSwap';
+import { usePushNudge } from './PushNudge';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { SkeletonList } from './Skeleton';
 
@@ -160,6 +161,7 @@ export function RequestForm({
   const { toast, shareOffer } = useFeedback();
   const phoneOf = usePhoneOf();
   const registered = useIsRegistered(owner);
+  const nudgePush = usePushNudge();
   const mine = (shifts.data ?? []).filter((s) => me.isMine(s.assignee) && !hasStarted(s.night, s.slot));
   const nearEnd = addDays(israelToday(), NEAR_DAYS);
   const visible = showAll ? mine : mine.filter((s) => s.night <= nearEnd);
@@ -205,6 +207,7 @@ export function RequestForm({
           label: `הודעה ל${owner}`,
           phone: phoneOf(owner),
         });
+        nudgePush(`כש${owner} יענו להצעה`);
         onDone();
       },
     );

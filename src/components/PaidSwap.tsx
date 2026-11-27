@@ -389,12 +389,26 @@ function ReceiveItem({ payment: p }: { payment: SwapPayment }) {
   );
 }
 
-/** Admin: payments nobody has marked settled yet, with cancel. */
+/** A payment open for this many days shows in the admin tab's badge. */
+const STUCK_DAYS = 3;
+
+/** Open payments recorded more than STUCK_DAYS ago: forgotten, or the two sides disagree. */
+export function stuckPayments(list: SwapPayment[], now = Date.now()): SwapPayment[] {
+  return list.filter(
+    (p) => paymentStage(p, now) !== 'done' && now - Date.parse(p.created_at) > STUCK_DAYS * 86_400_000,
+  );
+}
+
+/**
+ * Admin: payments not settled yet. An admin can mark one paid or received for the two sides (e.g. after
+ * they settled it in person) or cancel it (e.g. when the swap was undone).
+ */
 export function OpenPaymentsPanel() {
   const payments = useQuery(() => api.adminOpenPayments().catch(() => undefined), []);
   const { busy, error, run } = useAction();
   const { confirm, toast } = useFeedback();
   if (payments.data === undefined) return null;
+  const stuck = new Set(stuckPayments(payments.data).map((p) => p.id));
 
   async function cancel(p: SwapPayment) {
     const ok = await confirm({
@@ -406,28 +420,64 @@ export function OpenPaymentsPanel() {
     if (ok) run(() => api.adminCancelPayment(p.id), () => toast('התשלום בוטל'));
   }
 
+  async function settle(p: SwapPayment, kind: 'paid' | 'received') {
+    const ok = await confirm({
+      title: kind === 'paid' ? `לסמן ש${p.payer} שילמו ₪${p.amount}?` : `לסמן ש${p.payee} קיבלו ₪${p.amount}?`,
+      message:
+        kind === 'paid'
+          ? `${p.payee} יתבקשו לאשר שהכסף הגיע. הפעולה תירשם בהיסטוריה על שמך.`
+          : 'התשלום ייסגר. הפעולה תירשם בהיסטוריה על שמך.',
+      confirmLabel: kind === 'paid' ? 'סימון ששולם' : 'סימון שהתקבל',
+    });
+    if (!ok) return;
+    run(
+      () => (kind === 'paid' ? api.markPaymentPaid(p.id) : api.markPaymentReceived(p.id)),
+      () => toast(kind === 'paid' ? 'סומן ששולם' : 'התשלום נסגר'),
+    );
+  }
+
   return (
     <section className="card">
       <h2>תשלומים פתוחים</h2>
       {payments.data.length === 0 && <p className="muted small">אין תשלומים פתוחים.</p>}
+      {stuck.size > 0 && (
+        <p className="small warning-note">
+          {stuck.size === 1 ? 'תשלום אחד פתוח' : `${stuck.size} תשלומים פתוחים`} כבר יותר מ־{STUCK_DAYS} ימים. אולי
+          שכחו לסמן, או שיש אי הסכמה.
+        </p>
+      )}
       <ul className="payments">
-        {payments.data.map((p) => (
-          <li key={p.id} className="payment-item">
-            <span>
-              <strong>
-                {p.payer} ← {p.payee}: ₪{p.amount}
-              </strong>
-              <span className="muted small">
-                {' '}
-                · {shiftLine(p)} · נרשם {formatDateTime(p.created_at)}
-                {paymentStage(p) === 'awaiting' && ` · סומן ששולם, מחכה לאישור של ${p.payee}`}
+        {payments.data.map((p) => {
+          const awaiting = paymentStage(p) === 'awaiting';
+          return (
+            <li key={p.id} className="payment-item">
+              <span>
+                <strong>
+                  {p.payer} ← {p.payee}: ₪{p.amount}
+                </strong>
+                {stuck.has(p.id) && <span className="tag report-flag high">פתוח מעל {STUCK_DAYS} ימים</span>}
+                <span className="muted small">
+                  {' '}
+                  · {shiftLine(p)} · נרשם {formatDateTime(p.created_at)}
+                  {awaiting ? ` · סומן ששולם, מחכה לאישור של ${p.payee}` : ' · עוד לא שולם'}
+                </span>
               </span>
-            </span>
-            <button className="small danger" disabled={busy} onClick={() => cancel(p)}>
-              ביטול
-            </button>
-          </li>
-        ))}
+              <div className="row wrap">
+                {!awaiting && (
+                  <button className="small" disabled={busy} onClick={() => settle(p, 'paid')}>
+                    סימון ששולם
+                  </button>
+                )}
+                <button className="small" disabled={busy} onClick={() => settle(p, 'received')}>
+                  סימון שהתקבל
+                </button>
+                <button className="small danger" disabled={busy} onClick={() => cancel(p)}>
+                  ביטול
+                </button>
+              </div>
+            </li>
+          );
+        })}
       </ul>
       {error && <p className="error">{error}</p>}
     </section>

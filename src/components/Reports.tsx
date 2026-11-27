@@ -89,7 +89,7 @@ export function ReportsPanel() {
               בפועל
             </button>
             <button className={byPlan ? 'selected' : undefined} onClick={() => setByPlan(true)}>
-              לפי המקור
+              מקורי
             </button>
           </div>
         </div>

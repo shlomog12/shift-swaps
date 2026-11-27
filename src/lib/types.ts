@@ -158,3 +158,14 @@ export function paymentNeedsMe(p: SwapPayment, iPay: boolean): boolean {
   const stage = paymentStage(p);
   return iPay ? stage === 'unpaid' : stage === 'awaiting';
 }
+
+/** An entry in the in-app inbox: the same notices that go out as phone notifications. */
+export interface AppNotification {
+  id: number;
+  title: string;
+  body: string;
+  /** e.g. "./?shift=2026-12-03_1" when it is about a shift. */
+  url: string | null;
+  created_at: string;
+  read_at: string | null;
+}

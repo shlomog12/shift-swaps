@@ -602,4 +602,21 @@ reset role;
 delete from public.push_outbox where title = 'תזכורת: משמרת הלילה';
 select test.eq(public.queue_shift_reminders(), 0, 'no reminder when turned off');
 
+-- In-app inbox: every notice is kept for the person, read or not, even without phone notifications.
+reset role;
+delete from public.push_subscriptions where user_id = '00000000-0000-0000-0000-00000000000b';
+select public._notify_id('00000000-0000-0000-0000-00000000000b', 'הודעת בדיקה לתיבה', 'גוף');
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.eq((select count(*) from public.my_notifications() where title = 'הודעת בדיקה לתיבה' and read_at is null),
+               1::bigint, 'notice in the inbox without a device');
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.eq((select count(*) from public.my_notifications() where title = 'הודעת בדיקה לתיבה'), 0::bigint,
+               'others do not see it');
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.mark_notifications_read();
+select test.eq((select count(*) from public.my_notifications() where read_at is null), 0::bigint, 'marked read');
+select test.expect_error('select * from public.notifications', 'permission denied');
+reset role;
+
 \echo 'All rule tests passed.'
