@@ -5,7 +5,7 @@ import { sameName, useAction, useMe, useQuery } from '../lib/hooks';
 import { parseSheet, type ImportResult, type ImportRow } from '../lib/importSheet';
 import { loadShifts } from '../lib/queries';
 import { appLink } from '../lib/share';
-import type { AdminUser, Shift } from '../lib/types';
+import { SYSTEM_ADMIN_LABEL, type AdminUser, type Shift } from '../lib/types';
 import { useFocusTrap } from '../lib/focusTrap';
 import { useFeedback } from './Feedback';
 import { AdminNamePicker } from './AdminNamePicker';
@@ -347,12 +347,30 @@ function useUserActions() {
     );
   }
 
-  return { busy, error, run, confirm, toast, remove, block, approve };
+  /** Approves and makes an admin at once: a system manager, who needs no roster name. */
+  async function approveAsSystem(u: AdminUser) {
+    const ok = await confirm({
+      title: `לאשר את ${userLabel(u)} כאחראי מערכת?`,
+      message: (
+        <>
+          <p className="ltr-inline">{u.email}</p>
+          <p>
+            אחראי מערכת הוא מנהל בלי שם ברשימת השמירה: מנהל את השבצ"ק, מאשר משתמשים ומשבץ למשמרות, אבל לא משובץ
+            בעצמו. אם הוא גם שומר, עדיף לאשר רגיל, ואחרי שבחר שם להפוך אותו למנהל.
+          </p>
+        </>
+      ),
+      confirmLabel: 'אישור כאחראי מערכת',
+    });
+    if (ok) run(() => api.adminSetAdmin(u.id, true), () => toast('אושר כאחראי מערכת'));
+  }
+
+  return { busy, error, run, confirm, toast, remove, block, approve, approveAsSystem };
 }
 
 function PendingPanel() {
   const users = useQuery(api.adminListUsers, []);
-  const { busy, error, remove, block, approve } = useUserActions();
+  const { busy, error, remove, block, approve, approveAsSystem } = useUserActions();
   const pending = (users.data ?? []).filter((u) => u.status === 'pending');
 
   if (pending.length === 0) return null;
@@ -372,6 +390,9 @@ function PendingPanel() {
             <span className="row">
               <button className="primary small" disabled={busy} onClick={() => approve(u)}>
                 אישור
+              </button>
+              <button className="small" disabled={busy} onClick={() => approveAsSystem(u)}>
+                כאחראי מערכת
               </button>
               <button className="small danger" disabled={busy} onClick={() => block(u)}>
                 חסימה
@@ -412,7 +433,7 @@ function UsersPanel() {
           <li key={u.id}>
             <span className="list-main">
               <strong>
-                {u.display_name ?? <span className="muted">לא נבחר שם</span>}
+                {u.display_name ?? (u.is_admin ? SYSTEM_ADMIN_LABEL : <span className="muted">לא נבחר שם</span>)}
                 {u.is_admin && <span className="tag admin-tag">מנהל</span>}
               </strong>
               {u.google_name && <span className="small">{u.google_name}</span>}
@@ -503,6 +524,9 @@ function UserActionsSheet({ user: u, onClose }: { user: AdminUser; onClose: () =
         ? { title: `להפוך את ${userLabel(u)} למנהל?`, message: 'מנהל יכול לערוך כל משמרת ולנהל משתמשים.', confirmLabel: 'הוספת מנהל' }
         : {
             title: self ? 'להסיר את עצמך מהמנהלים?' : `להסיר את ${userLabel(u)} מהמנהלים?`,
+            message: u.display_name
+              ? undefined
+              : 'לחשבון אין שם ברשימה, אז אחרי ההסרה הוא יתבקש לבחור שם מהרשימה כדי להמשיך להשתמש באפליקציה.',
             confirmLabel: 'הסרה',
             danger: true,
           },
@@ -543,7 +567,7 @@ function UserActionsSheet({ user: u, onClose }: { user: AdminUser; onClose: () =
       >
         <header className="sheet-header">
           <div>
-            <h2 id="user-sheet-title">{u.display_name ?? 'לא נבחר שם'}</h2>
+            <h2 id="user-sheet-title">{u.display_name ?? (u.is_admin ? SYSTEM_ADMIN_LABEL : 'לא נבחר שם')}</h2>
             <p className="muted small">
               {u.google_name && <>{u.google_name} · </>}
               <span className="ltr-inline">{u.email}</span>

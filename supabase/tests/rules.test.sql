@@ -362,4 +362,20 @@ select public.request_swap(:'n1', 1::smallint);
 select test.eq((select swap_note from public.shifts where night = :'n1' and slot = 1), null::text, 'no note is fine');
 reset role;
 
+-- A system admin: approved and made admin at once, with no roster name. Admin actions work; acting as a
+-- guard (taking a shift) still needs a name.
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000f1', 'system@example.com');
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_set_admin('00000000-0000-0000-0000-0000000000f1', true);
+select test.as_user('00000000-0000-0000-0000-0000000000f1');
+select test.eq((select status from public.profiles where id = '00000000-0000-0000-0000-0000000000f1'), 'approved',
+               'making a pending user admin approves them');
+select test.eq((select display_name from public.profiles where id = '00000000-0000-0000-0000-0000000000f1'), null::text,
+               'system admin has no roster name');
+select test.eq((select count(*) > 0 from public.admin_list_users()), true, 'system admin runs admin actions');
+select test.expect_error(format('select public.take_shift(%L, 1::smallint)', (select f2 from test.d)), 'choose_name_first');
+reset role;
+
 \echo 'All rule tests passed.'

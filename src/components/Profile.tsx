@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../lib/focusTrap';
 import { useHebrewDates } from '../lib/hebrewSetting';
+import { SYSTEM_ADMIN_LABEL } from '../lib/types';
 import { useMe } from '../lib/hooks';
 import { isIos, isStandalone, useInstall } from '../lib/pwa';
 import { supabase } from '../lib/supabase';
@@ -44,7 +45,7 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
       >
         <header className="sheet-header">
           <div>
-            <h2 id="profile-title">{me.profile.display_name}</h2>
+            <h2 id="profile-title">{me.profile.display_name ?? SYSTEM_ADMIN_LABEL}</h2>
             <p className="muted ltr-inline">{me.email}</p>
           </div>
           <button className="icon" aria-label="סגירה" onClick={onClose}>
@@ -52,7 +53,9 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
           </button>
         </header>
         <p className="muted small">
-          השם ברשימה נבחר פעם אחת. כדי לשנות אותו צריך לפנות למנהל.
+          {me.profile.display_name
+            ? 'השם ברשימה נבחר פעם אחת. כדי לשנות אותו צריך לפנות למנהל.'
+            : 'חשבון אחראי מערכת: מנהל בלי שם ברשימה, שלא משובץ למשמרות.'}
         </p>
 
         {showInstall && (
@@ -76,7 +79,7 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
           </section>
         )}
 
-        <CalendarFeedSection />
+        {me.profile.display_name && <CalendarFeedSection />}
 
         <section className="profile-section">
           <h3>הגדרות</h3>

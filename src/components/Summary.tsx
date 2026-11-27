@@ -60,12 +60,13 @@ export function NextShiftCard() {
   const { upcoming } = useRoster();
   const shifts = upcoming.data;
   const next = useMemo(() => (shifts ? nextShift(shifts, me.isMine) : undefined), [shifts, me]);
+  const named = Boolean(me.profile.display_name);
   const openCount = useMemo(
     () => (shifts ?? []).filter((s) => !s.assignee && !hasStarted(s.night, s.slot)).length,
     [shifts],
   );
 
-  if (!shifts) return null;
+  if (!shifts || !named) return null;
 
   if (!next) {
     return (

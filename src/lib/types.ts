@@ -91,3 +91,6 @@ export const REQUEST_COLUMNS = '*';
 export const OFFER_COLUMNS = '*';
 export const PROFILE_COLUMNS = 'id,display_name,is_admin,status,created_at';
 export const AUDIT_COLUMNS = 'id,at,actor_id,actor_name,action,night,slot,details';
+
+/** How an admin account without a roster name is shown: a system manager, not one of the guards. */
+export const SYSTEM_ADMIN_LABEL = 'אחראי מערכת';

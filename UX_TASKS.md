@@ -71,6 +71,8 @@ Requested after the review:
     text say only an admin can approve for now and how to join.
 48. Admins set a user's roster name by picking it from the roster (taken names locked, the current one
     marked, spelling-tolerant search); a new name not on the roster sits behind its own option.
+49. System admin: an admin without a roster name ("אחראי מערכת"), approved in one step; full admin rights,
+    no taking or swapping shifts, no "mine" tab.
 
 ## Setup still to do (owner)
 

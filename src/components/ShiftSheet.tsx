@@ -58,6 +58,8 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const started = hasStarted(night, slot);
   const mine = s ? me.isMine(s.assignee) : false;
   const isAdmin = me.profile.is_admin;
+  // A system admin has no roster name, so cannot take or swap shifts as a guard (only assign them).
+  const named = Boolean(me.profile.display_name);
   const pending = (offers.data ?? []).filter((o) => o.status === 'pending');
   const myOffer = pending.find((o) => o.volunteer_id === me.profile.id);
   const canDecide = mine || isAdmin;
@@ -160,7 +162,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
             )}
 
             <div className="actions">
-              {!started && !s.assignee && (
+              {!started && !s.assignee && named && (
                 <button
                   className="primary"
                   disabled={busy}
@@ -205,7 +207,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                 </button>
               )}
 
-              {!started && s.swap_requested && !mine && !myOffer && (
+              {!started && s.swap_requested && !mine && !myOffer && named && (
                 <button
                   className="primary"
                   disabled={busy}
@@ -248,7 +250,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
               )}
 
               {/* A direct swap offer. With an open request, volunteering already covers "nothing in return". */}
-              {!started && s.assignee && !mine && !myRequest && !asking && (
+              {!started && s.assignee && !mine && !myRequest && !asking && named && (
                 <button
                   className={s.swap_requested ? 'link' : undefined}
                   disabled={busy}

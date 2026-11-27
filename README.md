@@ -62,6 +62,12 @@ and the regular user's view with the button in the top bar.
 
 Users pick their roster name once, on first sign-in; after that only an admin can change it.
 
+An admin does not need a roster name: a system manager who runs the roster but is not one of the guards
+(for example a rotating duty officer's account). Approve a new sign-up with **כאחראי מערכת** in the
+**ניהול** tab, or make an approved user without a name an admin. They have every admin action but cannot
+take or swap shifts themselves, and appear as "אחראי מערכת". Removing them from the admins sends them to
+the name picker.
+
 ### 5. E-mail notifications
 
 1. Create a free [Brevo](https://www.brevo.com) account, verify a sender address

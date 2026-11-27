@@ -4,7 +4,7 @@ import { SLOT_HOURS, formatDate, israelToday } from '../lib/dates';
 import { dayHeading, historyCategory, involvesMe, israelDay, type HistoryCategory } from '../lib/historyView';
 import { useMe, useQuery } from '../lib/hooks';
 import { loadAudit } from '../lib/queries';
-import type { AuditEntry } from '../lib/types';
+import { SYSTEM_ADMIN_LABEL, type AuditEntry } from '../lib/types';
 import { SkeletonList } from './Skeleton';
 
 const PAGE = 200;
@@ -167,7 +167,9 @@ export function History() {
             {rows.map(({ entry, description, shift }) => (
               <li key={entry.id}>
                 <div className="history-top">
-                  <strong>{entry.actor_name ?? 'משתמש ללא שם'}</strong>
+                  <strong>
+                    {entry.actor_name ?? (entry.action === 'claim_name' ? 'משתמש חדש' : SYSTEM_ADMIN_LABEL)}
+                  </strong>
                   {entry.actor_id && emails.get(entry.actor_id) && (
                     <span className="muted small ltr-inline"> ({emails.get(entry.actor_id)})</span>
                   )}

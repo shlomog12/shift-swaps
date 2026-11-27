@@ -27,7 +27,7 @@ import { useOnline } from './lib/pwa';
 import { loadIncomingRequests, loadPendingOffers, loadProfile, loadUpcomingShifts } from './lib/queries';
 import { clearSharedShift, readSharedShift } from './lib/share';
 import { isConfigured, supabase } from './lib/supabase';
-import type { Profile, ShiftKey } from './lib/types';
+import { SYSTEM_ADMIN_LABEL, type Profile, type ShiftKey } from './lib/types';
 import { SkeletonPage } from './components/Skeleton';
 
 type Tab = 'calendar' | 'board' | 'mine' | 'history' | 'admin';
@@ -79,7 +79,8 @@ function ProfileGate({ userId, email }: { userId: string; email: string }) {
   }
   if (!profile.data) return <SkeletonPage />;
   if (profile.data.status !== 'approved') return <AccessPending status={profile.data.status} email={email} />;
-  if (!profile.data.display_name) return <NamePicker email={email} />;
+  // Admins may have no roster name: a system manager who runs the roster but is not one of the guards.
+  if (!profile.data.display_name && !profile.data.is_admin) return <NamePicker email={email} />;
   return <Shell profile={profile.data} email={email} />;
 }
 
@@ -98,7 +99,8 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   const [adminMode, setAdminMode] = useState(() => localStorage.getItem(ADMIN_MODE_KEY) !== 'off');
   useLiveRefresh(true, refresh);
 
-  const isAdmin = profile.is_admin && adminMode;
+  const system = !profile.display_name; // only admins get this far without a name
+  const isAdmin = profile.is_admin && (adminMode || system);
   const me: Me = useMemo(
     () => ({
       profile: { ...profile, is_admin: isAdmin },
@@ -128,7 +130,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
     );
   }, [upcoming.data, pendingOffers.data, incoming.data, me]);
 
-  const tabs = TABS.filter((t) => !t.adminOnly || isAdmin);
+  const tabs = TABS.filter((t) => (!t.adminOnly || isAdmin) && !(system && t.id === 'mine'));
   const users = useQuery(() => (isAdmin ? api.adminListUsers() : Promise.resolve([])), [isAdmin]);
   const pendingCount = (users.data ?? []).filter((u) => u.status === 'pending').length;
   const activeTab = tabs.some((t) => t.id === tab) ? tab : 'calendar';
@@ -139,7 +141,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
       <header className={isAdmin ? 'top-bar admin-mode' : 'top-bar'}>
         <span className="app-title">משמרות וחילופים</span>
         <span className="user">
-          {profile.is_admin && (
+          {profile.is_admin && !system && (
             <button
               className={isAdmin ? 'mode-toggle admin' : 'mode-toggle'}
               onClick={toggleAdminMode}
@@ -150,7 +152,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
             </button>
           )}
           <button className="user-button" onClick={() => setProfileOpen(true)} aria-label="פרופיל והגדרות">
-            <UserIcon size={18} /> {profile.display_name}
+            <UserIcon size={18} /> {profile.display_name ?? SYSTEM_ADMIN_LABEL}
           </button>
         </span>
       </header>

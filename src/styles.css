@@ -1993,3 +1993,14 @@ button.icon {
 .name-dialog .name-list {
   max-height: 40vh;
 }
+
+/* Pending approvals: details on top, the actions underneath and wrapping, so the row never overflows. */
+.pending-panel .pending-list li {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.pending-panel .pending-list .row {
+  flex-wrap: wrap;
+  margin: 0.2rem 0 0;
+}
