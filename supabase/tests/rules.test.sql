@@ -457,4 +457,63 @@ select test.as_user('00000000-0000-0000-0000-00000000000a');
 select test.eq((select count(*) > 0 from public.audit_log where action = 'import'), true, 'an admin reads everything');
 reset role;
 
+-- Paid swaps: an amount on a request is kept with the offer, accepting records the payment, and only
+-- the two sides (or an admin) can see and settle it.
+reset role;
+select display_name as b_name from public.profiles where id = '00000000-0000-0000-0000-00000000000b' \gset
+select display_name as c_name from public.profiles where id = '00000000-0000-0000-0000-00000000000c' \gset
+select (f1 + 70)::text as m1, (f1 + 71)::text as m2 from test.d \gset
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_add_nights(:'m1', :'m2');
+select public.admin_set_assignee(:'m1', 1::smallint, :'b_name');
+select public.admin_set_assignee(:'m2', 1::smallint, :'b_name');
+select public.admin_set_assignee(:'m2', 2::smallint, :'c_name');
+
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select test.expect_error(format('select public.request_swap(%L, 1::smallint, null, 600)', :'m1'), 'invalid_price');
+select public.request_swap(:'m1', 1::smallint, null, 250);
+select test.eq((select swap_price from public.shifts where night = :'m1' and slot = 1), 250, 'request carries the amount');
+
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.set_my_payment_details('050-765-4321', 'https://payboxapp.page.link/abc');
+select test.expect_error('select public.set_my_payment_details(''12'', null)', 'invalid_phone');
+select test.expect_error('select public.set_my_payment_details(null, ''http://x'')', 'invalid_link');
+select public.offer_swap(:'m1', 1::smallint) as paid_offer \gset
+select test.eq((select price from public.swap_offers where id = :paid_offer), 250, 'offer keeps the amount');
+select test.expect_error(format('select public.send_swap_request(%L, 1::smallint, %L, 2::smallint, null, 100)', :'m2', :'m2'),
+                         'price_with_exchange');
+
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.accept_offer(:paid_offer);
+select test.eq((select count(*) from public.my_payments()), 1::bigint, 'payer sees the payment');
+select id as pay_id from public.my_payments() \gset
+select test.eq((select amount from public.my_payments()), 250, 'amount recorded');
+select test.eq((select phone from public.payment_contact(:pay_id)), '0507654321', 'payer sees how to pay');
+select test.eq((select swap_price from public.shifts where night = :'m1' and slot = 1), null::integer,
+               'the amount is cleared with the request');
+
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.eq((select count(*) from public.my_payments()), 1::bigint, 'payee sees the payment');
+select test.expect_error(format('select * from public.payment_contact(%s)', :pay_id), 'not_your_payment');
+select test.expect_error(format('select public.mark_payment_paid(%s)', :pay_id), 'not_your_payment');
+select test.expect_error(format('select public.admin_cancel_payment(%s)', :pay_id), 'admin_only');
+select public.mark_payment_received(:pay_id);
+select test.eq((select received_at is not null from public.my_payments()), true, 'payee marked received');
+
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.mark_payment_paid(:pay_id);
+select test.eq((select paid_at is not null from public.my_payments()), true, 'payer marked paid');
+
+-- A direct offer with an amount: the owner pays whoever takes the shift.
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.send_swap_request(:'m2', 1::smallint, null, null, null, 120) as paid_req \gset
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.accept_swap_request(:paid_req);
+select test.eq((select amount from public.my_payments() where source = 'request'), 120, 'direct offer records the payment');
+select test.eq((select payee from public.my_payments() where source = 'request'), :'c_name', 'the taker is paid');
+reset role;
+select test.eq((select count(*) from public.email_outbox where subject like 'תשלום של ₪%'), 2::bigint,
+               'payers are told what to pay');
+
 \echo 'All rule tests passed.'

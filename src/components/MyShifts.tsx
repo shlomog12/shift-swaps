@@ -6,6 +6,7 @@ import { myShiftsText } from '../lib/rosterText';
 import type { Shift, SwapOffer } from '../lib/types';
 import { ShiftListItem } from './Board';
 import { useFeedback } from './Feedback';
+import { PaymentsCard } from './PaidSwap';
 import { DecisionsCard } from './Summary';
 import { ShareMenuButton } from './ShareDialog';
 import { REQUEST_STATUS, giveText, shiftText } from './SwapRequests';
@@ -36,6 +37,7 @@ export function MyShifts() {
   return (
     <div className="page">
       <DecisionsCard />
+      <PaymentsCard />
       <div className="section-head">
         <h2>המשמרות הקרובות שלי</h2>
         {mine.length > 0 && <MyShiftsShare shifts={mine} />}

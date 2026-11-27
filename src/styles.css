@@ -2134,3 +2134,60 @@ select {
   font-weight: 400;
   color: var(--muted);
 }
+
+/* Paid swaps */
+.price-tag {
+  background: var(--open);
+  color: var(--success);
+  border: 1px solid var(--open-border);
+  font-weight: 700;
+}
+
+.price-field {
+  margin: 0.3rem 0 0.6rem;
+}
+
+.price-input {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+.price-input input {
+  width: 7rem;
+}
+
+.payments {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0;
+}
+
+.payment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.payment-item .row {
+  margin: 0;
+}
+
+.pay-how {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pay-how p {
+  width: 100%;
+  margin: 0;
+}
+
+.payments.done li {
+  padding: 0.25rem 0;
+}

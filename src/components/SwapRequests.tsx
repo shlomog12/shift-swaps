@@ -7,6 +7,7 @@ import type { OfferStatus, Shift, ShiftKey, SwapRequest } from '../lib/types';
 import { useIsRegistered } from '../lib/registered';
 import { useFeedback } from './Feedback';
 import { NoteLine } from './NoteLine';
+import { PriceField } from './PaidSwap';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { SkeletonList } from './Skeleton';
 
@@ -23,7 +24,8 @@ export function shiftText(night: string, slot: 1 | 2): string {
 
 /** What the requester offers back: one of their shifts, or nothing. */
 export function giveText(r: SwapRequest): string {
-  return r.give_night && r.give_slot ? `בתמורה ל־${shiftText(r.give_night, r.give_slot)}` : 'בלי משמרת בתמורה';
+  if (r.give_night && r.give_slot) return `בתמורה ל־${shiftText(r.give_night, r.give_slot)}`;
+  return r.price ? `תמורת ₪${r.price}` : 'בלי משמרת בתמורה';
 }
 
 /** Opens WhatsApp with a ready message: to the given phone, or the person picks the chat. */
@@ -57,6 +59,7 @@ export function swapWantedText(shift: Shift, mine: boolean): string {
   return (
     `מישהו יכול להחליף ${whom} במשמרת ב־${shiftText(shift.night, shift.slot)} (${nightLabel(shift.night)})?\n` +
     (shift.swap_note ? `"${shift.swap_note}"\n` : '') +
+    (shift.swap_price ? `תמורת ₪${shift.swap_price}.\n` : '') +
     `אפשר להתנדב כאן:\n${shiftLink(shift.night, shift.slot)}`
   );
 }
@@ -67,7 +70,7 @@ export function requestSentText(r: SwapRequest, registered = true): string {
     r.give_night && r.give_slot
       ? `להחליף איתך: לקחת את המשמרת שלך ב־${shiftText(r.night, r.slot)}, ` +
         `ובתמורה לתת לך את המשמרת שלי ב־${shiftText(r.give_night, r.give_slot)}`
-      : `לקחת ממך את המשמרת ב־${shiftText(r.night, r.slot)}, בלי משמרת בתמורה`;
+      : `לקחת ממך את המשמרת ב־${shiftText(r.night, r.slot)}, ${r.price ? `תמורת ₪${r.price}` : 'בלי משמרת בתמורה'}`;
   const note = r.note?.trim() ? `\n${r.note.trim()}` : '';
   const join = registered ? '' : `\n${JOIN_LINE.trim()}`;
   return `היי ${r.owner}, שלחתי לך הצעה באפליקציית המשמרות ${offer}.${note}${join}\nאפשר לאשר כאן:\n${shiftLink(r.night, r.slot)}`;
@@ -106,7 +109,8 @@ export function requestDecisionText(r: SwapRequest, accepted: boolean): string {
 /** For a group: every open swap request, each with a link to volunteer. */
 export function openSwapsText(shifts: Shift[]): string {
   const lines = shifts.map(
-    (s) => `• ${shiftText(s.night, s.slot)} – ${s.assignee}\n  ${shiftLink(s.night, s.slot)}`,
+    (s) =>
+      `• ${shiftText(s.night, s.slot)} – ${s.assignee}${s.swap_price ? ` (₪${s.swap_price})` : ''}\n  ${shiftLink(s.night, s.slot)}`,
   );
   return `מחפשים מחליפים למשמרות האלה. מי שיכול, אפשר להתנדב בקישור:\n\n${lines.join('\n')}`;
 }
@@ -143,6 +147,9 @@ export function RequestForm({
   const [choice, setChoice] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [note, setNote] = useState('');
+  const [price, setPrice] = useState<number | null>(null);
+  // Paid swaps exist once the migration is applied (shifts then carry swap_price).
+  const paidAvailable = (shifts.data ?? []).some((s) => 'swap_price' in s);
   const { busy, error, run } = useAction();
   const { toast, shareOffer } = useFeedback();
   const registered = useIsRegistered(owner);
@@ -155,7 +162,14 @@ export function RequestForm({
     if (!choice) return;
     const give = choice === NOTHING ? null : mine.find((s) => `${s.night}/${s.slot}` === choice) ?? null;
     run(
-      () => api.sendSwapRequest(target.night, target.slot, give && { night: give.night, slot: give.slot }, note),
+      () =>
+        api.sendSwapRequest(
+          target.night,
+          target.slot,
+          give && { night: give.night, slot: give.slot },
+          note,
+          give ? null : price,
+        ),
       () => {
         toast(`ההצעה נשלחה ל${owner}`);
         shareOffer({
@@ -173,6 +187,7 @@ export function RequestForm({
             give_night: give?.night ?? null,
             give_slot: give?.slot ?? null,
             note: note.trim() || null,
+            price: give ? null : price,
             status: 'pending',
             created_at: '',
             decided_at: null,
@@ -216,6 +231,9 @@ export function RequestForm({
         )}
         {mine.length === 0 && !allowNothing && <p className="muted small">אין לך משמרות קרובות להציע בתמורה.</p>}
       </div>
+      {paidAvailable && choice === NOTHING && (
+        <PriceField label={`לבקש תשלום מ${owner} על לקיחת המשמרת`} value={price} onChange={setPrice} />
+      )}
       <input
         value={note}
         maxLength={300}
@@ -261,6 +279,12 @@ export function IncomingRequest({ request: r, showShift }: { request: SwapReques
           </p>
           {r.give_night && r.give_slot ? (
             <p>בתמורה, המשמרת ב־{shiftText(r.give_night, r.give_slot)} תעבור אליך.</p>
+          ) : r.price ? (
+            <p>
+              <strong>
+                יירשם תשלום של ₪{r.price} ממך ל{r.requester}.
+              </strong>
+            </p>
           ) : (
             <p className="muted">בלי משמרת בתמורה.</p>
           )}

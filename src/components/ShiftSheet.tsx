@@ -12,6 +12,7 @@ import { useFeedback, type AskOptions, type ConfirmOptions } from './Feedback';
 import { CalendarIcon } from './Icons';
 import { HebrewLine } from './HolidayTag';
 import { NoteLine } from './NoteLine';
+import { PriceTag, SwapRequestDialog } from './PaidSwap';
 import { SkeletonList } from './Skeleton';
 import {
   IncomingRequest,
@@ -41,6 +42,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const offers = useQuery(() => loadShiftOffers(night, slot), [night, slot]);
   const requests = useQuery(() => loadShiftRequests(night, slot), [night, slot]);
   const [asking, setAsking] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   useFocusTrap(sheetRef);
   const ownerRegistered = useIsRegistered(shift.data?.assignee);
@@ -152,6 +154,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
               <span className="big-name">{s.assignee ?? 'פנוי'}</span>
               {mine && <span className="tag mine">שלך</span>}
               {s.swap_requested && <span className="tag swap">בקשת חילוף פתוחה</span>}
+              {s.swap_requested && <PriceTag price={s.swap_price} />}
               {started && <span className="tag">עברה</span>}
             </div>
             {s.swap_requested && s.swap_note && <NoteLine note={s.swap_note} />}
@@ -182,26 +185,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                 <button
                   className="warn"
                   disabled={busy}
-                  onClick={() =>
-                    askThen(
-                      {
-                        title: mine ? 'לפרסם בקשת חילוף?' : `לפרסם בקשת חילוף בשם ${s.assignee}?`,
-                        placeholder: 'הערה (לא חובה), למשל: אפשר להחליף ביום חמישי',
-                        message: (
-                          <>
-                            <p>{when}</p>
-                            <p className="muted">
-                              הבקשה תופיע בלוח החילופים וכל אחד יוכל להתנדב. המשמרת נשארת{' '}
-                              {mine ? 'שלך' : `של ${s.assignee}`} עד שמתנדב יאושר.
-                            </p>
-                          </>
-                        ),
-                        confirmLabel: 'פרסום הבקשה',
-                      },
-                      (note) => api.requestSwap(night, slot, note),
-                      'הבקשה פורסמה בלוח החילופים',
-                    )
-                  }
+                  onClick={() => setPublishing(true)}
                 >
                   {mine ? 'פרסום בקשת חילוף' : `פרסום בקשת חילוף בשם ${s.assignee}`}
                 </button>
@@ -220,6 +204,11 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                           <>
                             <p>{when}</p>
                             <p className="muted">המשמרת תעבור אליך רק אחרי אישור של {s.assignee}.</p>
+                            {s.swap_price ? (
+                              <p>
+                                <strong>על החילוף הזה משולם ₪{s.swap_price}</strong>, מ{s.assignee} אליך, אחרי האישור.
+                              </p>
+                            ) : null}
                             {ownerRegistered === false && (
                               <p className="warning-note small">
                                 {s.assignee} עוד לא באפליקציה, ולכן כרגע רק מנהל יכול לאשר. אחרי ההתנדבות אפשר לשלוח
@@ -389,6 +378,13 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                                       <p className="muted">
                                         המשמרת תעבור ל{o.volunteer}, ושאר ההתנדבויות יבוטלו.
                                       </p>
+                                      {o.price ? (
+                                        <p>
+                                          <strong>
+                                            יירשם תשלום של ₪{o.price} מ{s.assignee} ל{o.volunteer}.
+                                          </strong>
+                                        </p>
+                                      ) : null}
                                     </>
                                   ),
                                   confirmLabel: 'מסירת המשמרת',
@@ -454,6 +450,29 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
 
         {error && <p className="error">{error}</p>}
       </div>
+      {publishing && s && (
+        <SwapRequestDialog
+          title={mine ? 'לפרסם בקשת חילוף?' : `לפרסם בקשת חילוף בשם ${s.assignee}?`}
+          message={
+            <>
+              <p>{when}</p>
+              <p className="muted">
+                הבקשה תופיע בלוח החילופים וכל אחד יוכל להתנדב. המשמרת נשארת {mine ? 'שלך' : `של ${s.assignee}`} עד
+                שמתנדב יאושר.
+              </p>
+            </>
+          }
+          withPrice={'swap_price' in s}
+          onClose={() => setPublishing(false)}
+          onSubmit={(note, price) => {
+            setPublishing(false);
+            act(
+              () => api.requestSwap(night, slot, note, price),
+              price ? `הבקשה פורסמה בלוח החילופים, עם תשלום של ₪${price}` : 'הבקשה פורסמה בלוח החילופים',
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

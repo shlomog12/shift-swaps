@@ -13,6 +13,7 @@ import { AdminNamePicker } from './AdminNamePicker';
 import { MoreIcon } from './Icons';
 import { ContinuationPanel } from './ContinuationPanel';
 import { ExportPanel } from './ExportPanel';
+import { OpenPaymentsPanel } from './PaidSwap';
 import { PlanPanel } from './PlanPanel';
 import { OpenSoonAlert, ReportsPanel } from './Reports';
 import { SkeletonList } from './Skeleton';
@@ -62,7 +63,12 @@ export function Admin() {
             <UsersPanel />
           </>
         )}
-        {tab === 'reports' && <ReportsPanel />}
+        {tab === 'reports' && (
+          <>
+            <ReportsPanel />
+            <OpenPaymentsPanel />
+          </>
+        )}
         {tab === 'nights' && (
           <>
             <PlanPanel />

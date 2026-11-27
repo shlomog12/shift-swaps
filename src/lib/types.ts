@@ -7,6 +7,8 @@ export interface Shift {
   swap_requested: boolean;
   /** Optional note on the swap request (missing until the swap-notes migration is applied). */
   swap_note?: string | null;
+  /** Amount offered to whoever takes the shift (missing until the paid-swaps migration is applied). */
+  swap_price?: number | null;
   /** Who the admin planned for the shift (missing until the planned-roster migration is applied). */
   planned_assignee?: string | null;
   /** Only in the original-roster view, where `assignee` shows the original: who does the shift now. */
@@ -25,6 +27,7 @@ export interface SwapOffer {
   volunteer: string;
   status: OfferStatus;
   note?: string | null;
+  price?: number | null;
   created_at: string;
   decided_at: string | null;
 }
@@ -40,6 +43,8 @@ export interface SwapRequest {
   give_night: string | null;
   give_slot: Slot | null;
   note?: string | null;
+  /** "I'll take your shift for ₪X": what the owner pays the requester if accepted. */
+  price?: number | null;
   status: OfferStatus;
   created_at: string;
   decided_at: string | null;
@@ -103,3 +108,28 @@ export const AUDIT_COLUMNS_WITH_BY = `${AUDIT_COLUMNS},by_id,by_name`;
 
 /** How an admin account without a roster name is shown: a system manager, not one of the guards. */
 export const SYSTEM_ADMIN_LABEL = 'אחראי מערכת';
+
+/** Money owed for an accepted paid swap: whoever handed over the shift pays whoever took it. */
+export interface SwapPayment {
+  id: number;
+  night: string;
+  slot: Slot;
+  payer: string;
+  payer_id: string | null;
+  payee: string;
+  payee_id: string | null;
+  amount: number;
+  source: 'offer' | 'request';
+  created_at: string;
+  paid_at: string | null;
+  received_at: string | null;
+  cancelled_at: string | null;
+}
+
+export const DEFAULT_SWAP_PRICE = 250;
+export const MAX_SWAP_PRICE = 500;
+
+/** Open until either side marks it settled, or an admin cancels it. */
+export function paymentOpen(p: SwapPayment): boolean {
+  return !p.paid_at && !p.received_at && !p.cancelled_at;
+}

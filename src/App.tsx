@@ -28,7 +28,7 @@ import { useOnline } from './lib/pwa';
 import { loadIncomingRequests, loadPendingOffers, loadProfile, loadUpcomingShifts } from './lib/queries';
 import { clearSharedShift, readSharedShift } from './lib/share';
 import { isConfigured, supabase } from './lib/supabase';
-import { SYSTEM_ADMIN_LABEL, type Profile, type ShiftKey } from './lib/types';
+import { SYSTEM_ADMIN_LABEL, type Profile, type ShiftKey, paymentOpen } from './lib/types';
 import { SkeletonPage } from './components/Skeleton';
 
 type Tab = 'calendar' | 'board' | 'mine' | 'history' | 'admin';
@@ -156,14 +156,20 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   const upcoming = useQuery(loadUpcomingShifts, []);
   const pendingOffers = useQuery(loadPendingOffers, []);
   const incoming = useQuery(() => loadIncomingRequests(shown.display_name ?? ''), [shown.display_name]);
-  const roster = useMemo(() => ({ upcoming, pendingOffers, incoming }), [upcoming, pendingOffers, incoming]);
+  // Before the paid-swaps migration the function does not exist: no payments.
+  const payments = useQuery(() => api.myPayments().catch(() => []), [shown.id]);
+  const roster = useMemo(
+    () => ({ upcoming, pendingOffers, incoming, payments }),
+    [upcoming, pendingOffers, incoming, payments],
+  );
   const decisionCount = useMemo(() => {
     const shifts = upcoming.data ?? [];
     return (
       awaitingMyDecision(shifts, pendingOffers.data ?? [], me.isMine).length +
-      incomingForMe(shifts, incoming.data ?? [], me.isMine).length
+      incomingForMe(shifts, incoming.data ?? [], me.isMine).length +
+      (payments.data ?? []).filter(paymentOpen).length
     );
-  }, [upcoming.data, pendingOffers.data, incoming.data, me]);
+  }, [upcoming.data, pendingOffers.data, incoming.data, payments.data, me]);
 
   const tabs = TABS.filter((t) => (!t.adminOnly || isAdmin) && !(system && !viewing && t.id === 'mine'));
   const pendingCount = isAdmin ? (users.data ?? []).filter((u) => u.status === 'pending').length : 0;

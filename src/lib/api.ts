@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { AdminContact, AdminUser, RosterName, Slot, UserStatus } from './types';
+import type { AdminContact, AdminUser, RosterName, Slot, SwapPayment, UserStatus } from './types';
 import type { ImportRow } from './importSheet';
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -22,6 +22,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   request_not_found: 'הצעת ההחלפה לא נמצאה.',
   request_not_pending: 'הצעת ההחלפה כבר טופלה.',
   stale_request: 'אחת המשמרות השתנתה מאז שנשלחה ההצעה, ולכן אי אפשר לאשר אותה.',
+  invalid_price: 'הסכום צריך להיות בין ₪1 ל־₪500.',
+  price_with_exchange: 'אפשר לבקש תשלום רק בלי משמרת בתמורה.',
+  payment_not_found: 'התשלום לא נמצא.',
+  payment_cancelled: 'התשלום בוטל.',
+  not_your_payment: 'זה לא תשלום שלך.',
+  invalid_link: 'הקישור צריך להתחיל ב־https://',
   note_too_long: 'ההערה ארוכה מדי (עד 300 תווים).',
   stale_offer: 'המשמרת השתנתה מאז ההתנדבות, ולכן אי אפשר לאשר אותה.',
   admin_only: 'הפעולה הזאת זמינה רק למנהלים.',
@@ -47,7 +53,7 @@ async function call<T = void>(fn: string, args?: Record<string, unknown>): Promi
   let { data, error } = await supabase.rpc(fn, args);
   // Before a migration that adds an optional argument (a note, updating the original) is applied, the
   // function does not know it: do the action without it.
-  const optional = ['p_note', 'p_update_plan'];
+  const optional = ['p_note', 'p_update_plan', 'p_price'];
   if (error && args && optional.some((k) => k in args) && /could not find the function/i.test(error.message)) {
     const rest = Object.fromEntries(Object.entries(args).filter(([k]) => !optional.includes(k)));
     ({ data, error } = await supabase.rpc(fn, rest));
@@ -59,27 +65,49 @@ async function call<T = void>(fn: string, args?: Record<string, unknown>): Promi
 const shiftArgs = (night: string, slot: Slot) => ({ p_night: night, p_slot: slot });
 /** Sent only when there is a note, so calls also work before the swap-notes migration is applied. */
 const noteArg = (note?: string) => (note?.trim() ? { p_note: note.trim() } : {});
+/** Sent only with an amount, so calls also work before the paid-swaps migration is applied. */
+const priceArg = (price?: number | null) => (price ? { p_price: price } : {});
 
 export const api = {
   rosterNames: () => call<RosterName[]>('roster_names'),
   claimName: (name: string) => call('claim_name', { p_name: name }),
 
   takeShift: (night: string, slot: Slot) => call('take_shift', shiftArgs(night, slot)),
-  requestSwap: (night: string, slot: Slot, note?: string) =>
-    call('request_swap', { ...shiftArgs(night, slot), ...noteArg(note) }),
+  requestSwap: (night: string, slot: Slot, note?: string, price?: number | null) =>
+    call('request_swap', { ...shiftArgs(night, slot), ...noteArg(note), ...priceArg(price) }),
   cancelSwapRequest: (night: string, slot: Slot) => call('cancel_swap_request', shiftArgs(night, slot)),
   offerSwap: (night: string, slot: Slot, note?: string) =>
     call<number>('offer_swap', { ...shiftArgs(night, slot), ...noteArg(note) }),
   withdrawOffer: (offerId: number) => call('withdraw_offer', { p_offer_id: offerId }),
   acceptOffer: (offerId: number) => call('accept_offer', { p_offer_id: offerId }),
   declineOffer: (offerId: number) => call('decline_offer', { p_offer_id: offerId }),
-  sendSwapRequest: (night: string, slot: Slot, give: { night: string; slot: Slot } | null, note?: string) =>
+  sendSwapRequest: (
+    night: string,
+    slot: Slot,
+    give: { night: string; slot: Slot } | null,
+    note?: string,
+    price?: number | null,
+  ) =>
     call<number>('send_swap_request', {
       ...shiftArgs(night, slot),
       p_give_night: give?.night ?? null,
       p_give_slot: give?.slot ?? null,
       ...noteArg(note),
+      ...priceArg(price),
     }),
+  myPayments: () => call<SwapPayment[]>('my_payments'),
+  adminOpenPayments: () => call<SwapPayment[]>('admin_open_payments'),
+  markPaymentPaid: (id: number) => call('mark_payment_paid', { p_id: id }),
+  markPaymentReceived: (id: number) => call('mark_payment_received', { p_id: id }),
+  adminCancelPayment: (id: number) => call('admin_cancel_payment', { p_id: id }),
+  paymentContact: (id: number) =>
+    call<{ name: string; phone: string | null; link: string | null }[]>('payment_contact', { p_id: id }).then(
+      (rows) => rows[0] ?? null,
+    ),
+  myPaymentDetails: () =>
+    call<{ phone: string | null; link: string | null }[]>('my_payment_details').then((rows) => rows[0] ?? null),
+  setMyPaymentDetails: (phone: string, link: string) =>
+    call('set_my_payment_details', { p_phone: phone, p_link: link }),
   withdrawSwapRequest: (requestId: number) => call('withdraw_swap_request', { p_request_id: requestId }),
   acceptSwapRequest: (requestId: number) => call('accept_swap_request', { p_request_id: requestId }),
   declineSwapRequest: (requestId: number) => call('decline_swap_request', { p_request_id: requestId }),

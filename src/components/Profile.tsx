@@ -7,6 +7,7 @@ import { isIos, isStandalone, useInstall } from '../lib/pwa';
 import { supabase } from '../lib/supabase';
 import { AdminPhonePanel } from './AdminPhone';
 import { CalendarFeedSection } from './CalendarFeed';
+import { PaymentDetailsSection } from './PaidSwap';
 import { ShareIosIcon } from './Icons';
 import { setShareOffersEnabled, shareOffersEnabled, useFeedback } from './Feedback';
 import { WhatsAppButton, inviteText } from './SwapRequests';
@@ -80,6 +81,7 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
         )}
 
         {me.profile.display_name && <CalendarFeedSection />}
+        {me.profile.display_name && <PaymentDetailsSection />}
 
         <section className="profile-section">
           <h3>הגדרות</h3>

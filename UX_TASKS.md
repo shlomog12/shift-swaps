@@ -80,6 +80,10 @@ Requested after the review:
     (shifts become open); nothing assigned automatically: an editable preview where the admin fills a
     leaver's marked shifts and sets a newcomer's; then saved like an import.
 52. CSV export of any date range (current or original), Excel-friendly and re-importable.
+53. Paid swaps: an amount (default ₪250, up to ₪500) on a swap request or a direct offer with nothing in
+    return; whoever hands over the shift pays whoever takes it; a "payments" card in "mine" with how to pay
+    (the payee's phone for Bit/PayBox, or a PayBox link) and "paid" / "received"; admins see open payments
+    and can cancel one.
 52. Act as a user: any admin picks a roster name, sees the app as that user and can act for them; the
     server runs the action as that user and the history shows "<admin> בשם <user>". The calendar legend and
     list filters drop "mine" for a system admin, who otherwise has the same rights as any admin.
@@ -131,6 +135,8 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 - [x] (applied) **History privacy (task 53)**: SQL Editor → run all of `supabase/migrations/20261208000000_history_privacy.sql`
       (after the act-as one: it uses the new `by_id` column). Until then the app already shows users only
       their own entries, but the database would still hand out the full history.
+
+- [ ] **Paid swaps**: SQL Editor → run all of `supabase/migrations/20261209000000_paid_swaps.sql`.
 
 ## Next, in recommended order
 

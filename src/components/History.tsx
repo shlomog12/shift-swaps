@@ -13,6 +13,11 @@ function text(value: unknown, empty = 'פנוי'): string {
   return value === null || value === undefined || value === '' ? empty : String(value);
 }
 
+/** ' · ₪250' when the action carried an amount. */
+function money(price: unknown): string {
+  return typeof price === 'number' && price > 0 ? ` · ₪${price}` : '';
+}
+
 /** ' – "note"' when the action carried a note. */
 function quote(note: unknown): string {
   return typeof note === 'string' && note ? ` – "${note}"` : '';
@@ -24,15 +29,21 @@ function describe(e: AuditEntry): string {
     case 'take':
       return 'לקיחת משמרת פנויה';
     case 'request_swap':
-      return `בקשת חילוף (${text(d.assignee)})${quote(d.note)}`;
+      return `בקשת חילוף (${text(d.assignee)})${money(d.price)}${quote(d.note)}`;
     case 'cancel_swap_request':
       return `ביטול בקשת חילוף (${text(d.assignee)})`;
     case 'offer':
-      return `התנדבות לקחת את המשמרת של ${text(d.requester)}${quote(d.note)}`;
+      return `התנדבות לקחת את המשמרת של ${text(d.requester)}${money(d.price)}${quote(d.note)}`;
     case 'withdraw_offer':
       return `ביטול התנדבות (במקום ${text(d.requester)})`;
     case 'swap':
-      return `אישור חילוף: ${text(d.from)} ← ${text(d.to)}`;
+      return `אישור חילוף: ${text(d.from)} ← ${text(d.to)}${money(d.price)}`;
+    case 'payment_paid':
+      return `סימון "שילמתי": ${text(d.payer)} ← ${text(d.payee)}, ₪${text(d.amount, '')}`;
+    case 'payment_received':
+      return `סימון "קיבלתי": ${text(d.payer)} ← ${text(d.payee)}, ₪${text(d.amount, '')}`;
+    case 'payment_cancelled':
+      return `ביטול תשלום: ${text(d.payer)} ← ${text(d.payee)}, ₪${text(d.amount, '')}`;
     case 'send_swap_request':
       return d.give_night
         ? `הצעת החלפה ל${text(d.owner)} (בתמורה ל־${formatDate(String(d.give_night))})${quote(d.note)}`

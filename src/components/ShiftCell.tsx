@@ -21,7 +21,10 @@ export function ShiftCell({ shift, offers = 0 }: { shift: Shift; offers?: number
       <span className="name">{shift.assignee ?? 'פנוי'}</span>
       {differsFromPlan(shift) && <span className="badge differs-badge">בפועל: {shift.actual ?? 'פנוי'}</span>}
       {shift.swap_requested && (
-        <span className="badge">{offers > 0 ? `חילוף · ${plural(offers, 'מתנדב אחד', 'מתנדבים')}` : 'בקשת חילוף'}</span>
+        <span className="badge">
+          {offers > 0 ? `חילוף · ${plural(offers, 'מתנדב אחד', 'מתנדבים')}` : 'בקשת חילוף'}
+          {shift.swap_price ? ` · ₪${shift.swap_price}` : ''}
+        </span>
       )}
     </button>
   );

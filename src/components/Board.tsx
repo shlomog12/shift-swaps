@@ -16,6 +16,7 @@ import type { Shift } from '../lib/types';
 import { offerCounts } from './Calendar';
 import { HebrewLine } from './HolidayTag';
 import { NoteIcon } from './Icons';
+import { PriceTag } from './PaidSwap';
 import { WhatsAppButton, openSwapsText } from './SwapRequests';
 import { SkeletonList } from './Skeleton';
 
@@ -43,6 +44,7 @@ export function ShiftListItem({ shift, note }: { shift: Shift; note?: string }) 
         </span>
         <span className="list-side">
           {urgent && <span className="tag urgent">{urgent}</span>}
+          {shift.swap_requested && <PriceTag price={shift.swap_price} />}
           <span>{shift.assignee ?? 'פנוי'}</span>
           {note && <span className="small muted">{note}</span>}
         </span>
