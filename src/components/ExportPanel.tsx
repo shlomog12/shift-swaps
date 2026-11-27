@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatDateRange, israelToday, monthBounds, monthKey } from '../lib/dates';
+import { formatDateRange, israelToday, monthBounds, monthKey, shiftMonth } from '../lib/dates';
 import { downloadText, rosterCsv } from '../lib/exportCsv';
 import { useAction, useQuery } from '../lib/hooks';
 import { loadAllShifts, loadShifts } from '../lib/queries';
@@ -14,6 +14,14 @@ export function ExportPanel() {
   const { busy, error, setError, run } = useAction();
   const { toast } = useFeedback();
   const hasPlan = (all.data ?? []).some((s) => 'planned_assignee' in s);
+  const lastNight = (all.data ?? []).reduce((m, s) => (s.night > m ? s.night : m), '');
+  const thisMonth = monthBounds(monthKey(israelToday()));
+  const nextMonth = monthBounds(shiftMonth(monthKey(israelToday()), 1));
+  const ranges: [string, { from: string; to: string }][] = [
+    ['החודש', thisMonth],
+    ['החודש הבא', nextMonth],
+    ...(lastNight ? ([['מהיום עד סוף הלוח', { from: israelToday(), to: lastNight }]] as [string, { from: string; to: string }][]) : []),
+  ];
 
   // Default end: the last night on the roster.
   useEffect(() => {
@@ -42,6 +50,21 @@ export function ExportPanel() {
         הורדת השבצ"ק כקובץ שנפתח באקסל או בגוגל שיטס: תאריך, הלילה, משמרת ראשונה ושנייה. את אותו קובץ אפשר גם
         לייבא בחזרה כאן למטה.
       </p>
+      <div className="row wrap" role="group" aria-label="טווחים מהירים">
+        {ranges.map(([label, r]) => (
+          <button
+            key={label}
+            className={from === r.from && to === r.to ? 'chip selected' : 'chip'}
+            aria-pressed={from === r.from && to === r.to}
+            onClick={() => {
+              setFrom(r.from);
+              setTo(r.to);
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="row wrap">
         <label>
           מתאריך <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
@@ -50,6 +73,12 @@ export function ExportPanel() {
           עד תאריך <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
       </div>
+      {hasPlan && (
+        <p className="muted small">
+          <strong>בפועל</strong>: מי עושה כל משמרת עכשיו, אחרי חילופים ולקיחות. <strong>מקורי</strong>: הלוח כפי
+          שנקבע בייבוא או בבנייה, לפני חילופים. זה הבסיס לבניית הלוח הבא.
+        </p>
+      )}
       {hasPlan && (
         <div className="segmented" role="group" aria-label="איזה לוח לייצא">
           <button className={!planned ? 'selected' : undefined} onClick={() => setPlanned(false)}>

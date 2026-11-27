@@ -25,7 +25,7 @@ import { swipeMonthStep } from '../lib/swipe';
 import { ShiftCell, shiftClasses } from './ShiftCell';
 import { DecisionsCard, NextShiftCard } from './Summary';
 import { SkeletonGrid, SkeletonList } from './Skeleton';
-import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
+import { ChevronLeftIcon, ChevronRightIcon, MoreIcon } from './Icons';
 import { dayMarks, hebrewDate, hebrewDay, hebrewMonthsBetween } from '../lib/hebrewDate';
 import { useHebrewDates } from '../lib/hebrewSetting';
 import { HebrewLine, HolidayTag } from './HolidayTag';
@@ -73,7 +73,7 @@ function initialView(): View {
 }
 
 export function Calendar() {
-  const [hebrew, setHebrew] = useHebrewDates();
+  const [hebrew] = useHebrewDates();
   const today = israelToday();
   const [month, setMonth] = useState(monthKey(today));
   const [view, setView] = useState<View>(initialView);
@@ -153,23 +153,7 @@ export function Calendar() {
             רשימה
           </button>
         </div>
-        <button
-          className={hebrew ? 'chip selected' : 'chip'}
-          aria-pressed={hebrew}
-          onClick={() => setHebrew(!hebrew)}
-        >
-          תאריך עברי
-        </button>
-        {canPlan && (
-          <div className="segmented" role="group" aria-label="איזה לוח">
-            <button className={!showPlan ? 'selected' : undefined} onClick={() => choosePlanView(false)}>
-              בפועל
-            </button>
-            <button className={showPlan ? 'selected' : undefined} onClick={() => choosePlanView(true)}>
-              מקורי
-            </button>
-          </div>
-        )}
+        {canPlan && <PlanMenu showPlan={showPlan} onChoose={choosePlanView} />}
         {month !== monthKey(today) && (
           <button className="link" onClick={() => goToMonth(monthKey(today))}>
             היום
@@ -185,7 +169,10 @@ export function Calendar() {
             ? 'משמרת אחת החודש השתנתה מאז, ומסומנת במסגרת מקווקוות.'
             : changedInMonth > 1
               ? `${changedInMonth} משמרות החודש השתנו מאז, ומסומנות במסגרת מקווקוות.`
-              : 'החודש אין משמרות שהשתנו.'}
+              : 'החודש אין משמרות שהשתנו.'}{' '}
+          <button className="link small" onClick={() => choosePlanView(false)}>
+            חזרה לשיבוץ בפועל
+          </button>
         </p>
       )}
 
@@ -489,6 +476,56 @@ function RosterList({ month, today, byNight, filter, counts }: ListProps) {
           })}
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Admins: which roster the calendar shows, behind a small "⋯" menu (rarely changed, so it does not take a
+ * place in the toolbar). The banner under the toolbar says when the original is shown.
+ */
+function PlanMenu({ showPlan, onChoose }: { showPlan: boolean; onChoose: (plan: boolean) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  function choose(plan: boolean) {
+    onChoose(plan);
+    setOpen(false);
+  }
+
+  return (
+    <div className="toolbar-menu" ref={ref}>
+      <button
+        className={showPlan ? 'icon selected' : 'icon'}
+        aria-label="אפשרויות תצוגה"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <MoreIcon />
+      </button>
+      {open && (
+        <div className="menu-popover" role="menu">
+          <button role="menuitemradio" aria-checked={!showPlan} onClick={() => choose(false)}>
+            {!showPlan ? '✓ ' : ''}השיבוץ בפועל
+          </button>
+          <button role="menuitemradio" aria-checked={showPlan} onClick={() => choose(true)}>
+            {showPlan ? '✓ ' : ''}הלוח המקורי (לפני חילופים)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

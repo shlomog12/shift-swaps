@@ -137,6 +137,10 @@ Second review (after the paid swaps, notifications, phones and act-as work):
     notifications offer; a toast when reminders are turned on or off.
 74. Reports: a swaps balance (handed over / taken / open shifts taken) and a payments balance (paid /
     received / still owed / still due) per person for the month.
+67. Calendar toolbar: the Hebrew-dates switch lives only in the profile; "actual / original" moved to a "⋯"
+    menu (admins), and the original-roster banner has "חזרה לשיבוץ בפועל".
+75. Export: quick ranges (this month, next month, today to the end of the roster) and one line on "actual"
+    vs "original".
 
 ## Setup still to do (owner)
 
@@ -205,12 +209,13 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 
 ## Next, in recommended order
 
-67. Calendar toolbar: Hebrew dates only in the profile; "original" behind a small "⋯" menu.
-75. Export: one line on "original" vs "actual", and "this month" / "next month" shortcuts.
-76. Phone suggestion only in "mine", or after the first action where a phone helps (volunteering, payment).
+Nothing left before the last group.
 
 
 ## Closed without building
+
+76. Showing the phone suggestion only in "mine" or after a first action. Kept everywhere on purpose: a phone
+    added early lets others message the person directly, before they ever need it.
 
 17. Mutual swap between two shifts. Covered by swap offers: offering one of my shifts in return is a
     mutual swap, and the owner accepts or declines it in one step.

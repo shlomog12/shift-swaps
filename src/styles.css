@@ -2351,3 +2351,40 @@ details.advanced > summary {
   padding: 0.6rem 0.2rem;
   color: var(--muted);
 }
+
+/* "⋯" menu in the calendar toolbar */
+.toolbar-menu {
+  position: relative;
+}
+
+.toolbar-menu > button.selected {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.menu-popover {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  inset-inline-end: 0;
+  z-index: 20;
+  min-width: 14rem;
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+  padding: 0.25rem;
+}
+
+.menu-popover button {
+  background: transparent;
+  border: none;
+  text-align: start;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+}
+
+.menu-popover button[aria-checked='true'] {
+  font-weight: 700;
+}
