@@ -63,6 +63,8 @@ Requested after the review:
 43. Eves of days of rest (hollow ring in the grid, "ערב פסח" tag) and Shabbat (tinted Saturday cells,
     "שבת" / "ערב שבת" tags); the legend explains both.
 44. The all / mine / open / swaps filters appear only in list view; the month grid always shows everything.
+45. Sharing the roster and "my shifts" opens a dialog with the choices (instead of expanding in place), and
+    the roster share button has room below it.
 
 ## Setup still to do (owner)
 

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { addDays, formatDate, hasStarted, israelToday, nightShortLabel, slotTime } from '../lib/dates';
 import { useAction, useMe, useQuery, useRoster } from '../lib/hooks';
 import { api } from '../lib/api';
@@ -8,8 +7,8 @@ import type { Shift, SwapOffer } from '../lib/types';
 import { ShiftListItem } from './Board';
 import { useFeedback } from './Feedback';
 import { DecisionsCard } from './Summary';
-import { REQUEST_STATUS, WhatsAppButton, giveText, shiftText } from './SwapRequests';
-import { WhatsAppIcon } from './WhatsAppIcon';
+import { ShareMenuButton } from './ShareDialog';
+import { REQUEST_STATUS, giveText, shiftText } from './SwapRequests';
 import { SkeletonList } from './Skeleton';
 
 const STATUS_TEXT: Record<SwapOffer['status'], string> = {
@@ -101,36 +100,26 @@ export function MyShifts() {
 
 /** Shares my own shifts as a personal message, e.g. with family, for the coming two weeks or month. */
 function MyShiftsShare({ shifts }: { shifts: Shift[] }) {
-  const [open, setOpen] = useState(false);
   const today = israelToday();
   const within = (days: number) => shifts.filter((s) => s.night <= addDays(today, days));
   const twoWeeks = within(14);
   const month = within(31);
+  const count = (n: number) => (n === 1 ? 'משמרת אחת' : `${n} משמרות`);
 
   return (
     <div className="my-share">
-      <button
-        className={open ? 'share-toggle selected' : 'share-toggle'}
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
-        <WhatsAppIcon />
-        שיתוף המשמרות שלי
-      </button>
-      {open && (
-        <div className="roster-share-menu">
-          <WhatsAppButton
-            className="small"
-            label={`השבועיים הקרובים (${twoWeeks.length})`}
-            text={myShiftsText('המשמרות שלי בשבועיים הקרובים:', twoWeeks)}
-          />
-          <WhatsAppButton
-            className="small"
-            label={`החודש הקרוב (${month.length})`}
-            text={myShiftsText('המשמרות שלי בחודש הקרוב:', month)}
-          />
-        </div>
-      )}
+      <ShareMenuButton
+        label="שיתוף המשמרות שלי"
+        title="שיתוף המשמרות שלי בוואטסאפ"
+        options={[
+          {
+            label: 'השבועיים הקרובים',
+            detail: count(twoWeeks.length),
+            text: myShiftsText('המשמרות שלי בשבועיים הקרובים:', twoWeeks),
+          },
+          { label: 'החודש הקרוב', detail: count(month.length), text: myShiftsText('המשמרות שלי בחודש הקרוב:', month) },
+        ]}
+      />
     </div>
   );
 }
