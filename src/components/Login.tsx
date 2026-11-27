@@ -73,7 +73,10 @@ export function AccessPending({ status, email }: { status: Exclude<UserStatus, '
               ההרשמה התבצעה עם <span className="ltr-inline">{email}</span>. המנהל קיבל הודעה, ואחרי האישור אפשר
               יהיה לבחור את השם שלך ברשימה. יישלח גם מייל כשהחשבון יאושר.
             </p>
-            <AskAdmins email={email} />
+            <AskAdmins
+              intro="כדי לזרז את האישור, אפשר לשלוח למנהל הודעה בוואטסאפ:"
+              text={`היי, נרשמתי לאפליקציית המשמרות עם ${email}. אפשר לאשר אותי?\n${appLink()}`}
+            />
             <button className="primary" onClick={refresh}>
               בדיקה שוב
             </button>
@@ -97,14 +100,13 @@ export function AccessPending({ status, email }: { status: Exclude<UserStatus, '
 }
 
 /** WhatsApp buttons to the admins who added a phone, so a new user can ask to be approved. */
-function AskAdmins({ email }: { email: string }) {
+export function AskAdmins({ intro, text }: { intro: string; text: string }) {
   const contacts = useQuery(api.adminContacts, []);
-  const text = `היי, נרשמתי לאפליקציית המשמרות עם ${email}. אפשר לאשר אותי?\n${appLink()}`;
   if (!contacts.data) return null;
 
   return (
     <div className="ask-admins">
-      <p className="small">כדי לזרז את האישור, אפשר לשלוח למנהל הודעה בוואטסאפ:</p>
+      <p className="small">{intro}</p>
       {contacts.data.map((c) => (
         <WhatsAppButton key={c.id} text={text.replace('היי,', `היי ${c.name},`)} phone={c.phone} label={`הודעה ל${c.name}`} />
       ))}

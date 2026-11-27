@@ -78,7 +78,7 @@ function ProfileGate({ userId, email }: { userId: string; email: string }) {
   }
   if (!profile.data) return <div className="center-page muted">טוען...</div>;
   if (profile.data.status !== 'approved') return <AccessPending status={profile.data.status} email={email} />;
-  if (!profile.data.display_name) return <NamePicker />;
+  if (!profile.data.display_name) return <NamePicker email={email} />;
   return <Shell profile={profile.data} email={email} />;
 }
 

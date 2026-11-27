@@ -81,6 +81,12 @@ select public.admin_set_status('00000000-0000-0000-0000-00000000000c', 'approved
 select public.admin_set_status('00000000-0000-0000-0000-00000000000d', 'approved');
 select test.expect_error('select public.admin_set_status(''00000000-0000-0000-0000-00000000000a'', ''rejected'')', 'cannot_change_self');
 
+-- Names are picked from the roster only, so put the ones the tests use on it.
+select public.admin_add_nights((select f1 + 40 from test.d), (select f1 + 41 from test.d));
+select public.admin_set_assignee((select f1 + 40 from test.d), 1::smallint, 'דהן');
+select public.admin_set_assignee((select f1 + 40 from test.d), 2::smallint, 'לוי');
+select public.admin_set_assignee((select f1 + 41 from test.d), 1::smallint, 'לוי חדש');
+
 -- B must pick a name first.
 select test.as_user('00000000-0000-0000-0000-00000000000b');
 select test.eq((select count(*) from public.shifts) > 0, true, 'approved user reads shifts');
@@ -91,6 +97,7 @@ select test.expect_error('select public.admin_import(''[{"night":"2030-01-01"}]'
 
 -- C cannot take B's name.
 select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error('select public.claim_name(''לא ברשימה'')', 'name_not_on_roster');
 select test.expect_error('select public.claim_name(''בוסי'')', 'name_taken');
 select public.claim_name('דהן');
 
