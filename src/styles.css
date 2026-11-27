@@ -2004,3 +2004,9 @@ button.icon {
   flex-wrap: wrap;
   margin: 0.2rem 0 0;
 }
+
+.admin-tabs button {
+  white-space: nowrap;
+  padding-inline: 0.4rem;
+  font-size: 0.92rem;
+}

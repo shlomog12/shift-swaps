@@ -16,6 +16,7 @@ const CATEGORY: Record<string, HistoryCategory> = {
   decline_swap_request: 'swaps',
   take: 'shifts',
   admin_set: 'shifts',
+  admin_set_plan: 'shifts',
   import: 'shifts',
   add_nights: 'shifts',
   delete_nights: 'shifts',

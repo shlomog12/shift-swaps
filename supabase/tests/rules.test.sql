@@ -378,4 +378,37 @@ select test.eq((select count(*) > 0 from public.admin_list_users()), true, 'syst
 select test.expect_error(format('select public.take_shift(%L, 1::smallint)', (select f2 from test.d)), 'choose_name_first');
 reset role;
 
+-- The original roster: imports set it, swaps and takes do not, an admin edit only when asked.
+reset role;
+select display_name as b_name from public.profiles where id = '00000000-0000-0000-0000-00000000000b' \gset
+select display_name as c_name from public.profiles where id = '00000000-0000-0000-0000-00000000000c' \gset
+select (f1 + 60)::text as p1 from test.d \gset
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_import(jsonb_build_array(jsonb_build_object('night', :'p1', 'slot1', :'b_name', 'slot2', null)));
+select test.eq((select planned_assignee from public.shifts where night = :'p1' and slot = 1), :'b_name', 'import sets the original');
+select test.eq((select planned_assignee from public.shifts where night = :'p1' and slot = 2), null::text, 'open in the original');
+
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.take_shift(:'p1', 2::smallint);
+select test.eq((select assignee from public.shifts where night = :'p1' and slot = 2), :'c_name', 'taken');
+select test.eq((select planned_assignee from public.shifts where night = :'p1' and slot = 2), null::text,
+               'taking a shift leaves the original');
+
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_set_assignee(:'p1', 1::smallint, :'c_name');
+select test.eq((select planned_assignee from public.shifts where night = :'p1' and slot = 1), :'b_name',
+               'an admin edit leaves the original by default');
+select public.admin_set_assignee(:'p1', 1::smallint, 'מישהו אחר', true);
+select test.eq((select planned_assignee from public.shifts where night = :'p1' and slot = 1), 'מישהו אחר',
+               'an admin edit can update the original');
+select test.eq(public.admin_set_plan(jsonb_build_array(jsonb_build_object('night', :'p1', 'slot', 1, 'name', :'b_name'),
+                                                       jsonb_build_object('night', :'p1', 'slot', 2, 'name', null))),
+               1, 'set plan counts only changes');
+select test.eq((select planned_assignee from public.shifts where night = :'p1' and slot = 1), :'b_name', 'plan restored');
+
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error('select public.admin_set_plan(''[]'')', 'admin_only');
+reset role;
+
 \echo 'All rule tests passed.'

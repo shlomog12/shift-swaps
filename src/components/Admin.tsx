@@ -10,6 +10,7 @@ import { useFocusTrap } from '../lib/focusTrap';
 import { useFeedback } from './Feedback';
 import { AdminNamePicker } from './AdminNamePicker';
 import { MoreIcon } from './Icons';
+import { PlanPanel } from './PlanPanel';
 import { OpenSoonAlert, ReportsPanel } from './Reports';
 import { SkeletonList } from './Skeleton';
 
@@ -30,7 +31,7 @@ export function Admin() {
   const tabs: [AdminTab, string][] = [
     ['users', 'משתמשים'],
     ['reports', 'דוחות'],
-    ['nights', 'לילות'],
+    ['nights', 'בניית לוח'],
     ['import', 'ייבוא'],
   ];
 
@@ -59,7 +60,12 @@ export function Admin() {
           </>
         )}
         {tab === 'reports' && <ReportsPanel />}
-        {tab === 'nights' && <NightsPanel />}
+        {tab === 'nights' && (
+          <>
+            <PlanPanel />
+            <NightsPanel />
+          </>
+        )}
         {tab === 'import' && <ImportPanel />}
       </div>
     </div>

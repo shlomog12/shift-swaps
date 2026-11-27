@@ -7,6 +7,8 @@ export interface Shift {
   swap_requested: boolean;
   /** Optional note on the swap request (missing until the swap-notes migration is applied). */
   swap_note?: string | null;
+  /** Who the admin planned for the shift (missing until the planned-roster migration is applied). */
+  planned_assignee?: string | null;
   updated_at: string;
 }
 
