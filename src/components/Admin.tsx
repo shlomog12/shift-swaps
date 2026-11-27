@@ -9,9 +9,10 @@ import type { AdminUser, Shift } from '../lib/types';
 import { useFocusTrap } from '../lib/focusTrap';
 import { useFeedback } from './Feedback';
 import { MoreIcon } from './Icons';
+import { OpenSoonAlert, ReportsPanel } from './Reports';
 import { SkeletonList } from './Skeleton';
 
-type AdminTab = 'users' | 'nights' | 'import';
+type AdminTab = 'users' | 'reports' | 'nights' | 'import';
 
 const ADMIN_TAB_KEY = 'admin-tab';
 
@@ -27,12 +28,14 @@ export function Admin() {
 
   const tabs: [AdminTab, string][] = [
     ['users', 'משתמשים'],
-    ['nights', 'בניית לילות'],
+    ['reports', 'דוחות'],
+    ['nights', 'לילות'],
     ['import', 'ייבוא'],
   ];
 
   return (
     <div className="page">
+      <OpenSoonAlert />
       <div className="segmented admin-tabs" role="tablist" aria-label="ניהול">
         {tabs.map(([id, label]) => (
           <button
@@ -54,6 +57,7 @@ export function Admin() {
             <UsersPanel />
           </>
         )}
+        {tab === 'reports' && <ReportsPanel />}
         {tab === 'nights' && <NightsPanel />}
         {tab === 'import' && <ImportPanel />}
       </div>

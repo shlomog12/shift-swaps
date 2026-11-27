@@ -45,6 +45,9 @@ Backlog from the UX review. Numbers match the review; done tasks are kept for re
 21. History: grouped by day (today / yesterday / weekday and date), filters for all, involving me, swaps,
     assignments and users (admins).
 23. Loading placeholders in the shape of the content instead of "טוען...".
+20. Admin: a "reports" tab with shifts per person per month (bars, the average marked, "a lot" / "few"
+    flags, first/second split), and an alert at the top of the admin screen on open shifts in the coming
+    week, with a WhatsApp share.
 24. Swipe between months in the calendar (RTL: drag right for the next month), with a short slide.
 19. Admin: inner tabs (users with the pending badge, building nights, import); users as a list with a "⋯"
     action sheet, destructive actions set apart; search when there are many users.
@@ -87,8 +90,13 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 
 ## Next, in recommended order
 
-20. Admin: fairness report (shifts per person per month), alert on open shifts in the coming week.
-17. Mutual swap between two shifts. Largely covered by swap offers with a shift in return; likely to close.
+Nothing left before the last group.
+
+
+## Closed without building
+
+17. Mutual swap between two shifts. Covered by swap offers: offering one of my shifts in return is a
+    mutual swap, and the owner accepts or declines it in one step.
 
 ## Last (decide at the end)
 
