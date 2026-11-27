@@ -10,6 +10,7 @@ import { useFeedback } from './Feedback';
 import { DecisionsCard } from './Summary';
 import { REQUEST_STATUS, WhatsAppButton, giveText, shiftText } from './SwapRequests';
 import { WhatsAppIcon } from './WhatsAppIcon';
+import { SkeletonList } from './Skeleton';
 
 const STATUS_TEXT: Record<SwapOffer['status'], string> = {
   pending: 'ממתין לאישור',
@@ -41,7 +42,7 @@ export function MyShifts() {
         {mine.length > 0 && <MyShiftsShare shifts={mine} />}
       </div>
       {shifts.error && <p className="error">{shifts.error}</p>}
-      {shifts.loading && !shifts.data && <p className="muted">טוען...</p>}
+      {shifts.loading && !shifts.data && <SkeletonList rows={3} tall />}
       {shifts.data && mine.length === 0 && <p className="empty">אין לך משמרות קרובות.</p>}
       <ul className="list">
         {mine.map((s) => (

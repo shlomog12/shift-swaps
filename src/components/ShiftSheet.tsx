@@ -10,6 +10,7 @@ import { appLink } from '../lib/share';
 import { useFeedback, type AskOptions, type ConfirmOptions } from './Feedback';
 import { CalendarIcon } from './Icons';
 import { NoteLine } from './NoteLine';
+import { SkeletonList } from './Skeleton';
 import {
   IncomingRequest,
   REQUEST_STATUS,
@@ -135,7 +136,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
           </button>
         </header>
 
-        {shift.loading && !s && <p className="muted">טוען...</p>}
+        {shift.loading && !s && <SkeletonList rows={3} />}
         {shift.error && <p className="error">{shift.error}</p>}
         {!shift.loading && !s && !shift.error && <p>המשמרת לא קיימת (אולי נמחקה).</p>}
 

@@ -9,6 +9,7 @@ import type { AdminUser, Shift } from '../lib/types';
 import { useFocusTrap } from '../lib/focusTrap';
 import { useFeedback } from './Feedback';
 import { MoreIcon } from './Icons';
+import { SkeletonList } from './Skeleton';
 
 type AdminTab = 'users' | 'nights' | 'import';
 
@@ -397,7 +398,7 @@ function UsersPanel() {
     <section className="card">
       <h2>משתמשים ומנהלים</h2>
       {users.error && <p className="error">{users.error}</p>}
-      {users.loading && !users.data && <p className="muted">טוען...</p>}
+      {users.loading && !users.data && <SkeletonList rows={3} />}
       {(users.data ?? []).length > 6 && (
         <input type="search" placeholder="חיפוש לפי שם או מייל" value={filter} onChange={(e) => setFilter(e.target.value)} />
       )}

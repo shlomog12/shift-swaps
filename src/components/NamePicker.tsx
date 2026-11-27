@@ -7,6 +7,7 @@ import type { RosterName } from '../lib/types';
 import { useFeedback } from './Feedback';
 import { LockIcon } from './Icons';
 import { AskAdmins } from './Login';
+import { SkeletonChips } from './Skeleton';
 
 /**
  * First sign-in: pick your name from the roster. Only names already on the roster can be picked (the
@@ -46,7 +47,7 @@ export function NamePicker({ email }: { email: string }) {
         <h1>מי אני ברשימה?</h1>
         <p>בחירת השם שלך מתוך לוח המשמרות. כל המשמרות שרשומות על השם הזה יסומנו כשלך.</p>
         <input type="search" placeholder="חיפוש שם" value={filter} onChange={(e) => setFilter(e.target.value)} />
-        {names.loading && !names.data && <p className="muted">טוען...</p>}
+        {names.loading && !names.data && <SkeletonChips />}
         {names.error && <p className="error">{names.error}</p>}
         {term && direct.length === 0 && similar.length > 0 && <p className="small did-you-mean-label">התכוונת ל…?</p>}
         <div className="name-list">

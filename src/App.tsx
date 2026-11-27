@@ -28,6 +28,7 @@ import { loadIncomingRequests, loadPendingOffers, loadProfile, loadUpcomingShift
 import { clearSharedShift, readSharedShift } from './lib/share';
 import { isConfigured, supabase } from './lib/supabase';
 import type { Profile, ShiftKey } from './lib/types';
+import { SkeletonPage } from './components/Skeleton';
 
 type Tab = 'calendar' | 'board' | 'mine' | 'history' | 'admin';
 
@@ -57,7 +58,7 @@ export function App() {
 
 function SignedInGate() {
   const { session, ready } = useSession();
-  if (!ready) return <div className="center-page muted">טוען...</div>;
+  if (!ready) return <SkeletonPage />;
   if (!session) return <Login />;
   return <ProfileGate userId={session.user.id} email={session.user.email ?? ''} />;
 }
@@ -76,7 +77,7 @@ function ProfileGate({ userId, email }: { userId: string; email: string }) {
       </div>
     );
   }
-  if (!profile.data) return <div className="center-page muted">טוען...</div>;
+  if (!profile.data) return <SkeletonPage />;
   if (profile.data.status !== 'approved') return <AccessPending status={profile.data.status} email={email} />;
   if (!profile.data.display_name) return <NamePicker email={email} />;
   return <Shell profile={profile.data} email={email} />;

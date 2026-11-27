@@ -16,6 +16,7 @@ import type { Shift } from '../lib/types';
 import { offerCounts } from './Calendar';
 import { NoteIcon } from './Icons';
 import { WhatsAppButton, openSwapsText } from './SwapRequests';
+import { SkeletonList } from './Skeleton';
 
 export function ShiftListItem({ shift, note }: { shift: Shift; note?: string }) {
   const me = useMe();
@@ -100,7 +101,7 @@ export function Board() {
     <div className="page">
       <h2>בקשות חילוף</h2>
       {shifts.error && <p className="error">{shifts.error}</p>}
-      {shifts.loading && !shifts.data && <p className="muted">טוען...</p>}
+      {shifts.loading && !shifts.data && <SkeletonList rows={4} tall />}
       {shifts.data && swaps.length === 0 && <p className="empty">אין כרגע בקשות חילוף.</p>}
       {swaps.length > 0 && (
         <WhatsAppButton

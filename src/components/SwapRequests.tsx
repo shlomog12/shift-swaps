@@ -7,6 +7,7 @@ import type { OfferStatus, Shift, ShiftKey, SwapRequest } from '../lib/types';
 import { useFeedback } from './Feedback';
 import { NoteLine } from './NoteLine';
 import { WhatsAppIcon } from './WhatsAppIcon';
+import { SkeletonList } from './Skeleton';
 
 export const REQUEST_STATUS: Record<OfferStatus, string> = {
   pending: 'ממתין לתשובה',
@@ -180,7 +181,7 @@ export function RequestForm({
         ההצעה תישלח במייל ל{owner}, ואפשר יהיה לאשר או לדחות.{' '}
         {allowNothing ? 'מה בתמורה?' : 'איזו משמרת שלך בתמורה?'}
       </p>
-      {shifts.loading && !shifts.data && <p className="muted">טוען...</p>}
+      {shifts.loading && !shifts.data && <SkeletonList rows={2} />}
       <div className="choices">
         {allowNothing && (
           <label className="choice">

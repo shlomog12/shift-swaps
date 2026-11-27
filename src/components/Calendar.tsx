@@ -22,6 +22,7 @@ import type { Shift } from '../lib/types';
 import { RosterShare } from './RosterShare';
 import { ShiftCell, shiftClasses } from './ShiftCell';
 import { DecisionsCard, NextShiftCard } from './Summary';
+import { SkeletonGrid, SkeletonList } from './Skeleton';
 
 type Filter = 'all' | 'mine' | 'open' | 'swap';
 type View = 'month' | 'list';
@@ -131,7 +132,7 @@ export function Calendar() {
       </div>
 
       {shifts.error && <p className="error">{shifts.error}</p>}
-      {shifts.loading && !shifts.data && <p className="muted">טוען...</p>}
+      {shifts.loading && !shifts.data && (view === 'month' ? <SkeletonGrid /> : <SkeletonList rows={6} />)}
 
       {shifts.data && view === 'month' && (
         <>
