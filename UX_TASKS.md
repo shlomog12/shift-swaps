@@ -78,10 +78,10 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 - [x] (feed verified; Google refreshes subscribed calendars on its own schedule) **Check in the app**: profile → "חיבור המשמרות ליומן" → "הוספה ליומן גוגל", and confirm the shifts
       appear on the right dates and times.
 
-- [ ] **Swap notes (task 11)**: SQL Editor → run all of `supabase/migrations/20261204000000_swap_notes.sql`.
+- [x] (applied) **Swap notes (task 11)**: SQL Editor → run all of `supabase/migrations/20261204000000_swap_notes.sql`.
       Until then the app works as before, and notes are simply not saved.
 
-- [ ] **Roster-only names (task 18)**: SQL Editor → run all of
+- [x] (applied) **Roster-only names (task 18)**: SQL Editor → run all of
       `supabase/migrations/20261205000000_claim_roster_name_only.sql`. Until then the app already hides
       the free-text name, but the database would still accept one.
 
