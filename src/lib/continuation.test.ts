@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMonths, alignedStart, defaultContinuationRange, generateContinuation } from './continuation';
+import { addMonths, defaultContinuationRange, generateContinuation } from './continuation';
 import { addDays } from './dates';
 import type { Shift } from './types';
 
@@ -42,11 +42,6 @@ describe('next roster', () => {
     expect(rows[0]).toEqual({ night: '2026-12-11', slot1: 'דנה', slot2: 'אבי' });
   });
 
-  it('keeps the weekday when asked', () => {
-    expect(alignedStart('2026-12-11', '2026-12-01')).toBe('2026-12-15'); // Friday → the next Tuesday
-    expect(alignedStart('2026-12-15', '2026-12-01')).toBe('2026-12-15');
-  });
-
   it('replaces a person', () => {
     const rows = generateContinuation(source(), { ...base, changes: [{ kind: 'replace', from: 'רון', to: 'שירה' }] });
     expect(count(rows, 'רון')).toBe(0);
@@ -62,7 +57,7 @@ describe('next roster', () => {
 });
 
 describe('defaultContinuationRange', () => {
-  it('starts at the first empty night and runs three months, from a same-weekday source', () => {
+  it('starts at the first empty night and runs three months, carrying on from the days right before', () => {
     const shifts = [
       shift('2026-12-01', 1, 'אבי'),
       shift('2026-12-01', 2, 'דנה'),
@@ -74,9 +69,8 @@ describe('defaultContinuationRange', () => {
     const r = defaultContinuationRange(shifts, '2026-12-01')!;
     expect(r.start).toBe('2026-12-03');
     expect(r.end).toBe('2027-03-02');
-    expect(r.to).toBe(addDays(r.from, 90 - 1));
-    expect(alignedStart(r.start, r.from)).toBe(r.start);
-    expect(r.to < r.start).toBe(true);
+    expect(r.to).toBe('2026-12-02');
+    expect(r.from).toBe(addDays('2026-12-03', -90));
   });
 
   it('is null with no roster', () => {

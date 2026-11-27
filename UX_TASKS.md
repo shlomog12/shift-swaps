@@ -142,8 +142,10 @@ Second review (after the paid swaps, notifications, phones and act-as work):
 75. Export: quick ranges (this month, next month, today to the end of the roster) and one line on "actual"
     vs "original".
 77. Next roster defaults: it starts on the first night from today with nobody on it (one open shift in a built
-    night does not count) and runs three months, built from the same number of days right before it on the
-    same weekday; "back to the default" once the dates were changed.
+    night does not count) and runs three months, built from the same number of days right before it;
+    "back to the default" once the dates were changed.
+78. The "keep the same weekday" option is gone: the next roster carries the order straight on from where the
+    previous one ends, whatever the weekday (variety is welcome).
 
 ## Setup still to do (owner)
 

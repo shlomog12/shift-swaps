@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { alignedStart, defaultContinuationRange, generateContinuation, type PeopleChange } from '../lib/continuation';
+import { defaultContinuationRange, generateContinuation, type PeopleChange } from '../lib/continuation';
 import { SLOT_HOURS, addDays, dayName, daysBetween, formatDate, formatDateRange, israelToday, nightLabel } from '../lib/dates';
 import { useAction, useQuery } from '../lib/hooks';
 import type { ImportRow } from '../lib/importSheet';
@@ -39,7 +39,6 @@ interface Saved {
   from: string;
   to: string;
   start: string;
-  keepWeekday: boolean;
   swapSlots: boolean;
   changes: PeopleChange[];
   joiners: string[];
@@ -58,8 +57,8 @@ function readSaved(): Saved | null {
 }
 
 /**
- * Builds the next roster from the original one: same order, optionally the same weekday and first/second
- * shifts swapped, with people replaced or leaving. Nothing is assigned automatically: the preview is an
+ * Builds the next roster from the original one: same order, continuing straight on (whatever the weekday),
+ * optionally with the first and second shifts swapped, with people replaced or leaving. Nothing is assigned automatically: the preview is an
  * editable table where the admin fills a leaver's shifts and sets a newcomer's.
  */
 export function ContinuationPanel() {
@@ -71,7 +70,6 @@ export function ContinuationPanel() {
   const [from, setFrom] = useState(restored?.from ?? '');
   const [to, setTo] = useState(restored?.to ?? '');
   const [start, setStart] = useState(restored?.start ?? '');
-  const [keepWeekday, setKeepWeekday] = useState(restored?.keepWeekday ?? true);
   const [swapSlots, setSwapSlots] = useState(restored?.swapSlots ?? false);
   const [changes, setChanges] = useState<PeopleChange[]>(restored?.changes ?? []);
   const [joiners, setJoiners] = useState<string[]>(restored?.joiners ?? []);
@@ -111,14 +109,13 @@ export function ContinuationPanel() {
       from,
       to,
       start,
-      keepWeekday,
       swapSlots,
       changes,
       joiners,
       draft: draft && { rows: draft.rows, left: [...draft.left] },
     };
     localStorage.setItem(SAVED_KEY, JSON.stringify(saved));
-  }, [from, to, start, keepWeekday, swapSlots, changes, joiners, draft, touched, restoring]);
+  }, [from, to, start, swapSlots, changes, joiners, draft, touched, restoring]);
 
   function startOver() {
     localStorage.removeItem(SAVED_KEY);
@@ -146,7 +143,7 @@ export function ContinuationPanel() {
   }, [defaults, to]);
   const isDefault = Boolean(defaults && from === defaults.from && to === defaults.to && start === defaults.start);
 
-  const effectiveStart = from && start ? (keepWeekday ? alignedStart(start, from) : start) : '';
+  const effectiveStart = from && start ? start : '';
   const length = from && to ? daysBetween(from, to) + 1 : 0;
   const end = effectiveStart && length > 0 ? addDays(effectiveStart, length - 1) : '';
   const sourceShifts = useMemo(
@@ -342,10 +339,6 @@ export function ContinuationPanel() {
             מתחיל ב <input type="date" value={start} onChange={(e) => changed(setStart)(e.target.value)} />
           </label>
           <label className="toggle-row">
-            <input type="checkbox" checked={keepWeekday} onChange={(e) => changed(setKeepWeekday)(e.target.checked)} />
-            <span>לשמור על אותו יום בשבוע (מי שהיה ביום שני יישאר ביום שני)</span>
-          </label>
-          <label className="toggle-row">
             <input type="checkbox" checked={swapSlots} onChange={(e) => changed(setSwapSlots)(e.target.checked)} />
             <span>החלפת משמרת ראשונה ושנייה (מי שהיה ב־00:00 יעבור ל־03:00, ולהפך)</span>
           </label>
@@ -357,7 +350,7 @@ export function ContinuationPanel() {
           {defaults && (
             <p className="muted small">
               {isDefault ? (
-                'ברירת המחדל: מהלילה הראשון שעוד אין בו שיבוץ, לשלושה חודשים, לפי אותו מספר ימים שלפניו.'
+                'ברירת המחדל: מהלילה הראשון שעוד אין בו שיבוץ, לשלושה חודשים. הסדר ממשיך ישר מהימים שלפניו, בלי קשר ליום בשבוע.'
               ) : (
                 <button className="link small" onClick={applyDefaults}>
                   חזרה לברירת המחדל: מ־{formatDate(defaults.start)}, לשלושה חודשים

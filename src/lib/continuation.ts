@@ -1,4 +1,4 @@
-import { addDays, daysBetween, dayOfWeek } from './dates';
+import { addDays, daysBetween } from './dates';
 import type { ImportRow } from './importSheet';
 import type { Shift } from './types';
 
@@ -23,12 +23,6 @@ export interface ContinuationOptions {
 }
 
 const same = (a: string | null, b: string | null) => Boolean(a && b && a.toLowerCase() === b.toLowerCase());
-
-/** The first night on or after `after` that falls on the same weekday as `like`. */
-export function alignedStart(after: string, like: string): string {
-  const shift = (((dayOfWeek(like) - dayOfWeek(after)) % 7) + 7) % 7;
-  return addDays(after, shift);
-}
 
 /**
  * The next roster, built from the original roster of [from, to]: every night moved by the same number of
@@ -86,8 +80,8 @@ export function addMonths(iso: string, months: number): string {
 /**
  * Default dates for the next roster: it starts on the first night from `today` with nobody on it (no shifts,
  * or both shifts empty; one open shift in a built night does not count) and runs DEFAULT_MONTHS months. The
- * source is the same number of days right before it, starting on the same weekday, so "keep the weekday"
- * does not move the start. Null when there is no roster yet.
+ * source is the same number of days right before it, so the order simply carries on, whatever the weekday.
+ * Null when there is no roster yet.
  */
 export function defaultContinuationRange(
   shifts: Shift[],
@@ -100,6 +94,5 @@ export function defaultContinuationRange(
   while (filled.has(start)) start = addDays(start, 1);
   const end = addDays(addMonths(start, DEFAULT_MONTHS), -1);
   const length = daysBetween(start, end) + 1;
-  const from = addDays(start, -7 * Math.ceil(length / 7));
-  return { from, to: addDays(from, length - 1), start, end };
+  return { from: addDays(start, -length), to: addDays(start, -1), start, end };
 }
