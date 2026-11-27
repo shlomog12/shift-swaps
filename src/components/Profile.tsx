@@ -5,7 +5,7 @@ import { SYSTEM_ADMIN_LABEL } from '../lib/types';
 import { useMe } from '../lib/hooks';
 import { isIos, isStandalone, useInstall } from '../lib/pwa';
 import { supabase } from '../lib/supabase';
-import { AdminPhonePanel } from './AdminPhone';
+import { MyPhoneSection } from './MyPhone';
 import { CalendarFeedSection } from './CalendarFeed';
 import { PaymentDetailsSection } from './PaidSwap';
 import { PushSection } from './PushSection';
@@ -82,6 +82,7 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
         )}
 
         {me.profile.display_name && <CalendarFeedSection />}
+        <MyPhoneSection />
         <PushSection />
         {me.profile.display_name && <PaymentDetailsSection />}
 
@@ -116,7 +117,6 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
           <WhatsAppButton text={inviteText()} label="הזמנה בוואטסאפ" />
         </section>
 
-        {me.profile.is_admin && <AdminPhonePanel />}
 
         <section className="profile-section">
           <button className="danger" onClick={signOut}>

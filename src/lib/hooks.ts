@@ -111,6 +111,8 @@ export interface Roster {
   incoming: QueryState<SwapRequest[]>;
   /** Payments I owe or am owed (empty until the paid-swaps migration is applied). */
   payments: QueryState<SwapPayment[]>;
+  /** Members' phones (international, e.g. 972501234567), for WhatsApp straight to them. */
+  phones: QueryState<{ name: string; phone: string }[]>;
 }
 
 export const RosterContext = createContext<Roster | null>(null);
@@ -119,6 +121,15 @@ export function useRoster(): Roster {
   const roster = useContext(RosterContext);
   if (!roster) throw new Error('useRoster must be used inside RosterContext');
   return roster;
+}
+
+/** The phone of a roster name, if they added one; works outside the roster too (returns null). */
+export function usePhoneOf(): (name: string | null | undefined) => string | null {
+  const phones = useContext(RosterContext)?.phones.data;
+  return useCallback(
+    (name) => (phones ?? []).find((p) => sameName(p.name, name))?.phone ?? null,
+    [phones],
+  );
 }
 
 export function sameName(a: string | null | undefined, b: string | null | undefined): boolean {

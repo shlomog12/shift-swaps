@@ -33,6 +33,8 @@ export interface ShareOffer {
   text: string;
   /** Label of the WhatsApp button. */
   label: string;
+  /** Straight to this person's chat (international form), when they added a phone. */
+  phone?: string | null;
 }
 
 const SHARE_OFF_KEY = 'share-offers';
@@ -129,7 +131,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             <span className="share-bar-actions">
               <a
                 className="button whatsapp small"
-                href={whatsappUrl(share.text)}
+                href={whatsappUrl(share.text, share.phone)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setShare(null)}

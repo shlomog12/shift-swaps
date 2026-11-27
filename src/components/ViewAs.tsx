@@ -55,7 +55,7 @@ export function ViewAsPicker({
         <input type="search" placeholder="חיפוש שם" value={filter} onChange={(e) => setFilter(e.target.value)} />
         {names.loading && !names.data && <SkeletonChips count={6} />}
         {names.error && <p className="error">{names.error}</p>}
-        <div className="name-list">
+        <div className="name-list stacked">
           {visible.map((n) => {
             const isCurrent = sameName(n.name, current);
             return (

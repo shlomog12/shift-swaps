@@ -115,8 +115,7 @@ export const api = {
     ),
   myPaymentDetails: () =>
     call<{ phone: string | null; link: string | null }[]>('my_payment_details').then((rows) => rows[0] ?? null),
-  setMyPaymentDetails: (phone: string, link: string) =>
-    call('set_my_payment_details', { p_phone: phone, p_link: link }),
+  setMyPaymentLink: (link: string) => call('set_my_payment_link', { p_link: link }),
   withdrawSwapRequest: (requestId: number) => call('withdraw_swap_request', { p_request_id: requestId }),
   acceptSwapRequest: (requestId: number) => call('accept_swap_request', { p_request_id: requestId }),
   declineSwapRequest: (requestId: number) => call('decline_swap_request', { p_request_id: requestId }),
@@ -145,6 +144,9 @@ export const api = {
   myActAs: () => call<string | null>('my_act_as').catch(() => null),
   adminDeleteUser: (userId: string) => call('admin_delete_user', { p_user_id: userId }),
   setMyPhone: (phone: string) => call<string | null>('set_my_phone', { p_phone: phone }),
+  myPhone: () => call<string | null>('my_phone'),
+  /** Roster names with a phone (approved members only); empty before the member-phones migration. */
+  memberPhones: () => call<{ name: string; phone: string }[]>('member_phones').catch(() => []),
   adminContacts: () => call<AdminContact[]>('admin_contacts'),
   myCalendarToken: () => call<string>('my_calendar_token'),
   resetCalendarToken: () => call<string>('reset_calendar_token'),

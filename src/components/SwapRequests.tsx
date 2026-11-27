@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { addDays, formatDate, formatDateTime, hasStarted, israelToday, nightLabel, slotTime } from '../lib/dates';
-import { useAction, useMe, useRoster } from '../lib/hooks';
+import { useAction, useMe, usePhoneOf, useRoster } from '../lib/hooks';
 import { appLink, shiftLink, whatsappUrl } from '../lib/share';
 import type { OfferStatus, Shift, ShiftKey, SwapRequest } from '../lib/types';
 import { useIsRegistered } from '../lib/registered';
@@ -28,22 +28,28 @@ export function giveText(r: SwapRequest): string {
   return r.price ? `תמורת ₪${r.price}` : 'בלי משמרת בתמורה';
 }
 
-/** Opens WhatsApp with a ready message: to the given phone, or the person picks the chat. */
+/**
+ * Opens WhatsApp with a ready message: straight to the chat of `phone`, or of `to` (a roster name) if they
+ * added a phone; otherwise the person picks the chat.
+ */
 export function WhatsAppButton({
   text,
   label = 'שיתוף בוואטסאפ',
   phone,
+  to,
   className = '',
 }: {
   text: string;
   label?: string;
   phone?: string | null;
+  to?: string | null;
   className?: string;
 }) {
+  const phoneOf = usePhoneOf();
   return (
     <a
       className={`button whatsapp ${className}`.trim()}
-      href={whatsappUrl(text, phone)}
+      href={whatsappUrl(text, phone ?? phoneOf(to))}
       target="_blank"
       rel="noopener noreferrer"
     >
@@ -152,6 +158,7 @@ export function RequestForm({
   const paidAvailable = (shifts.data ?? []).some((s) => 'swap_price' in s);
   const { busy, error, run } = useAction();
   const { toast, shareOffer } = useFeedback();
+  const phoneOf = usePhoneOf();
   const registered = useIsRegistered(owner);
   const mine = (shifts.data ?? []).filter((s) => me.isMine(s.assignee) && !hasStarted(s.night, s.slot));
   const nearEnd = addDays(israelToday(), NEAR_DAYS);
@@ -193,6 +200,7 @@ export function RequestForm({
             decided_at: null,
           }, registered !== false),
           label: `הודעה ל${owner}`,
+          phone: phoneOf(owner),
         });
         onDone();
       },
@@ -259,6 +267,7 @@ export function IncomingRequest({ request: r, showShift }: { request: SwapReques
   const me = useMe();
   const { busy, error, run } = useAction();
   const { confirm, toast, shareOffer } = useFeedback();
+  const phoneOf = usePhoneOf();
   const exchange = Boolean(r.give_night && r.give_slot);
 
   function offerUpdate(accepted: boolean) {
@@ -266,6 +275,7 @@ export function IncomingRequest({ request: r, showShift }: { request: SwapReques
       message: `אפשר לעדכן את ${r.requester} בוואטסאפ`,
       text: requestDecisionText(r, accepted),
       label: `עדכון ל${r.requester} בוואטסאפ`,
+      phone: phoneOf(r.requester),
     });
   }
 

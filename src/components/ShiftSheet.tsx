@@ -3,7 +3,7 @@ import { useFocusTrap } from '../lib/focusTrap';
 import { useIsRegistered } from '../lib/registered';
 import { api } from '../lib/api';
 import { SLOT_NAME, formatDate, formatDateTime, hasStarted, nightLabel, slotTime } from '../lib/dates';
-import { useAction, useMe, useQuery } from '../lib/hooks';
+import { useAction, useMe, usePhoneOf, useQuery } from '../lib/hooks';
 import { loadShift, loadShiftOffers, loadShiftRequests } from '../lib/queries';
 import type { ShiftKey, SwapOffer } from '../lib/types';
 import { googleCalendarUrl } from '../lib/calendar';
@@ -48,6 +48,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const ownerRegistered = useIsRegistered(shift.data?.assignee);
   const { busy, error, run } = useAction();
   const { confirm, ask, toast, shareOffer } = useFeedback();
+  const phoneOf = usePhoneOf();
 
   // Escape closes the sheet (an open confirmation dialog handles Escape itself first).
   useEffect(() => {
@@ -230,6 +231,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                               : `אפשר לשלוח ל${s.assignee} הודעה בוואטסאפ עם קישור לאישור`,
                           text: volunteeredText(s, note, ownerRegistered !== false),
                           label: `הודעה ל${s.assignee}`,
+                          phone: phoneOf(s.assignee),
                         }),
                     )
                   }
@@ -303,6 +305,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                 <WhatsAppButton
                   text={volunteeredText(s, myOffer.note, ownerRegistered !== false)}
                   label={`הודעה ל${s.assignee} על ההתנדבות`}
+                  to={s.assignee}
                 />
               )}
             </div>
@@ -335,7 +338,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                   >
                     ביטול ההצעה
                   </button>
-                  <WhatsAppButton text={requestSentText(myRequest, ownerRegistered !== false)} label={`הודעה ל${s.assignee}`} />
+                  <WhatsAppButton text={requestSentText(myRequest, ownerRegistered !== false)} label={`הודעה ל${s.assignee}`} to={s.assignee} />
                 </div>
               </section>
             )}
@@ -397,6 +400,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                                     message: `אפשר לעדכן את ${o.volunteer} בוואטסאפ`,
                                     text: offerDecisionText(s, o.volunteer, true),
                                     label: `עדכון ל${o.volunteer}`,
+                                    phone: phoneOf(o.volunteer),
                                   }),
                               )
                             }
@@ -417,6 +421,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                                     message: `אפשר לעדכן את ${o.volunteer} בוואטסאפ`,
                                     text: offerDecisionText(s, o.volunteer, false),
                                     label: `עדכון ל${o.volunteer}`,
+                                    phone: phoneOf(o.volunteer),
                                   }),
                               )
                             }

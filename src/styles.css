@@ -241,6 +241,17 @@ code {
   overflow-y: auto;
 }
 
+/* One name per line (e.g. "act as a user", where some names carry "(not in the app)"). */
+.name-list.stacked {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.name-list.stacked .chip {
+  text-align: start;
+}
+
 .chip {
   border-radius: 999px;
   padding: 0.35rem 0.9rem;
@@ -2190,4 +2201,14 @@ select {
 
 .payments.done li {
   padding: 0.25rem 0;
+}
+
+/* Suggestion to add a phone, at the top of the screen until saved or dismissed. */
+.phone-tip {
+  margin: 0.8rem auto;
+  max-width: 40rem;
+}
+
+.phone-tip h3 {
+  margin: 0 0 0.3rem;
 }

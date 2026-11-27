@@ -5,6 +5,7 @@ import { useFocusTrap } from '../lib/focusTrap';
 import { useAction, useMe, useQuery, useRoster } from '../lib/hooks';
 import { DEFAULT_SWAP_PRICE, MAX_SWAP_PRICE, paymentOpen, type SwapPayment } from '../lib/types';
 import { useFeedback } from './Feedback';
+import { formatPhone } from './MyPhone';
 import { WhatsAppButton } from './SwapRequests';
 
 /** "Offer a payment" checkbox with the amount (default ₪250, up to ₪500). Calls back with null when off. */
@@ -240,6 +241,7 @@ function PayItem({ payment: p }: { payment: SwapPayment }) {
           className="small"
           text={`היי ${p.payee}, לגבי ₪${p.amount} על המשמרת ב־${shiftLine(p)}: איך הכי נוח לך לקבל?`}
           label={`הודעה ל${p.payee}`}
+          to={p.payee}
         />
       </div>
       {error && <p className="error small">{error}</p>}
@@ -273,6 +275,7 @@ function ReceiveItem({ payment: p }: { payment: SwapPayment }) {
           className="small"
           text={`היי ${p.payer}, תזכורת: ₪${p.amount} על המשמרת ב־${shiftLine(p)}. הפרטים באפליקציה, בלשונית "שלי".`}
           label={`תזכורת ל${p.payer}`}
+          to={p.payer}
         />
       </div>
       {error && <p className="error small">{error}</p>}
@@ -280,22 +283,20 @@ function ReceiveItem({ payment: p }: { payment: SwapPayment }) {
   );
 }
 
-/** Profile: how others pay me (a phone for Bit/PayBox, a PayBox link). Shown only to whoever owes me. */
+/** Profile: how others pay me (my phone for Bit/PayBox, a PayBox link). Shown only to whoever owes me. */
 export function PaymentDetailsSection() {
   const mine = useQuery(() => api.myPaymentDetails().catch(() => undefined), []);
-  const [phone, setPhone] = useState('');
   const [link, setLink] = useState('');
   const { busy, error, run } = useAction();
   const { toast } = useFeedback();
 
   useEffect(() => {
-    if (!mine.data) return;
-    setPhone(mine.data.phone ?? '');
-    setLink(mine.data.link ?? '');
+    if (mine.data) setLink(mine.data.link ?? '');
   }, [mine.data]);
 
   // Before the paid-swaps migration the function does not exist: hide the section.
   if (mine.loading || mine.data === undefined) return null;
+  const phone = mine.data?.phone;
 
   return (
     <section className="profile-section">
@@ -303,21 +304,27 @@ export function PaymentDetailsSection() {
       <p className="muted small">
         לחילופים בתשלום. מוצג רק למי שצריך להעביר לך כסף, ורק כשיש ביניכם תשלום פתוח.
       </p>
+      <p className="small">
+        {phone ? (
+          <>
+            טלפון לביט / פייבוקס: <span className="ltr-inline">{formatPhone(phone.replace(/^0/, '972'))}</span>. זה
+            המספר מ&quot;מספר הטלפון שלי&quot;, ושם משנים אותו.
+          </>
+        ) : (
+          <>אין עדיין טלפון לביט / פייבוקס. אפשר להוסיף אותו למעלה, ב&quot;מספר הטלפון שלי&quot;.</>
+        )}
+      </p>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          run(() => api.setMyPaymentDetails(phone, link), () => toast('פרטי התשלום נשמרו'));
+          run(() => api.setMyPaymentLink(link), () => toast('הקישור נשמר'));
         }}
       >
-        <label>
-          טלפון לביט / פייבוקס
-          <input type="tel" dir="ltr" inputMode="tel" value={phone} placeholder="050-1234567" onChange={(e) => setPhone(e.target.value)} />
-        </label>
         <label>
           קישור תשלום של פייבוקס (לא חובה)
           <input type="url" dir="ltr" value={link} placeholder="https://..." onChange={(e) => setLink(e.target.value)} />
         </label>
-        <button className="primary" disabled={busy}>
+        <button className="primary" disabled={busy || link.trim() === (mine.data?.link ?? '')}>
           שמירה
         </button>
       </form>

@@ -3,6 +3,7 @@ import { Admin } from './components/Admin';
 import { api } from './lib/api';
 import { Board } from './components/Board';
 import { Calendar } from './components/Calendar';
+import { PhoneTip } from './components/MyPhone';
 import { FeedbackProvider, useFeedback } from './components/Feedback';
 import { History } from './components/History';
 import { AccessPending, Login, SetupMissing } from './components/Login';
@@ -158,9 +159,10 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   const incoming = useQuery(() => loadIncomingRequests(shown.display_name ?? ''), [shown.display_name]);
   // Before the paid-swaps migration the function does not exist: no payments.
   const payments = useQuery(() => api.myPayments().catch(() => []), [shown.id]);
+  const phones = useQuery(api.memberPhones, []);
   const roster = useMemo(
-    () => ({ upcoming, pendingOffers, incoming, payments }),
-    [upcoming, pendingOffers, incoming, payments],
+    () => ({ upcoming, pendingOffers, incoming, payments, phones }),
+    [upcoming, pendingOffers, incoming, payments, phones],
   );
   const decisionCount = useMemo(() => {
     const shifts = upcoming.data ?? [];
@@ -239,6 +241,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
       )}
 
       <main>
+        {!viewing && <PhoneTip />}
         {activeTab === 'calendar' && <Calendar />}
         {activeTab === 'board' && <Board />}
         {activeTab === 'mine' && <MyShifts />}

@@ -86,6 +86,10 @@ Requested after the review:
     and can cancel one.
 54. Phone notifications (Web Push, no e-mail): every existing notice also goes to subscribed devices, plus an
     evening reminder before a shift (pg_cron); profile section to turn on/off, test, and reminders on/off.
+55. A phone number for every user ("מספר הטלפון שלי" in the profile, suggested once after picking a name):
+    WhatsApp messages to a specific person open their chat directly; payments use the same number for
+    Bit/PayBox. Approved members see each other's numbers.
+56. "Act as a user": one name per line.
 15. (Done as part of 54: reminders by phone notification instead of e-mail.)
 52. Act as a user: any admin picks a roster name, sees the app as that user and can act for them; the
     server runs the action as that user and the history shows "<admin> בשם <user>". The calendar legend and
@@ -147,6 +151,9 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
       (3) SQL Editor → run `supabase/dashboard/push-outbox-trigger.sql` with PROJECT_REF replaced
       (or a Database Webhook on push_outbox Insert → push-send).
       (4) App → profile → "התראות לטלפון" → turn on → "שליחת התראת בדיקה".
+
+- [ ] **Phones for everyone**: SQL Editor → run all of `supabase/migrations/20261211000000_member_phones.sql`.
+      Until then only admins can save a phone, and WhatsApp messages open the chat picker as before.
 
 ## Next, in recommended order
 

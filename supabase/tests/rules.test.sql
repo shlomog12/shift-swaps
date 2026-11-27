@@ -279,10 +279,12 @@ reset role;
 select test.eq((select count(*) from public.email_outbox where subject like '%מבקש/ת %את המשמרת שלך%'
                 or subject like '%מבקש/ת להחליף%'), 3::bigint, 'owners told about requests (חסן has no account)');
 
--- Admin phones: admins set them, signed-in users (even pending ones) see admins who added one.
+-- Phones: anyone can add one; signed-in users (even pending ones) see admins who added one, and approved
+-- members see everyone's.
 set role authenticated;
 select test.as_user('00000000-0000-0000-0000-00000000000c');
-select test.expect_error('select public.set_my_phone(''0501234567'')', 'admin_only');
+select test.eq(public.set_my_phone('050-765-4321'), '972507654321', 'any user can add a phone');
+select test.eq(public.my_phone(), '972507654321', 'own phone read back');
 select test.as_user('00000000-0000-0000-0000-00000000000a');
 select test.eq(public.set_my_phone('050-123-4567'), '972501234567', 'local number normalized');
 select test.eq(public.set_my_phone('+972 50 123 4567'), '972501234567', 'international number normalized');
@@ -293,6 +295,11 @@ select test.as_user('00000000-0000-0000-0000-00000000000d');
 select test.eq((select status from public.profiles), 'pending', 'D is pending');
 select test.eq((select count(*) from public.admin_contacts()), 1::bigint, 'pending user sees admins with a phone');
 select test.eq((select phone from public.admin_contacts()), '972501234567', 'admin phone listed');
+select test.expect_error('select * from public.member_phones()', 'not_approved');
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.eq((select count(*) from public.member_phones() where phone = '972507654321'), 1::bigint,
+               'members see other members'' phones');
+select test.as_user('00000000-0000-0000-0000-00000000000d');
 select test.expect_error('select phone from public.profiles', 'permission denied');
 reset role;
 
@@ -476,9 +483,9 @@ select public.request_swap(:'m1', 1::smallint, null, 250);
 select test.eq((select swap_price from public.shifts where night = :'m1' and slot = 1), 250, 'request carries the amount');
 
 select test.as_user('00000000-0000-0000-0000-00000000000c');
-select public.set_my_payment_details('050-765-4321', 'https://payboxapp.page.link/abc');
-select test.expect_error('select public.set_my_payment_details(''12'', null)', 'invalid_phone');
-select test.expect_error('select public.set_my_payment_details(null, ''http://x'')', 'invalid_link');
+select public.set_my_payment_link('https://payboxapp.page.link/abc');
+select test.expect_error('select public.set_my_payment_link(''http://x'')', 'invalid_link');
+select test.eq((select phone from public.my_payment_details()), '0507654321', 'payments use the general phone');
 select public.offer_swap(:'m1', 1::smallint) as paid_offer \gset
 select test.eq((select price from public.swap_offers where id = :paid_offer), 250, 'offer keeps the amount');
 select test.expect_error(format('select public.send_swap_request(%L, 1::smallint, %L, 2::smallint, null, 100)', :'m2', :'m2'),
