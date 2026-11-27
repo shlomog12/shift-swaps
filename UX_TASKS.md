@@ -70,18 +70,18 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 - [ ] **Swap notes (task 11)**: SQL Editor → run all of `supabase/migrations/20261204000000_swap_notes.sql`.
       Until then the app works as before, and notes are simply not saved.
 
-## P1
+## Next, in recommended order
 
-15. Reminder by e-mail or push X hours before a shift (Supabase cron).
-
-## P2
-
-17. Mutual swap between two shifts. (Largely covered by swap offers with a shift in return.)
+22. Accessibility: SVG icons instead of emoji, 44px touch targets, focus trap in sheets.
 18. Name picker: "did you mean…?" for names close to an existing one.
 19. Admin: inner tabs (users, roster, import), user actions in a "⋯" menu.
 20. Admin: fairness report (shifts per person per month), alert on open shifts in the coming week.
 21. History: group by day, "only mine", filter by action type.
-22. Accessibility: SVG icons instead of emoji, 44px touch targets, focus trap in sheets.
-23. Skeleton loading, "offline" indicator.
+23. Skeleton loading instead of "טוען..." (the "offline" bar is already done in task 14).
 24. Swipe between months in the calendar.
-25. Profile: notification preferences (once reminders exist).
+17. Mutual swap between two shifts. Largely covered by swap offers with a shift in return; likely to close.
+
+## Last (decide at the end)
+
+15. Reminder by e-mail or push X hours before a shift (Supabase cron + the existing e-mail queue).
+25. Profile: notification preferences (only if task 15 is built).
