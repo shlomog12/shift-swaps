@@ -43,7 +43,7 @@ const NAME_FIELDS = ['assignee', 'from', 'to', 'requester', 'volunteer', 'owner'
 
 /** Whether I did it, or my roster name appears in it (my shift, my swap, my offer). */
 export function involvesMe(entry: AuditEntry, myId: string, myName: string | null): boolean {
-  if (entry.actor_id === myId) return true;
+  if (entry.actor_id === myId || entry.by_id === myId) return true;
   if (!myName) return false;
   const mine = myName.toLowerCase();
   return NAME_FIELDS.some((field) => {

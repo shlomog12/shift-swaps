@@ -3,6 +3,7 @@ import { check } from './hooks';
 import { supabase } from './supabase';
 import {
   AUDIT_COLUMNS,
+  AUDIT_COLUMNS_WITH_BY,
   OFFER_COLUMNS,
   PROFILE_COLUMNS,
   REQUEST_COLUMNS,
@@ -109,9 +110,12 @@ export async function loadProfile(userId: string): Promise<Profile | null> {
 }
 
 export async function loadAudit(limit: number): Promise<AuditEntry[]> {
-  return check(
-    await supabase.from('audit_log').select(AUDIT_COLUMNS).order('at', { ascending: false }).limit(limit),
-  ) as AuditEntry[];
+  const query = (columns: string) =>
+    supabase.from('audit_log').select(columns).order('at', { ascending: false }).limit(limit);
+  let result = await query(AUDIT_COLUMNS_WITH_BY);
+  // Before the act-as migration is applied the by_* columns do not exist yet.
+  if (result.error && /by_id|by_name/.test(result.error.message)) result = await query(AUDIT_COLUMNS);
+  return check(result) as unknown as AuditEntry[];
 }
 
 const PAGE_ROWS = 1000;

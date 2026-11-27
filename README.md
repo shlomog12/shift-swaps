@@ -64,11 +64,15 @@ Users pick their roster name once, on first sign-in; after that only an admin ca
 
 An admin does not need a roster name: a system manager who runs the roster but is not one of the guards
 (for example a rotating duty officer's account). Approve a new sign-up with **כאחראי מערכת** in the
-**ניהול** tab, or make an approved user without a name an admin. They have every admin action but cannot
-take or swap shifts themselves, and appear as "אחראי מערכת". Removing them from the admins sends them to
-the name picker. With **תצוגה** in the top bar they can pick a roster name and see the app exactly as that
-user does (their shifts, requests and offers); the view is read only, every action is blocked until they
-leave it.
+**ניהול** tab, or make an approved user without a name an admin. They have exactly the same rights as any
+other admin; the only difference is that no roster name is theirs, so they appear as "אחראי מערכת".
+Removing them from the admins sends them to the name picker.
+
+Any admin can act as another user with **בשם…** in the top bar: pick a roster name and the app shows what
+that user sees, and every action (taking a shift, a swap request, approving an offer) runs on the server as
+that user, with that user's permissions. The history shows "<admin> בשם <user>". The choice is kept on the
+server (table `acting_as`) until the admin leaves it, and expires after 12 hours. A roster name nobody has
+claimed yet can only be viewed.
 
 ### 5. E-mail notifications
 

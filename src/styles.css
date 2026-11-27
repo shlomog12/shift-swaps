@@ -1434,8 +1434,18 @@ a.button.calendar {
   font-size: 0.85rem;
 }
 
-.view-as-bar button {
+.view-as-buttons {
+  display: flex;
+  gap: 0.4rem;
   flex-shrink: 0;
+}
+
+.mode-toggle.icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 0.25rem;
 }
 
 /* Calendar subscription in the profile */
@@ -2128,4 +2138,10 @@ select {
 
 .plan-choice p {
   margin: 0 0 0.3rem;
+}
+
+/* "<admin> בשם <user>" in the history */
+.by-label {
+  font-weight: 400;
+  color: var(--muted);
 }

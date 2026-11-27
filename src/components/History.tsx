@@ -131,7 +131,8 @@ export function History() {
           !term ||
           r.description.includes(term) ||
           r.shift.includes(term) ||
-          (r.entry.actor_name ?? '').includes(term),
+          (r.entry.actor_name ?? '').includes(term) ||
+          (r.entry.by_name ?? '').includes(term),
       );
     const grouped = new Map<string, typeof rows>();
     for (const r of rows) {
@@ -172,6 +173,11 @@ export function History() {
               <li key={entry.id}>
                 <div className="history-top">
                   <strong>
+                    {entry.by_id && (
+                      <>
+                        {entry.by_name ?? SYSTEM_ADMIN_LABEL} <span className="by-label">בשם</span>{' '}
+                      </>
+                    )}
                     {entry.actor_name ?? (entry.action === 'claim_name' ? 'משתמש חדש' : SYSTEM_ADMIN_LABEL)}
                   </strong>
                   {entry.actor_id && emails.get(entry.actor_id) && (

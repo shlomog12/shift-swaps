@@ -69,6 +69,9 @@ export interface AuditEntry {
   night: string | null;
   slot: Slot | null;
   details: Record<string, unknown>;
+  /** The admin who did it on the actor's behalf (missing until the act-as migration is applied). */
+  by_id?: string | null;
+  by_name?: string | null;
 }
 
 /** An admin who added a phone, for WhatsApp messages from users waiting for approval. */
@@ -95,6 +98,8 @@ export const REQUEST_COLUMNS = '*';
 export const OFFER_COLUMNS = '*';
 export const PROFILE_COLUMNS = 'id,display_name,is_admin,status,created_at';
 export const AUDIT_COLUMNS = 'id,at,actor_id,actor_name,action,night,slot,details';
+/** With who acted on the actor's behalf; needs the act-as migration. */
+export const AUDIT_COLUMNS_WITH_BY = `${AUDIT_COLUMNS},by_id,by_name`;
 
 /** How an admin account without a roster name is shown: a system manager, not one of the guards. */
 export const SYSTEM_ADMIN_LABEL = 'אחראי מערכת';

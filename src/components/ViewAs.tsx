@@ -5,7 +5,7 @@ import { sameName, useQuery } from '../lib/hooks';
 import { similarNames } from '../lib/similar';
 import { SkeletonChips } from './Skeleton';
 
-/** Lets a system admin pick a roster name, to see the app the way that user sees it. */
+/** Lets an admin pick a roster name, to see the app the way that user sees it and act on their behalf. */
 export function ViewAsPicker({
   current,
   onPick,
@@ -46,10 +46,11 @@ export function ViewAsPicker({
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="view-as-title">תצוגה כמשתמש</h2>
+        <h2 id="view-as-title">כניסה בשם משתמש</h2>
         <p className="muted small">
-          בוחרים שם, והאפליקציה תוצג כמו שהוא רואה אותה: המשמרות שלו, הבקשות וההצעות שלו. זו תצוגה בלבד, אי אפשר
-          לבצע פעולות בשמו.
+          בוחרים שם, והאפליקציה תוצג כמו שהוא רואה אותה: המשמרות שלו, הבקשות וההצעות שלו. אפשר גם לפעול בשמו
+          (לקחת משמרת, לבקש חילוף, לאשר הצעה), וההיסטוריה תרשום שאתה עשית את זה בשמו. מי שעוד לא באפליקציה זמין
+          לצפייה בלבד.
         </p>
         <input type="search" placeholder="חיפוש שם" value={filter} onChange={(e) => setFilter(e.target.value)} />
         {names.loading && !names.data && <SkeletonChips count={6} />}

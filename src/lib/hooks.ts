@@ -90,8 +90,8 @@ export interface Me {
   email: string;
   isMine: (assignee: string | null) => boolean;
   openShift: (night: string, slot: Slot) => void;
-  /** Set while a system admin views the app as another user: everything is shown, nothing can be done. */
-  viewAs: string | null;
+  /** Set while an admin views a roster name nobody has claimed yet: everything is shown, nothing can be done. */
+  readOnly: string | null;
 }
 
 export const MeContext = createContext<Me | null>(null);
@@ -125,15 +125,15 @@ export function sameName(a: string | null | undefined, b: string | null | undefi
 /** Wraps an async action with busy and error state. */
 export function useAction() {
   const { refresh } = useRefresh();
-  const viewAs = useContext(MeContext)?.viewAs ?? null;
+  const readOnly = useContext(MeContext)?.readOnly ?? null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const run = useCallback(
     async (action: () => Promise<unknown>, onDone?: () => void) => {
-      // Any call would run with the admin's own permissions, not the viewed user's: block them all.
-      if (viewAs) {
-        setError(`זו תצוגה בלבד של ${viewAs}, אי אפשר לבצע בה פעולות.`);
+      // There is no user to act for: any call would run as the admin, so block them all.
+      if (readOnly) {
+        setError(`${readOnly} עוד לא באפליקציה, אז אפשר רק לצפות. כדי לשבץ אותו צריך לצאת ולערוך כמנהל.`);
         return;
       }
       setBusy(true);
@@ -148,7 +148,7 @@ export function useAction() {
         refresh();
       }
     },
-    [refresh, viewAs],
+    [refresh, readOnly],
   );
 
   return { busy, error, setError, run };

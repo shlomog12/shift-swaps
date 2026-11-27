@@ -411,4 +411,32 @@ select test.as_user('00000000-0000-0000-0000-00000000000c');
 select test.expect_error('select public.admin_set_plan(''[]'')', 'admin_only');
 reset role;
 
+-- Acting as another user: actions run as them, the history names both, only admins can, and it stops.
+reset role;
+select '00000000-0000-0000-0000-00000000000c' as t_id \gset
+select '00000000-0000-0000-0000-00000000000b' as b_id \gset
+select (f1 + 62)::text as p2 from test.d \gset
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_import(jsonb_build_array(jsonb_build_object('night', :'p2', 'slot1', null, 'slot2', null)));
+select test.eq(public.admin_act_as(:'t_id'), :'t_id'::uuid, 'acting as c');
+select test.eq(public.my_act_as(), :'t_id'::uuid, 'acting state is readable');
+select test.eq((select count(*) > 0 from public.admin_list_users()), true, 'user list still works while acting');
+select test.expect_error('select public.admin_set_plan(''[]'')', 'admin_only');
+select public.take_shift(:'p2', 1::smallint);
+select test.eq((select assignee from public.shifts where night = :'p2' and slot = 1), :'c_name', 'taken in c''s name');
+select test.eq((select actor_id::text || '/' || by_id::text from public.audit_log where action = 'take'
+                and night = :'p2' order by id desc limit 1),
+               :'t_id' || '/00000000-0000-0000-0000-00000000000a', 'history names c and the admin');
+select test.eq(public.admin_act_as(null), null::uuid, 'stop acting');
+select test.eq(public.my_act_as(), null::uuid, 'no longer acting');
+select public.admin_set_plan('[]');
+select public.take_shift(:'p2', 2::smallint);
+select test.eq((select by_id from public.audit_log where action = 'take' and night = :'p2' and slot = 2),
+               null::uuid, 'own actions have no "by"');
+
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error(format('select public.admin_act_as(%L)', :'b_id'), 'admin_only');
+reset role;
+
 \echo 'All rule tests passed.'

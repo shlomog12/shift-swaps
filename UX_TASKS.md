@@ -79,8 +79,9 @@ Requested after the review:
 51. Next roster from the original: same order, same weekday option, first/second swap, replace or leave
     (shifts become open); nothing assigned automatically: an editable preview where the admin fills a
     leaver's marked shifts and sets a newcomer's; then saved like an import.
-52. System admin "view as": pick a roster name and see the app as that user (read only, banner with exit);
-    the calendar legend and list filters drop "mine" for a system admin.
+52. Act as a user: any admin picks a roster name, sees the app as that user and can act for them; the
+    server runs the action as that user and the history shows "<admin> בשם <user>". The calendar legend and
+    list filters drop "mine" for a system admin, who otherwise has the same rights as any admin.
 
 ## Setup still to do (owner)
 
@@ -120,6 +121,9 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 
 - [ ] **Original roster (stage 1)**: SQL Editor → run all of `supabase/migrations/20261206000000_planned_roster.sql`.
       Then in the app: ניהול → בניית לוח → "שחזור מההיסטוריה", check the preview, save.
+
+- [ ] **Act as a user (task 52)**: SQL Editor → run all of `supabase/migrations/20261207000000_act_as.sql`.
+      Until then "בשם…" shows an error and the history has no "בשם" lines.
 
 ## Next, in recommended order
 

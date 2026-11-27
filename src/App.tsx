@@ -101,33 +101,50 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   useLiveRefresh(true, refresh);
 
   const system = !profile.display_name; // only admins get this far without a name
-  // A system admin can view the app as one of the users on the roster (read only).
-  const [viewAs, setViewAs] = useState<string | null>(null);
-  const [pickingViewAs, setPickingViewAs] = useState(false);
-  const viewing = system && viewAs ? viewAs : null;
-  const isAdmin = !viewing && profile.is_admin && (adminMode || system);
   const users = useQuery(() => (profile.is_admin ? api.adminListUsers() : Promise.resolve([])), [profile.is_admin]);
-  const viewedUser = viewing ? (users.data ?? []).find((u) => sameName(u.display_name, viewing)) : undefined;
+  // Any admin can act as another user: the server then runs every action as that user and records the admin
+  // in the history. A roster name nobody has claimed yet can only be viewed, not acted for.
+  const acting = useQuery(() => (profile.is_admin ? api.myActAs() : Promise.resolve(null)), [profile.is_admin]);
+  const [viewOnly, setViewOnly] = useState<string | null>(null);
+  const [pickingViewAs, setPickingViewAs] = useState(false);
+  const actingUser = acting.data ? (users.data ?? []).find((u) => u.id === acting.data) : undefined;
+  const viewing = actingUser?.display_name ?? (acting.data ? null : viewOnly);
+  const readOnly = !actingUser && viewOnly ? viewOnly : null;
+  const isAdmin = !viewing && profile.is_admin && (adminMode || system);
   const shown: Profile = viewing
     ? {
-        id: viewedUser?.id ?? '', // a name nobody has claimed yet: no offers or requests of their own
+        id: actingUser?.id ?? '', // a name nobody has claimed yet: no offers or requests of their own
         display_name: viewing,
         is_admin: false,
         status: 'approved',
-        created_at: viewedUser?.created_at ?? profile.created_at,
+        created_at: actingUser?.created_at ?? profile.created_at,
       }
     : profile;
   const me: Me = useMemo(
     () => ({
       profile: { ...shown, is_admin: isAdmin },
-      email: viewing ? (viewedUser?.email ?? '') : email,
+      email: viewing ? (actingUser?.email ?? '') : email,
       isMine: (assignee) => sameName(assignee, shown.display_name),
       openShift: (night, slot) => setOpen({ night, slot }),
-      viewAs: viewing,
+      readOnly,
     }),
     // `shown` is rebuilt every render; these are what it is made of.
-    [profile, email, isAdmin, viewing, viewedUser],
+    [profile, email, isAdmin, viewing, actingUser, readOnly],
   );
+
+  async function viewAs(name: string | null) {
+    const user = name ? (users.data ?? []).find((u) => u.status === 'approved' && sameName(u.display_name, name)) : undefined;
+    try {
+      if (user || acting.data) await api.adminActAs(user?.id ?? null);
+      setViewOnly(name && !user ? name : null);
+      setTab('calendar');
+      if (name) toast(user ? `פועל עכשיו בשם ${name}` : `${name} עוד לא באפליקציה: תצוגה בלבד`, 'info');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      refresh();
+    }
+  }
 
   function toggleAdminMode() {
     const next = !adminMode;
@@ -158,7 +175,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
       <header className={isAdmin ? 'top-bar admin-mode' : 'top-bar'}>
         <span className="app-title">משמרות וחילופים</span>
         <span className="user">
-          {profile.is_admin && !system && (
+          {profile.is_admin && !system && !viewing && (
             <button
               className={isAdmin ? 'mode-toggle admin' : 'mode-toggle'}
               onClick={toggleAdminMode}
@@ -168,14 +185,14 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
               {isAdmin ? 'מעבר למצב משתמש' : 'מעבר למצב מנהל'}
             </button>
           )}
-          {system && (
+          {profile.is_admin && !viewing && (
             <button
-              className={viewing ? 'mode-toggle admin' : 'mode-toggle'}
+              className="mode-toggle icon-only"
               onClick={() => setPickingViewAs(true)}
-              aria-label="תצוגה כמשתמש: לראות את האפליקציה כמו משתמש מסוים"
+              aria-label="כניסה בשם משתמש"
+              title="כניסה בשם משתמש"
             >
-              <EyeIcon size={15} />
-              {viewing ? 'החלפה' : 'תצוגה'}
+              <EyeIcon size={17} />
             </button>
           )}
           <button className="user-button" onClick={() => setProfileOpen(true)} aria-label="פרופיל והגדרות">
@@ -187,12 +204,25 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
       {viewing && (
         <div className="view-as-bar" role="status">
           <span>
-            תצוגה בלבד: האפליקציה כפי ש<strong>{viewing}</strong> רואה אותה
-            {!viewedUser && users.data && ' (עוד לא באפליקציה)'}
+            {readOnly ? (
+              <>
+                תצוגה בלבד: <strong>{viewing}</strong> עוד לא באפליקציה
+              </>
+            ) : (
+              <>
+                פועל בשם <strong>{viewing}</strong>: כל פעולה תירשם בהיסטוריה כ&quot;
+                {profile.display_name ?? SYSTEM_ADMIN_LABEL} בשם {viewing}&quot;
+              </>
+            )}
           </span>
-          <button className="small" onClick={() => setViewAs(null)}>
-            יציאה
-          </button>
+          <span className="view-as-buttons">
+            <button className="small" onClick={() => setPickingViewAs(true)}>
+              החלפה
+            </button>
+            <button className="small" onClick={() => viewAs(null)}>
+              יציאה
+            </button>
+          </span>
         </div>
       )}
 
@@ -234,9 +264,8 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
         <ViewAsPicker
           current={viewing}
           onPick={(name) => {
-            setViewAs(name);
             setPickingViewAs(false);
-            setTab('calendar');
+            viewAs(name);
           }}
           onClose={() => setPickingViewAs(false)}
         />
