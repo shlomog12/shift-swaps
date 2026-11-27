@@ -118,7 +118,7 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
       `supabase/migrations/20261205000000_claim_roster_name_only.sql`. Until then the app already hides
       the free-text name, but the database would still accept one.
 
-- [ ] **Original roster (stage 1)**: SQL Editor → run all of `supabase/migrations/20261206000000_planned_roster.sql`.
+- [x] (applied) **Original roster (stage 1)**: SQL Editor → run all of `supabase/migrations/20261206000000_planned_roster.sql`.
       Then in the app: ניהול → בניית לוח → "שחזור מההיסטוריה", check the preview, save.
 
 ## Next, in recommended order
