@@ -2010,3 +2010,44 @@ button.icon {
   padding-inline: 0.4rem;
   font-size: 0.92rem;
 }
+
+/* Original-roster view: shifts that someone else does now get a dashed outline and "now: X". */
+.plan-banner {
+  background: var(--mine);
+  border: 1px solid var(--mine-border);
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  margin: 0 0 0.6rem;
+}
+
+.day-chip.differs,
+.shift-cell.differs {
+  outline: 2px dashed var(--holiday);
+  outline-offset: -2px;
+}
+
+.differs-badge {
+  color: var(--holiday-text);
+}
+
+.report-toggle {
+  display: flex;
+  justify-content: center;
+  margin: 0.2rem 0 0.6rem;
+}
+
+/* The calendar toolbar wraps instead of squeezing its buttons. */
+.toolbar {
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+
+.toolbar .segmented,
+.toolbar .chip {
+  flex: none;
+}
+
+.segmented button,
+.toolbar .chip {
+  white-space: nowrap;
+}

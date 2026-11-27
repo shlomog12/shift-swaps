@@ -9,6 +9,8 @@ export interface Shift {
   swap_note?: string | null;
   /** Who the admin planned for the shift (missing until the planned-roster migration is applied). */
   planned_assignee?: string | null;
+  /** Only in the original-roster view, where `assignee` shows the original: who does the shift now. */
+  actual?: string | null;
   updated_at: string;
 }
 

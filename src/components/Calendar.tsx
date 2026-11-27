@@ -29,6 +29,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
 import { dayMarks, hebrewDate, hebrewDay, hebrewMonthsBetween } from '../lib/hebrewDate';
 import { useHebrewDates } from '../lib/hebrewSetting';
 import { HebrewLine, HolidayTag } from './HolidayTag';
+import { asPlanned, differsFromPlan } from '../lib/plan';
 
 type Filter = 'all' | 'mine' | 'open' | 'swap';
 type View = 'month' | 'list';
@@ -43,6 +44,7 @@ const FILTERS: [Filter, string][] = [
 
 const WEEKDAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 const VIEW_STORAGE_KEY = 'calendar-view';
+const PLAN_VIEW_KEY = 'plan-view';
 
 export function offerCounts(offers: { night: string; slot: number }[] | undefined): Map<string, number> {
   const counts = new Map<string, number>();
@@ -82,11 +84,26 @@ export function Calendar() {
   const offers = useRoster().pendingOffers;
   const counts = useMemo(() => offerCounts(offers.data), [offers.data]);
 
+  // Admins can view the original roster (before swaps), with the shifts that changed marked.
+  const me = useMe();
+  const canPlan = me.profile.is_admin && (shifts.data ?? []).some((s) => 'planned_assignee' in s);
+  const [planView, setPlanView] = useState(() => sessionStorage.getItem(PLAN_VIEW_KEY) === 'on');
+  const showPlan = canPlan && planView;
+  const shown = useMemo(() => (showPlan ? (shifts.data ?? []).map(asPlanned) : shifts.data ?? []), [shifts.data, showPlan]);
+  const changedInMonth = useMemo(
+    () => (showPlan ? shown.filter((s) => monthKey(s.night) === month && differsFromPlan(s)).length : 0),
+    [shown, showPlan, month],
+  );
+  function choosePlanView(on: boolean) {
+    setPlanView(on);
+    sessionStorage.setItem(PLAN_VIEW_KEY, on ? 'on' : 'off');
+  }
+
   const byNight = useMemo(() => {
     const map = new Map<string, NightShifts>();
-    for (const s of shifts.data ?? []) map.set(s.night, { ...map.get(s.night), [s.slot]: s });
+    for (const s of shown) map.set(s.night, { ...map.get(s.night), [s.slot]: s });
     return map;
-  }, [shifts.data]);
+  }, [shown]);
 
   function changeView(next: View) {
     setView(next);
@@ -141,6 +158,16 @@ export function Calendar() {
         >
           תאריך עברי
         </button>
+        {canPlan && (
+          <div className="segmented" role="group" aria-label="איזה לוח">
+            <button className={!showPlan ? 'selected' : undefined} onClick={() => choosePlanView(false)}>
+              בפועל
+            </button>
+            <button className={showPlan ? 'selected' : undefined} onClick={() => choosePlanView(true)}>
+              מקורי
+            </button>
+          </div>
+        )}
         {month !== monthKey(today) && (
           <button className="link" onClick={() => goToMonth(monthKey(today))}>
             היום
@@ -148,6 +175,15 @@ export function Calendar() {
         )}
       </div>
       <RosterShare month={month} shifts={shifts.data} />
+
+      {showPlan && (
+        <p className="plan-banner small" role="status">
+          מוצג <strong>הלוח המקורי</strong>, לפני חילופים ולקיחות.{' '}
+          {changedInMonth > 0
+            ? `${changedInMonth} משמרות החודש השתנו מאז, ומסומנות במסגרת מקווקוות.`
+            : 'החודש אין משמרות שהשתנו.'}
+        </p>
+      )}
 
       {view === 'list' && (
         <div className="filters">
@@ -264,7 +300,7 @@ function MonthGrid({ month, from, to, today, selected, byNight, onSelect }: Grid
                 <button
                   key={slot}
                   className={chipClasses}
-                  title={name}
+                  title={differsFromPlan(shift) ? `${name} · בפועל: ${shift.actual ?? 'פנוי'}` : name}
                   aria-label={`${SLOT_HOURS[slot]} ${name}${shift.swap_requested ? ', בקשת חילוף' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();

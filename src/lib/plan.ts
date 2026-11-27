@@ -79,3 +79,13 @@ export function reconstructPlan(shifts: Shift[], history: AuditEntry[]): PlanRow
 
   return shifts.map((s) => ({ night: s.night, slot: s.slot, name: state.get(key(s.night, s.slot)) ?? null }));
 }
+
+/** The shift as the original roster shows it: the planned name, and who does it now in `actual`. */
+export function asPlanned(s: Shift): Shift {
+  return { ...s, assignee: s.planned_assignee ?? null, actual: s.assignee, swap_requested: false };
+}
+
+/** In the original view: whether someone else does the shift now. */
+export function differsFromPlan(s: Shift): boolean {
+  return s.actual !== undefined && (s.actual ?? null) !== (s.assignee ?? null);
+}
