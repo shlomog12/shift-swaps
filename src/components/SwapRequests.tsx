@@ -4,6 +4,7 @@ import { addDays, formatDate, formatDateTime, hasStarted, israelToday, nightLabe
 import { useAction, useMe, useRoster } from '../lib/hooks';
 import { appLink, shiftLink, whatsappUrl } from '../lib/share';
 import type { OfferStatus, Shift, ShiftKey, SwapRequest } from '../lib/types';
+import { useIsRegistered } from '../lib/registered';
 import { useFeedback } from './Feedback';
 import { NoteLine } from './NoteLine';
 import { WhatsAppIcon } from './WhatsAppIcon';
@@ -61,21 +62,26 @@ export function swapWantedText(shift: Shift, mine: boolean): string {
 }
 
 /** Message to the owner about a direct request; the link opens the shift with accept and decline. */
-export function requestSentText(r: SwapRequest): string {
+export function requestSentText(r: SwapRequest, registered = true): string {
   const offer =
     r.give_night && r.give_slot
       ? `להחליף איתך: לקחת את המשמרת שלך ב־${shiftText(r.night, r.slot)}, ` +
         `ובתמורה לתת לך את המשמרת שלי ב־${shiftText(r.give_night, r.give_slot)}`
       : `לקחת ממך את המשמרת ב־${shiftText(r.night, r.slot)}, בלי משמרת בתמורה`;
   const note = r.note?.trim() ? `\n${r.note.trim()}` : '';
-  return `היי ${r.owner}, שלחתי לך הצעה באפליקציית המשמרות ${offer}.${note}\nאפשר לאשר כאן:\n${shiftLink(r.night, r.slot)}`;
+  const join = registered ? '' : `\n${JOIN_LINE.trim()}`;
+  return `היי ${r.owner}, שלחתי לך הצעה באפליקציית המשמרות ${offer}.${note}${join}\nאפשר לאשר כאן:\n${shiftLink(r.night, r.slot)}`;
 }
 
 /** To the owner after volunteering; the link opens the shift with the approve button. */
-export function volunteeredText(shift: Shift, note?: string | null): string {
+/** Added to a message for someone who has not joined the app yet, so they know how to approve. */
+const JOIN_LINE = 'כדי לאשר צריך להיכנס לאפליקציה עם חשבון גוגל ולבחור את השם שלך ברשימה.\n';
+
+export function volunteeredText(shift: Shift, note?: string | null, registered = true): string {
   return (
     `היי ${shift.assignee}, התנדבתי באפליקציית המשמרות לקחת את המשמרת שלך ב־${shiftText(shift.night, shift.slot)}.\n` +
     (note?.trim() ? `${note.trim()}\n` : '') +
+    (registered ? '' : JOIN_LINE) +
     `אפשר לאשר כאן:\n${shiftLink(shift.night, shift.slot)}`
   );
 }
@@ -139,6 +145,7 @@ export function RequestForm({
   const [note, setNote] = useState('');
   const { busy, error, run } = useAction();
   const { toast, shareOffer } = useFeedback();
+  const registered = useIsRegistered(owner);
   const mine = (shifts.data ?? []).filter((s) => me.isMine(s.assignee) && !hasStarted(s.night, s.slot));
   const nearEnd = addDays(israelToday(), NEAR_DAYS);
   const visible = showAll ? mine : mine.filter((s) => s.night <= nearEnd);
@@ -152,7 +159,10 @@ export function RequestForm({
       () => {
         toast(`ההצעה נשלחה ל${owner}`);
         shareOffer({
-          message: `נשלח מייל ל${owner}. אפשר גם לשלוח הודעה בוואטסאפ עם קישור לאישור`,
+          message:
+            registered === false
+              ? `${owner} עוד לא באפליקציה, ולכן כרגע רק מנהל יכול לאשר. אפשר לשלוח הודעה עם הזמנה להצטרף`
+              : `אפשר לשלוח ל${owner} הודעה בוואטסאפ עם קישור לאישור`,
           text: requestSentText({
             id: 0,
             night: target.night,
@@ -166,7 +176,7 @@ export function RequestForm({
             status: 'pending',
             created_at: '',
             decided_at: null,
-          }),
+          }, registered !== false),
           label: `הודעה ל${owner}`,
         });
         onDone();
@@ -178,7 +188,8 @@ export function RequestForm({
     <section className="request-form">
       <h3>הצעת החלפה ל{owner}</h3>
       <p className="muted small">
-        ההצעה תישלח במייל ל{owner}, ואפשר יהיה לאשר או לדחות.{' '}
+        ההחלטה אם לאשר היא של {owner}.{' '}
+        {registered === false && <strong>{owner} עוד לא באפליקציה, ולכן כרגע רק מנהל יכול לאשר. </strong>}
         {allowNothing ? 'מה בתמורה?' : 'איזו משמרת שלך בתמורה?'}
       </p>
       {shifts.loading && !shifts.data && <SkeletonList rows={2} />}

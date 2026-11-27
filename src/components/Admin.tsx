@@ -336,7 +336,7 @@ function useUserActions() {
         toast('המשתמש אושר');
         const name = u.google_name ?? '';
         shareOffer({
-          message: 'נשלח מייל על האישור. אפשר גם להודיע בוואטסאפ',
+          message: 'אפשר להודיע על האישור בוואטסאפ',
           text:
             `היי${name ? ` ${name}` : ''}, אישרתי אותך באפליקציית המשמרות. ` +
             `אפשר להיכנס ולבחור את השם שלך ברשימה:\n${appLink()}`,

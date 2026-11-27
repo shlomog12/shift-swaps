@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../lib/focusTrap';
+import { useIsRegistered } from '../lib/registered';
 import { api } from '../lib/api';
 import { SLOT_NAME, formatDate, formatDateTime, hasStarted, nightLabel, slotTime } from '../lib/dates';
 import { useAction, useMe, useQuery } from '../lib/hooks';
@@ -42,6 +43,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const [asking, setAsking] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   useFocusTrap(sheetRef);
+  const ownerRegistered = useIsRegistered(shift.data?.assignee);
   const { busy, error, run } = useAction();
   const { confirm, ask, toast, shareOffer } = useFeedback();
 
@@ -151,6 +153,11 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
               {started && <span className="tag">עברה</span>}
             </div>
             {s.swap_requested && s.swap_note && <NoteLine note={s.swap_note} />}
+            {!mine && s.assignee && !started && ownerRegistered === false && (
+              <p className="muted small">
+                {s.assignee} עוד לא באפליקציה, ולכן התנדבויות והצעות למשמרת הזאת יאושרו כרגע רק על ידי מנהל.
+              </p>
+            )}
 
             <div className="actions">
               {!started && !s.assignee && (
@@ -210,18 +217,27 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                         message: (
                           <>
                             <p>{when}</p>
-                            <p className="muted">המשמרת תעבור אליך רק אחרי אישור של {s.assignee}. תישלח הודעה במייל.</p>
+                            <p className="muted">המשמרת תעבור אליך רק אחרי אישור של {s.assignee}.</p>
+                            {ownerRegistered === false && (
+                              <p className="warning-note small">
+                                {s.assignee} עוד לא באפליקציה, ולכן כרגע רק מנהל יכול לאשר. אחרי ההתנדבות אפשר לשלוח
+                                הודעה עם הזמנה להצטרף.
+                              </p>
+                            )}
                           </>
                         ),
                         confirmLabel: 'התנדבות',
                       },
                       (note) => api.offerSwap(night, slot, note),
-                      'ההתנדבות נשלחה. תישלח הודעה במייל כשתתקבל החלטה',
+                      'ההתנדבות נשלחה',
                       true,
                       (note) =>
                         shareOffer({
-                          message: `נשלח מייל ל${s.assignee}. אפשר גם לשלוח הודעה בוואטסאפ עם קישור לאישור`,
-                          text: volunteeredText(s, note),
+                          message:
+                            ownerRegistered === false
+                              ? `${s.assignee} עוד לא באפליקציה, ולכן כרגע רק מנהל יכול לאשר. אפשר לשלוח הודעה עם הזמנה להצטרף`
+                              : `אפשר לשלוח ל${s.assignee} הודעה בוואטסאפ עם קישור לאישור`,
+                          text: volunteeredText(s, note, ownerRegistered !== false),
                           label: `הודעה ל${s.assignee}`,
                         }),
                     )
@@ -264,7 +280,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                     confirmThen(
                       {
                         title: 'לבטל את בקשת החילוף?',
-                        message: pending.length > 0 ? 'ההתנדבויות שהתקבלו יבוטלו, ותישלח על כך הודעה במייל.' : undefined,
+                        message: pending.length > 0 ? 'ההתנדבויות שהתקבלו יבוטלו.' : undefined,
                         confirmLabel: 'ביטול הבקשה',
                         cancelLabel: 'השארת הבקשה',
                         danger: true,
@@ -293,7 +309,10 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                 <WhatsAppButton text={swapWantedText(s, mine)} label="שיתוף הבקשה בוואטסאפ" />
               )}
               {myOffer && !started && (
-                <WhatsAppButton text={volunteeredText(s, myOffer.note)} label={`הודעה ל${s.assignee} על ההתנדבות`} />
+                <WhatsAppButton
+                  text={volunteeredText(s, myOffer.note, ownerRegistered !== false)}
+                  label={`הודעה ל${s.assignee} על ההתנדבות`}
+                />
               )}
             </div>
 
@@ -325,7 +344,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                   >
                     ביטול ההצעה
                   </button>
-                  <WhatsAppButton text={requestSentText(myRequest)} label={`הודעה ל${s.assignee}`} />
+                  <WhatsAppButton text={requestSentText(myRequest, ownerRegistered !== false)} label={`הודעה ל${s.assignee}`} />
                 </div>
               </section>
             )}
