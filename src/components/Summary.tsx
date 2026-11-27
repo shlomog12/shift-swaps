@@ -72,7 +72,9 @@ export function NextShiftCard() {
     return (
       <section className="card next-shift empty-next">
         <span className="muted">אין לך משמרות קרובות.</span>
-        {openCount > 0 && <span className="small"> יש {openCount} משמרות פנויות בלשונית החילופים.</span>}
+        {openCount > 0 && <span className="small">
+            {openCount === 1 ? ' יש משמרת פנויה אחת' : ` יש ${openCount} משמרות פנויות`} בלשונית החילופים.
+          </span>}
       </section>
     );
   }

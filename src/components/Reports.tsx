@@ -101,7 +101,8 @@ export function ReportsPanel() {
         <>
           <p className="small muted">
             ממוצע: <strong className="report-strong">{report.average.toFixed(1)}</strong> משמרות לאדם (הקו המקווקו).
-            {report.open > 0 && ` ${report.open} משמרות בחודש עדיין פנויות.`} כולל את כל מי שבחר שם באפליקציה, גם
+            {report.open === 1 && ' משמרת אחת בחודש עדיין פנויה.'}
+            {report.open > 1 && ` ${report.open} משמרות בחודש עדיין פנויות.`} כולל את כל מי שבחר שם באפליקציה, גם
             בלי משמרות החודש.
           </p>
           <ul className="report" aria-label={`משמרות לכל אחד ב${monthTitle(month)}`}>
@@ -110,7 +111,7 @@ export function ReportsPanel() {
                 r.total >= report.average + spread ? 'הרבה' : r.total <= report.average - spread ? 'מעט' : null;
               const mine = me.isMine(r.name);
               return (
-                <li key={r.name} title={`${r.name}: ${r.total} משמרות (ראשונה ${r.first}, שנייה ${r.second})`}>
+                <li key={r.name} title={`${r.name}: ${r.total === 1 ? 'משמרת אחת' : `${r.total} משמרות`} (ראשונה ${r.first}, שנייה ${r.second})`}>
                   <span className={mine ? 'report-name mine' : 'report-name'}>
                     {r.name}
                     <span className="report-split muted">

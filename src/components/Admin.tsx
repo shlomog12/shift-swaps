@@ -117,7 +117,7 @@ function ImportPanel() {
     });
     if (!ok) return;
     run(
-      () => api.adminImport(changed).then((count) => toast(`הייבוא הסתיים: ${count} משמרות עודכנו`)),
+      () => api.adminImport(changed).then((count) => toast(count === 1 ? 'הייבוא הסתיים: משמרת אחת עודכנה' : `הייבוא הסתיים: ${count} משמרות עודכנו`)),
       () => {
         setPreview(null);
         setText('');
@@ -226,7 +226,7 @@ function NightsPanel() {
           className="primary"
           disabled={busy || !from || !to}
           onClick={() =>
-            run(() => api.adminAddNights(from, to).then((n) => toast(`נוצרו ${n} משמרות חדשות`)))
+            run(() => api.adminAddNights(from, to).then((n) => toast(n === 1 ? 'נוצרה משמרת חדשה אחת' : `נוצרו ${n} משמרות חדשות`)))
           }
         >
           יצירת לילות ריקים
@@ -242,7 +242,7 @@ function NightsPanel() {
               danger: true,
               requireText: 'מחק',
             });
-            if (ok) run(() => api.adminDeleteNights(from, to).then((n) => toast(`נמחקו ${n} משמרות`)));
+            if (ok) run(() => api.adminDeleteNights(from, to).then((n) => toast(n === 1 ? 'נמחקה משמרת אחת' : `נמחקו ${n} משמרות`)));
           }}
         >
           מחיקת לילות בטווח

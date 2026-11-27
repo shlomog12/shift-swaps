@@ -211,7 +211,7 @@ export function RequestForm({
         })}
         {hidden > 0 && (
           <button type="button" className="link small" onClick={() => setShowAll(true)}>
-            הצגת עוד {hidden} משמרות שלי
+            {hidden === 1 ? 'הצגת עוד משמרת אחת שלי' : `הצגת עוד ${hidden} משמרות שלי`}
           </button>
         )}
         {mine.length === 0 && !allowNothing && <p className="muted small">אין לך משמרות קרובות להציע בתמורה.</p>}

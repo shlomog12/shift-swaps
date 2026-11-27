@@ -137,7 +137,11 @@ export function ContinuationPanel() {
             {formatDateRange(rows[0].night, rows[rows.length - 1].night, true)}. הלוח נשמר גם כשיבוץ וגם כלוח המקורי.
           </p>
           {replacing > 0 && <p>{replacing} לילות כבר קיימים ויוחלפו, ובקשות חילוף עליהם יבוטלו.</p>}
-          {unfilled > 0 && <p className="warning-note">{unfilled} משמרות של מי שעזב עדיין פנויות.</p>}
+          {unfilled > 0 && (
+            <p className="warning-note">
+              {unfilled === 1 ? 'משמרת אחת של מי שעזב עדיין פנויה.' : `${unfilled} משמרות של מי שעזב עדיין פנויות.`}
+            </p>
+          )}
           {doubled.length > 0 && (
             <p className="warning-note">
               ב־{doubled.length} לילות אותו אדם רשום לשתי המשמרות ({doubled.map((r) => formatDate(r.night)).join(', ')}).

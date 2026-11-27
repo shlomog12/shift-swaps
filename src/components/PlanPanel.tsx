@@ -57,7 +57,7 @@ export function PlanPanel() {
   async function save() {
     if (!changes || changes.length === 0) return;
     const ok = await confirm({
-      title: `להחליף את הלוח המקורי ב־${changes.length} משמרות?`,
+      title: changes.length === 1 ? 'להחליף את הלוח המקורי במשמרת אחת?' : `להחליף את הלוח המקורי ב־${changes.length} משמרות?`,
       message: (
         <>
           <p>
@@ -116,7 +116,7 @@ export function PlanPanel() {
       {changes && changes.length > 0 && (
         <>
           <p className="small">
-            <strong>{changes.length}</strong> משמרות יתעדכנו בלוח המקורי: יימחקו ממנו כל החילופים ולקיחות המשמרות מאז
+            <strong>{changes.length === 1 ? 'משמרת אחת תתעדכן' : `${changes.length} משמרות יתעדכנו`}</strong> בלוח המקורי: יימחקו ממנו כל החילופים ולקיחות המשמרות מאז
             הייבוא. שינויים של מנהל שנשמרו "גם בלוח המקורי" נשארים. שום דבר לא נשמר לפני האישור.
           </p>
           <div className="table-wrap">

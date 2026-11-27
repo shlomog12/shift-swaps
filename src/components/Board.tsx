@@ -122,7 +122,7 @@ export function Board() {
       <ByWeek shifts={openVisible} render={(s) => <ShiftListItem key={`${s.night}/${s.slot}`} shift={s} />} />
       {openHidden > 0 && (
         <button className="link center" onClick={() => setShowAllOpen(true)}>
-          הצגת עוד {openHidden} משמרות פנויות
+          {openHidden === 1 ? 'הצגת עוד משמרת פנויה אחת' : `הצגת עוד ${openHidden} משמרות פנויות`}
         </button>
       )}
     </div>
