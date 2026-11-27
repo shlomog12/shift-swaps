@@ -59,6 +59,19 @@ export function MyPhoneSection() {
   const me = useMe();
   const mine = useQuery(api.myPhone, []);
 
+  // While an admin acts for someone, this is that person's number: say so, since saving changes it for them.
+  if (me.actingFor) {
+    return (
+      <section className="profile-section">
+        <h3>מספר הטלפון של {me.actingFor}</h3>
+        <p className="warning-note small">
+          שמירה כאן משנה את המספר של {me.actingFor}, לא את שלך. {WHO_SEES.replace('איתך', `עם ${me.actingFor}`)}
+        </p>
+        <PhoneForm current={mine.data ?? null} />
+      </section>
+    );
+  }
+
   return (
     <section className="profile-section">
       <h3>מספר הטלפון שלי</h3>

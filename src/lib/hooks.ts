@@ -93,6 +93,8 @@ export interface Me {
   openShift: (night: string, slot: Slot) => void;
   /** Set while an admin views a roster name nobody has claimed yet: everything is shown, nothing can be done. */
   readOnly: string | null;
+  /** The roster name an admin is acting as or viewing; null for the signed-in user's own view. */
+  actingFor: string | null;
 }
 
 export const MeContext = createContext<Me | null>(null);
@@ -147,7 +149,7 @@ export function useAction() {
     async (action: () => Promise<unknown>, onDone?: () => void) => {
       // There is no user to act for: any call would run as the admin, so block them all.
       if (readOnly) {
-        setError(`${readOnly} עוד לא באפליקציה, אז אפשר רק לצפות. כדי לשבץ אותו צריך לצאת ולערוך כמנהל.`);
+        setError(`${readOnly} עוד לא באפליקציה, אז אפשר רק לצפות. כדי לשבץ את השם הזה צריך לצאת ולערוך כמנהל.`);
         return;
       }
       setBusy(true);

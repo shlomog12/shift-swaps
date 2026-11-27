@@ -129,7 +129,32 @@ export interface SwapPayment {
 export const DEFAULT_SWAP_PRICE = 250;
 export const MAX_SWAP_PRICE = 500;
 
-/** Open until either side marks it settled, or an admin cancels it. */
+export const MIN_SWAP_PRICE = 10;
+/** Quick picks next to the amount field. */
+export const PRICE_PRESETS = [100, 200, 250, 300];
+
+/** A payment marked paid and not answered by the payee for this long counts as settled. */
+export const PAYMENT_CONFIRM_DAYS = 7;
+
+/**
+ * Where a payment stands: waiting to be paid, marked paid and waiting for the payee to confirm, or done
+ * (received, cancelled, or marked paid and not answered for PAYMENT_CONFIRM_DAYS).
+ */
+export type PaymentStage = 'unpaid' | 'awaiting' | 'done';
+
+export function paymentStage(p: SwapPayment, now = Date.now()): PaymentStage {
+  if (p.cancelled_at || p.received_at) return 'done';
+  if (!p.paid_at) return 'unpaid';
+  return now - Date.parse(p.paid_at) > PAYMENT_CONFIRM_DAYS * 86_400_000 ? 'done' : 'awaiting';
+}
+
+/** Not settled yet: waiting to be paid, or paid and waiting for the payee. */
 export function paymentOpen(p: SwapPayment): boolean {
-  return !p.paid_at && !p.received_at && !p.cancelled_at;
+  return paymentStage(p) !== 'done';
+}
+
+/** Whether the payment waits for me: I owe it and have not paid, or I am owed it and it was marked paid. */
+export function paymentNeedsMe(p: SwapPayment, iPay: boolean): boolean {
+  const stage = paymentStage(p);
+  return iPay ? stage === 'unpaid' : stage === 'awaiting';
 }

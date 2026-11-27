@@ -97,6 +97,21 @@ Requested after the review:
 53. History privacy: users see only entries about them (they did it, it was done for them, or their name is
     in it); only admins see the whole history. Enforced by the database, not just hidden in the app.
 
+Second review (after the paid swaps, notifications, phones and act-as work):
+
+57. Acting as a user: the profile says whose it is; the calendar link and phone notifications (which belong to
+    the admin's own account and device) are hidden, so "new link" can no longer break that user's calendar;
+    the phone section is titled "<name>'s phone" and warns that saving changes their number.
+58. Acting as a user: when the app opens still acting for someone (kept on the server for up to 12 hours), a
+    dialog asks whether to go on or leave; the bar says it ends after 12 hours; a toast on leaving.
+59. Payments in three stages: waiting to be paid → marked paid, waiting for the payee → received. The payee
+    gets "received" / "not received" (back to waiting, the payer is notified); a payment marked paid and not
+    answered for 7 days closes by itself. The badge counts only payments waiting for me.
+60. Amount field: quick picks (₪100/200/250/300), ₪10–₪500 in whole shekels, an error and a disabled button
+    when it is empty or out of range (it used to send ₪250 silently).
+61. Gender-neutral wording in the act-as picker, the view-only error, act-as toasts and the bar, and the
+    payment notices (no "סימן/ה").
+
 ## Setup still to do (owner)
 
 Done in code, waiting for steps in Supabase. Order matters: database first, then the function.
@@ -155,9 +170,30 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 - [x] (applied) **Phones for everyone**: SQL Editor → run all of `supabase/migrations/20261211000000_member_phones.sql`.
       Until then only admins can save a phone, and WhatsApp messages open the chat picker as before.
 
+- [ ] **Payment confirmation (task 59)**: SQL Editor → run all of
+      `supabase/migrations/20261212000000_payment_confirmation.sql`. Until then "לא קיבלתי" shows an error,
+      and the admin's open payments list drops a payment as soon as it is marked paid.
+
 ## Next, in recommended order
 
-Nothing left before the last group.
+62. Admin assignment (shift sheet) and the next-roster table / replace / join inputs pick names from the roster
+    (the existing picker), with a "name not on the roster, create it?" warning instead of free text.
+63. One term everywhere: "הלוח המקורי" vs "בפועל" (today also "הרשימה המקורית", "לפי המקור", "מקורי").
+64. Next roster: keep the draft (localStorage) across tabs and reloads; filter the table to open / leaver /
+    changed cells; "next open cell"; show the average next to each joiner.
+65. "בניית לוח" order: next roster first, then nights, and "restore from history" under a folded "advanced".
+66. Top bar: move the admin/user mode switch and "act as" into the profile sheet (or one admin menu); rename the
+    eye to "פעולה בשם…".
+67. Calendar toolbar: Hebrew dates only in the profile; "original" behind a small "⋯" menu.
+68. Shift sheet, admin edit: show "במקור: X" when the current assignee differs from the original roster.
+69. Notifications: say the reminder time; a toast when the reminder switch changes.
+70. Ask for notification permission in context (after the first volunteering or offer), not only in the profile.
+71. In-app notification inbox (bell) from `push_outbox`, for people who did not turn on notifications.
+72. Open payments in the admin tab badge; admins can mark a payment paid/received for the two sides.
+73. "Undo" in the toast after admin assignment, clearing and acting-for actions (about 10 seconds).
+74. Reports: payments balance (paid / received per person per month) and a swaps balance (given / taken).
+75. Export: one line on "original" vs "actual", and "this month" / "next month" shortcuts.
+76. Phone suggestion only in "mine", or after the first action where a phone helps (volunteering, payment).
 
 
 ## Closed without building

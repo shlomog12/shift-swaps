@@ -7,7 +7,7 @@ import type { OfferStatus, Shift, ShiftKey, SwapRequest } from '../lib/types';
 import { useIsRegistered } from '../lib/registered';
 import { useFeedback } from './Feedback';
 import { NoteLine } from './NoteLine';
-import { PriceField } from './PaidSwap';
+import { PriceField, priceInvalid } from './PaidSwap';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { SkeletonList } from './Skeleton';
 
@@ -165,8 +165,11 @@ export function RequestForm({
   const visible = showAll ? mine : mine.filter((s) => s.night <= nearEnd);
   const hidden = mine.length - visible.length;
 
+  // A payment only goes with "nothing in return"; while its amount is empty or out of range, nothing is sent.
+  const badPrice = paidAvailable && choice === NOTHING && priceInvalid(price);
+
   function send() {
-    if (!choice) return;
+    if (!choice || badPrice) return;
     const give = choice === NOTHING ? null : mine.find((s) => `${s.night}/${s.slot}` === choice) ?? null;
     run(
       () =>
@@ -250,7 +253,7 @@ export function RequestForm({
         onChange={(e) => setNote(e.target.value)}
       />
       <div className="row">
-        <button className="primary" disabled={busy || !choice} onClick={send}>
+        <button className="primary" disabled={busy || !choice || badPrice} onClick={send}>
           שליחת ההצעה
         </button>
         <button disabled={busy} onClick={onDone}>

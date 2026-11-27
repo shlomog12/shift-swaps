@@ -519,9 +519,35 @@ select test.as_user('00000000-0000-0000-0000-00000000000b');
 select public.accept_swap_request(:paid_req);
 select test.eq((select amount from public.my_payments() where source = 'request'), 120, 'direct offer records the payment');
 select test.eq((select payee from public.my_payments() where source = 'request'), :'c_name', 'the taker is paid');
+select id as req_pay_id from public.my_payments() where source = 'request' \gset
+
+-- "Paid" waits for the payee: "not received" sends it back, "received" closes it.
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error(format('select public.payment_not_received(%s)', :req_pay_id), 'payment_not_marked_paid');
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.mark_payment_paid(:req_pay_id);
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.payment_not_received(:req_pay_id);
+select test.eq((select paid_at from public.my_payments() where id = :req_pay_id), null::timestamptz,
+               'not received: back to waiting');
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.eq((select count(*) from public.admin_open_payments() where id = :req_pay_id), 1::bigint,
+               'admins still see it open');
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.mark_payment_paid(:req_pay_id);
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.eq((select count(*) from public.admin_open_payments() where id = :req_pay_id), 1::bigint,
+               'paid but not confirmed is still open');
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.mark_payment_received(:req_pay_id);
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.eq((select count(*) from public.admin_open_payments() where id = :req_pay_id), 0::bigint,
+               'received closes it');
 reset role;
 select test.eq((select count(*) from public.email_outbox where subject like 'תשלום של ₪%'), 2::bigint,
                'payers are told what to pay');
+select test.eq((select count(*) from public.email_outbox where subject like '%עוד לא הגיע'), 1::bigint,
+               'the payer hears the money did not arrive');
 
 -- Phone notifications: devices subscribe, notices are queued for subscribed users, reminders the evening
 -- before a shift.

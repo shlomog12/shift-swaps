@@ -2,12 +2,25 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api } from '../lib/api';
 import { SLOT_HOURS, formatDate, formatDateTime } from '../lib/dates';
 import { useFocusTrap } from '../lib/focusTrap';
-import { useAction, useMe, useQuery, useRoster } from '../lib/hooks';
-import { DEFAULT_SWAP_PRICE, MAX_SWAP_PRICE, paymentOpen, type SwapPayment } from '../lib/types';
+import { useAction, useMe, useQuery, useRoster, type Me } from '../lib/hooks';
+import {
+  DEFAULT_SWAP_PRICE,
+  MAX_SWAP_PRICE,
+  MIN_SWAP_PRICE,
+  PAYMENT_CONFIRM_DAYS,
+  PRICE_PRESETS,
+  paymentNeedsMe,
+  paymentStage,
+  type SwapPayment,
+} from '../lib/types';
 import { useFeedback } from './Feedback';
 import { WhatsAppButton } from './SwapRequests';
 
-/** "Offer a payment" checkbox with the amount (default ₪250, up to ₪500). Calls back with null when off. */
+/**
+ * "Offer a payment" checkbox with the amount (default ₪250, ₪10 to ₪500) and quick picks. Calls back with
+ * null when off, and with NaN while the amount is empty or out of range (see priceInvalid), so the form can
+ * block sending instead of silently sending another amount.
+ */
 export function PriceField({
   label,
   value,
@@ -19,42 +32,74 @@ export function PriceField({
 }) {
   const [amount, setAmount] = useState(String(value ?? DEFAULT_SWAP_PRICE));
   const on = value !== null;
+  const invalid = priceInvalid(value);
+
+  function set(text: string) {
+    setAmount(text);
+    onChange(parsePrice(text));
+  }
+
   return (
     <div className="price-field">
       <label className="toggle-row">
         <input
           type="checkbox"
           checked={on}
-          onChange={(e) => onChange(e.target.checked ? clampPrice(amount) : null)}
+          onChange={(e) => onChange(e.target.checked ? parsePrice(amount) : null)}
         />
         <span>{label}</span>
       </label>
       {on && (
-        <label className="price-input">
-          <span>₪</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={MAX_SWAP_PRICE}
-            step={10}
-            value={amount}
-            aria-label="סכום בשקלים"
-            onChange={(e) => {
-              setAmount(e.target.value);
-              onChange(clampPrice(e.target.value));
-            }}
-          />
-          <span className="muted small">עד ₪{MAX_SWAP_PRICE}</span>
-        </label>
+        <>
+          <div className="price-presets" role="group" aria-label="סכומים מהירים">
+            {PRICE_PRESETS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={value === n ? 'chip selected' : 'chip'}
+                aria-pressed={value === n}
+                onClick={() => set(String(n))}
+              >
+                ₪{n}
+              </button>
+            ))}
+          </div>
+          <label className="price-input">
+            <span>₪</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={MIN_SWAP_PRICE}
+              max={MAX_SWAP_PRICE}
+              step={10}
+              value={amount}
+              aria-label="סכום בשקלים"
+              aria-invalid={invalid}
+              onChange={(e) => set(e.target.value)}
+            />
+            <span className="muted small">
+              ₪{MIN_SWAP_PRICE} עד ₪{MAX_SWAP_PRICE}
+            </span>
+          </label>
+          {invalid && (
+            <p className="error small" role="alert">
+              {amount.trim() === '' ? 'צריך לכתוב סכום, או לבטל את הסימון.' : `הסכום צריך להיות בין ₪${MIN_SWAP_PRICE} ל־₪${MAX_SWAP_PRICE}, בשקלים שלמים.`}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function clampPrice(text: string): number {
-  const n = Math.round(Number(text));
-  return Number.isFinite(n) ? Math.min(MAX_SWAP_PRICE, Math.max(1, n)) : DEFAULT_SWAP_PRICE;
+function parsePrice(text: string): number {
+  const n = Number(text);
+  return text.trim() !== '' && Number.isInteger(n) && n >= MIN_SWAP_PRICE && n <= MAX_SWAP_PRICE ? n : NaN;
+}
+
+/** True when a payment is on but its amount cannot be sent. */
+export function priceInvalid(price: number | null): boolean {
+  return price !== null && Number.isNaN(price);
 }
 
 /** The publish-a-swap-request dialog: an optional note and, when paid swaps are available, an amount. */
@@ -103,7 +148,7 @@ export function SwapRequestDialog({
         onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
-          onSubmit(note, price);
+          if (!priceInvalid(price)) onSubmit(note, price);
         }}
       >
         <h2 id="swap-request-title">{title}</h2>
@@ -120,8 +165,8 @@ export function SwapRequestDialog({
           <button type="button" onClick={onClose}>
             ביטול
           </button>
-          <button type="submit" className="primary">
-            {price ? `פרסום הבקשה (₪${price})` : 'פרסום הבקשה'}
+          <button type="submit" className="primary" disabled={priceInvalid(price)}>
+            {price && !priceInvalid(price) ? `פרסום הבקשה (₪${price})` : 'פרסום הבקשה'}
           </button>
         </div>
       </form>
@@ -135,25 +180,38 @@ export function PriceTag({ price }: { price: number | null | undefined }) {
   return <span className="tag price-tag">₪{price}</span>;
 }
 
-/** Payments I owe or am owed, at the top of "My shifts": how to pay, and marking it settled. */
+/** Whether I am the one who pays this payment (by account, or by roster name before the payer joined). */
+export function isPayer(p: SwapPayment, me: Me): boolean {
+  return p.payer_id === me.profile.id || (!p.payer_id && me.isMine(p.payer));
+}
+
+/** How many payments wait for me: to pay, or to confirm a payment marked paid. */
+export function paymentsNeedingMe(list: SwapPayment[], me: Me): number {
+  return list.filter((p) => paymentNeedsMe(p, isPayer(p, me))).length;
+}
+
+/** Payments I owe or am owed, at the top of "My shifts": how to pay, and marking it paid / received. */
 export function PaymentsCard() {
   const me = useMe();
   const { payments } = useRoster();
   const [showDone, setShowDone] = useState(false);
   const list = payments.data ?? [];
-  const open = list.filter(paymentOpen);
-  const done = list.filter((p) => !paymentOpen(p));
+  const open = list.filter((p) => paymentStage(p) !== 'done');
+  const done = list.filter((p) => paymentStage(p) === 'done');
+  const needing = paymentsNeedingMe(list, me);
   if (list.length === 0) return null;
 
-  const iPay = (p: SwapPayment) =>
-    p.payer_id === me.profile.id || (!p.payer_id && me.isMine(p.payer));
-
   return (
-    <section className={open.length > 0 ? 'card attention-card' : 'card'}>
-      <h2>תשלומים{open.length > 0 ? ` (${open.length} פתוחים)` : ''}</h2>
+    <section className={needing > 0 ? 'card attention-card' : 'card'}>
+      <h2>
+        תשלומים
+        {needing === 1 ? ' (אחד מחכה לך)' : needing > 1 ? ` (${needing} מחכים לך)` : ''}
+      </h2>
       {open.length === 0 && <p className="muted small">אין תשלומים פתוחים.</p>}
       <ul className="payments">
-        {open.map((p) => (iPay(p) ? <PayItem key={p.id} payment={p} /> : <ReceiveItem key={p.id} payment={p} />))}
+        {open.map((p) =>
+          isPayer(p, me) ? <PayItem key={p.id} payment={p} /> : <ReceiveItem key={p.id} payment={p} />,
+        )}
       </ul>
       {done.length > 0 && (
         <details open={showDone} onToggle={(e) => setShowDone((e.target as HTMLDetailsElement).open)}>
@@ -161,10 +219,14 @@ export function PaymentsCard() {
           <ul className="payments done">
             {done.map((p) => (
               <li key={p.id} className="small">
-                {iPay(p) ? `שילמת ₪${p.amount} ל${p.payee}` : `קיבלת ₪${p.amount} מ${p.payer}`} ·{' '}
+                {isPayer(p, me) ? `שילמת ₪${p.amount} ל${p.payee}` : `קיבלת ₪${p.amount} מ${p.payer}`} ·{' '}
                 {formatDate(p.night)} {SLOT_HOURS[p.slot]} ·{' '}
                 <span className="muted">
-                  {p.cancelled_at ? 'בוטל על ידי מנהל' : p.received_at ? 'התקבל' : 'שולם'}
+                  {p.cancelled_at
+                    ? 'בוטל על ידי מנהל'
+                    : p.received_at
+                      ? 'התקבל'
+                      : `סומן ששולם, ונסגר אחרי ${PAYMENT_CONFIRM_DAYS} ימים בלי תשובה`}
                 </span>
               </li>
             ))}
@@ -179,11 +241,12 @@ function shiftLine(p: SwapPayment) {
   return `${formatDate(p.night)} · ${SLOT_HOURS[p.slot]}`;
 }
 
-/** I owe this: who, how much, how to pay, and "paid". */
+/** I owe this: who, how much, how to pay, and "paid"; once marked paid, it waits for the payee. */
 function PayItem({ payment: p }: { payment: SwapPayment }) {
   const [contact, setContact] = useState<{ phone: string | null } | null>(null);
   const { busy, error, run } = useAction();
   const { confirm, toast } = useFeedback();
+  const awaiting = paymentStage(p) === 'awaiting';
 
   // Shows the payee's phone and copies it, ready to paste in PayBox.
   async function showHow() {
@@ -204,8 +267,34 @@ function PayItem({ payment: p }: { payment: SwapPayment }) {
   }
 
   async function paid() {
-    const ok = await confirm({ title: `לסמן ששילמת ₪${p.amount} ל${p.payee}?`, confirmLabel: 'שילמתי' });
-    if (ok) run(() => api.markPaymentPaid(p.id), () => toast('סומן ששולם'));
+    const ok = await confirm({
+      title: `לסמן ששילמת ₪${p.amount} ל${p.payee}?`,
+      message: `${p.payee} יתבקשו לאשר שהכסף הגיע.`,
+      confirmLabel: 'שילמתי',
+    });
+    if (ok) run(() => api.markPaymentPaid(p.id), () => toast(`סומן ששולם. מחכים לאישור של ${p.payee}`));
+  }
+
+  if (awaiting) {
+    return (
+      <li className="payment-item">
+        <span>
+          <strong>
+            שילמת ₪{p.amount} ל{p.payee}
+          </strong>
+          <span className="muted small"> · על המשמרת ב־{shiftLine(p)}</span>
+        </span>
+        <p className="muted small">
+          מחכים לאישור של {p.payee} שהכסף הגיע. בלי תשובה, התשלום ייסגר מעצמו אחרי {PAYMENT_CONFIRM_DAYS} ימים.
+        </p>
+        <WhatsAppButton
+          className="small"
+          text={`היי ${p.payee}, העברתי לך ₪${p.amount} על המשמרת ב־${shiftLine(p)}. אפשר לאשר באפליקציה, בלשונית "שלי".`}
+          label={`הודעה ל${p.payee}`}
+          to={p.payee}
+        />
+      </li>
+    );
   }
 
   return (
@@ -248,34 +337,52 @@ function PayItem({ payment: p }: { payment: SwapPayment }) {
   );
 }
 
-/** I am owed this: "received", and a reminder to the payer. */
+/** I am owed this: a reminder while unpaid; once marked paid, "received" or "not received". */
 function ReceiveItem({ payment: p }: { payment: SwapPayment }) {
   const { busy, error, run } = useAction();
   const { confirm, toast } = useFeedback();
+  const awaiting = paymentStage(p) === 'awaiting';
 
   async function received() {
-    const ok = await confirm({ title: `לסמן שקיבלת ₪${p.amount} מ${p.payer}?`, confirmLabel: 'קיבלתי' });
-    if (ok) run(() => api.markPaymentReceived(p.id), () => toast('סומן שהתקבל'));
+    const ok = await confirm({ title: `לאשר שקיבלת ₪${p.amount} מ${p.payer}?`, confirmLabel: 'קיבלתי' });
+    if (ok) run(() => api.markPaymentReceived(p.id), () => toast('התשלום נסגר'));
+  }
+
+  async function notReceived() {
+    const ok = await confirm({
+      title: `הכסף מ${p.payer} לא הגיע?`,
+      message: `התשלום יחזור ל"ממתין לתשלום", ו${p.payer} יקבלו הודעה לבדוק את ההעברה.`,
+      confirmLabel: 'לא קיבלתי',
+      danger: true,
+    });
+    if (ok) run(() => api.paymentNotReceived(p.id), () => toast(`נשלחה הודעה ל${p.payer}`));
   }
 
   return (
-    <li className="payment-item">
+    <li className={awaiting ? 'payment-item needs-me' : 'payment-item'}>
       <span>
         <strong>
-          מגיע לך ₪{p.amount} מ{p.payer}
+          {awaiting ? `${p.payer} סימנו ששילמו לך ₪${p.amount}` : `מגיע לך ₪${p.amount} מ${p.payer}`}
         </strong>
         <span className="muted small"> · על המשמרת ב־{shiftLine(p)}</span>
       </span>
+      {awaiting && <p className="small">הכסף הגיע? כדאי לבדוק בפייבוקס ולאשר.</p>}
       <div className="row wrap">
         <button className="primary small" disabled={busy} onClick={received}>
           קיבלתי
         </button>
-        <WhatsAppButton
-          className="small"
-          text={`היי ${p.payer}, תזכורת: ₪${p.amount} על המשמרת ב־${shiftLine(p)}. הפרטים באפליקציה, בלשונית "שלי".`}
-          label={`תזכורת ל${p.payer}`}
-          to={p.payer}
-        />
+        {awaiting ? (
+          <button className="small" disabled={busy} onClick={notReceived}>
+            לא קיבלתי
+          </button>
+        ) : (
+          <WhatsAppButton
+            className="small"
+            text={`היי ${p.payer}, תזכורת: ₪${p.amount} על המשמרת ב־${shiftLine(p)}. הפרטים באפליקציה, בלשונית "שלי".`}
+            label={`תזכורת ל${p.payer}`}
+            to={p.payer}
+          />
+        )}
       </div>
       {error && <p className="error small">{error}</p>}
     </li>
@@ -313,6 +420,7 @@ export function OpenPaymentsPanel() {
               <span className="muted small">
                 {' '}
                 · {shiftLine(p)} · נרשם {formatDateTime(p.created_at)}
+                {paymentStage(p) === 'awaiting' && ` · סומן ששולם, מחכה לאישור של ${p.payee}`}
               </span>
             </span>
             <button className="small danger" disabled={busy} onClick={() => cancel(p)}>

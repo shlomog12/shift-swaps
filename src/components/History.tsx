@@ -42,6 +42,8 @@ function describe(e: AuditEntry): string {
       return `סימון "שילמתי": ${text(d.payer)} ← ${text(d.payee)}, ₪${text(d.amount, '')}`;
     case 'payment_received':
       return `סימון "קיבלתי": ${text(d.payer)} ← ${text(d.payee)}, ₪${text(d.amount, '')}`;
+    case 'payment_not_received':
+      return `סימון "לא קיבלתי": ${text(d.payer)} ← ${text(d.payee)}, ₪${text(d.amount, '')}`;
     case 'payment_cancelled':
       return `ביטול תשלום: ${text(d.payer)} ← ${text(d.payee)}, ₪${text(d.amount, '')}`;
     case 'send_swap_request':

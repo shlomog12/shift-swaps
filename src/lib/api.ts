@@ -27,6 +27,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   payment_not_found: 'התשלום לא נמצא.',
   payment_cancelled: 'התשלום בוטל.',
   not_your_payment: 'זה לא תשלום שלך.',
+  payment_not_marked_paid: 'התשלום עוד לא סומן כמשולם.',
   invalid_link: 'הקישור צריך להתחיל ב־https://',
   no_push_device: 'למכשיר הזה עוד לא הופעלו התראות.',
   invalid_subscription: 'הרישום להתראות נכשל. כדאי לנסות שוב.',
@@ -108,6 +109,7 @@ export const api = {
   adminOpenPayments: () => call<SwapPayment[]>('admin_open_payments'),
   markPaymentPaid: (id: number) => call('mark_payment_paid', { p_id: id }),
   markPaymentReceived: (id: number) => call('mark_payment_received', { p_id: id }),
+  paymentNotReceived: (id: number) => call('payment_not_received', { p_id: id }),
   adminCancelPayment: (id: number) => call('admin_cancel_payment', { p_id: id }),
   paymentContact: (id: number) =>
     call<{ name: string; phone: string | null }[]>('payment_contact', { p_id: id }).then(

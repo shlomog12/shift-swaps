@@ -2169,6 +2169,17 @@ select {
   width: 7rem;
 }
 
+.price-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.price-input input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
 .payments {
   list-style: none;
   padding: 0;

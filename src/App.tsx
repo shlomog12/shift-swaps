@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Admin } from './components/Admin';
 import { api } from './lib/api';
 import { Board } from './components/Board';
@@ -29,7 +29,8 @@ import { useOnline } from './lib/pwa';
 import { loadIncomingRequests, loadPendingOffers, loadProfile, loadUpcomingShifts } from './lib/queries';
 import { clearSharedShift, readSharedShift } from './lib/share';
 import { isConfigured, supabase } from './lib/supabase';
-import { SYSTEM_ADMIN_LABEL, type Profile, type ShiftKey, paymentOpen } from './lib/types';
+import { SYSTEM_ADMIN_LABEL, type Profile, type ShiftKey } from './lib/types';
+import { paymentsNeedingMe } from './components/PaidSwap';
 import { SkeletonPage } from './components/Skeleton';
 
 type Tab = 'calendar' | 'board' | 'mine' | 'history' | 'admin';
@@ -90,7 +91,7 @@ const ADMIN_MODE_KEY = 'admin-mode';
 
 function Shell({ profile, email }: { profile: Profile; email: string }) {
   const { refresh } = useRefresh();
-  const { toast } = useFeedback();
+  const { confirm, toast } = useFeedback();
   const [tab, setTab] = useState<Tab>('calendar');
   // A shift shared by link (e.g. on WhatsApp) opens right away.
   const [open, setOpen] = useState<ShiftKey | null>(readSharedShift);
@@ -128,6 +129,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
       isMine: (assignee) => sameName(assignee, shown.display_name),
       openShift: (night, slot) => setOpen({ night, slot }),
       readOnly,
+      actingFor: viewing,
     }),
     // `shown` is rebuilt every render; these are what it is made of.
     [profile, email, isAdmin, viewing, actingUser, readOnly],
@@ -139,13 +141,33 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
       if (user || acting.data) await api.adminActAs(user?.id ?? null);
       setViewOnly(name && !user ? name : null);
       setTab('calendar');
-      if (name) toast(user ? `פועל עכשיו בשם ${name}` : `${name} עוד לא באפליקציה: תצוגה בלבד`, 'info');
+      if (name) toast(user ? `מעכשיו הפעולות נעשות בשם ${name}` : `${name} עוד לא באפליקציה: תצוגה בלבד`, 'info');
+      else toast('יצאת מ"פעולה בשם"', 'info');
     } catch (e) {
       toast((e as Error).message, 'error');
     } finally {
       refresh();
     }
   }
+
+  // Acting as someone is kept on the server (for up to 12 hours), so it survives closing the app. When the app
+  // opens already acting for someone, ask once whether to go on, so nothing is done for them by mistake.
+  const askedResume = useRef(false);
+  const resumedName = acting.data ? actingUser?.display_name : undefined;
+  useEffect(() => {
+    if (askedResume.current || acting.loading || users.loading) return;
+    askedResume.current = true;
+    if (!resumedName) return;
+    confirm({
+      title: `עדיין פועלים בשם ${resumedName}`,
+      message: `"פעולה בשם" נשארה פעילה מהפעם הקודמת. כל פעולה תירשם כאילו ${resumedName} עשו אותה, עם השם שלך לצדה.`,
+      confirmLabel: `המשך בשם ${resumedName}`,
+      cancelLabel: 'יציאה מ"פעולה בשם"',
+    }).then((goOn) => {
+      if (!goOn) viewAs(null);
+    });
+    // Only the first load decides; later changes come from the admin's own choices.
+  }, [acting.loading, users.loading, resumedName]);
 
   function toggleAdminMode() {
     const next = !adminMode;
@@ -169,7 +191,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
     return (
       awaitingMyDecision(shifts, pendingOffers.data ?? [], me.isMine).length +
       incomingForMe(shifts, incoming.data ?? [], me.isMine).length +
-      (payments.data ?? []).filter(paymentOpen).length
+      paymentsNeedingMe(payments.data ?? [], me)
     );
   }, [upcoming.data, pendingOffers.data, incoming.data, payments.data, me]);
 
@@ -218,8 +240,8 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
               </>
             ) : (
               <>
-                פועל בשם <strong>{viewing}</strong>: כל פעולה תירשם בהיסטוריה כ&quot;
-                {profile.display_name ?? SYSTEM_ADMIN_LABEL} בשם {viewing}&quot;
+                פעולה בשם <strong>{viewing}</strong>: כל פעולה תירשם בהיסטוריה כ&quot;
+                {profile.display_name ?? SYSTEM_ADMIN_LABEL} בשם {viewing}&quot;. נגמר מעצמו אחרי 12 שעות.
               </>
             )}
           </span>

@@ -15,6 +15,7 @@ import { WhatsAppButton, inviteText } from './SwapRequests';
 /** The signed-in user's details and personal settings, opened from the name in the top bar. */
 export function ProfileSheet({ onClose }: { onClose: () => void }) {
   const me = useMe();
+  const acting = me.actingFor;
   const { confirm, toast } = useFeedback();
   const { canInstall, install } = useInstall();
   const showInstall = !isStandalone() && (canInstall || isIos());
@@ -53,11 +54,18 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
             ✕
           </button>
         </header>
-        <p className="muted small">
-          {me.profile.display_name
-            ? 'השם ברשימה נבחר פעם אחת. כדי לשנות אותו צריך לפנות למנהל.'
-            : 'חשבון אחראי מערכת: מנהל בלי שם ברשימה, שלא משובץ למשמרות.'}
-        </p>
+        {acting ? (
+          <p className="warning-note small" role="status">
+            זה הפרופיל של {acting}, כי כרגע פועלים בשם החשבון הזה. התראות לטלפון וחיבור ליומן שייכים לחשבון
+            ולמכשיר שלך, ולכן לא מוצגים כאן. כדי לשנות אותם צריך קודם לצאת מ&quot;פעולה בשם&quot;.
+          </p>
+        ) : (
+          <p className="muted small">
+            {me.profile.display_name
+              ? 'השם ברשימה נבחר פעם אחת. כדי לשנות אותו צריך לפנות למנהל.'
+              : 'חשבון אחראי מערכת: מנהל בלי שם ברשימה, שלא משובץ למשמרות.'}
+          </p>
+        )}
 
         {showInstall && (
           <section className="profile-section">
@@ -80,9 +88,11 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
           </section>
         )}
 
-        {me.profile.display_name && <CalendarFeedSection />}
-        <MyPhoneSection />
-        <PushSection />
+        {/* While acting for someone, the calendar link would be theirs (and "new link" would break their
+            subscription), and notifications belong to this device and account: both stay hidden. */}
+        {!acting && me.profile.display_name && <CalendarFeedSection />}
+        {!me.readOnly && <MyPhoneSection />}
+        {!acting && <PushSection />}
 
         <section className="profile-section">
           <h3>הגדרות</h3>

@@ -11,6 +11,7 @@ const CATEGORY: Record<string, HistoryCategory> = {
   swap: 'swaps',
   payment_paid: 'swaps',
   payment_received: 'swaps',
+  payment_not_received: 'swaps',
   payment_cancelled: 'swaps',
   decline_offer: 'swaps',
   send_swap_request: 'swaps',
