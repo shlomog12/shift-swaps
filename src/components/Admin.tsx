@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { SLOT_HOURS, addDays, formatDate, formatDateRange, formatDateTime, israelToday, nightLabel } from '../lib/dates';
-import { useAction, useMe, useQuery } from '../lib/hooks';
+import { sameName, useAction, useMe, useQuery } from '../lib/hooks';
 import { parseSheet, type ImportResult, type ImportRow } from '../lib/importSheet';
 import { loadShifts } from '../lib/queries';
 import { appLink } from '../lib/share';
 import type { AdminUser, Shift } from '../lib/types';
 import { useFocusTrap } from '../lib/focusTrap';
 import { useFeedback } from './Feedback';
+import { AdminNamePicker } from './AdminNamePicker';
 import { MoreIcon } from './Icons';
 import { OpenSoonAlert, ReportsPanel } from './Reports';
 import { SkeletonList } from './Skeleton';
@@ -464,7 +465,6 @@ function UsersPanel() {
 function UserActionsSheet({ user: u, onClose }: { user: AdminUser; onClose: () => void }) {
   const me = useMe();
   const { busy, error, run, confirm, toast, remove, block } = useUserActions();
-  const { ask } = useFeedback();
   const sheetRef = useRef<HTMLDivElement>(null);
   useFocusTrap(sheetRef);
   const self = u.id === me.profile.id;
@@ -475,26 +475,23 @@ function UserActionsSheet({ user: u, onClose }: { user: AdminUser; onClose: () =
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  async function rename() {
+  const [picking, setPicking] = useState(false);
+
+  /** After a name was picked in the list: optionally move the old name's shifts, then save. */
+  async function rename(name: string) {
+    setPicking(false);
     const current = u.display_name;
-    const name = await ask({
-      title: `שינוי השם ברשימה של ${userLabel(u)}`,
-      initial: current ?? '',
-      placeholder: 'השם החדש ברשימה',
-      confirmLabel: 'המשך',
-    });
-    if (name === null || name.trim() === (current ?? '')) return;
+    if (sameName(name, current)) return;
     const renameShifts =
       current !== null &&
-      name.trim() !== '' &&
       (await confirm({
         title: 'להעביר גם את המשמרות?',
-        message: `להעביר את כל המשמרות של "${current}" לשם "${name.trim()}"?`,
+        message: `להעביר את כל המשמרות של "${current}" לשם "${name}"? בלי העברה, המשמרות נשארות רשומות על "${current}".`,
         confirmLabel: 'כן, להעביר',
         cancelLabel: 'לא, רק את השם',
       }));
     run(() => api.adminSetUserName(u.id, name, renameShifts), () => {
-      toast('השם עודכן');
+      toast(`השם נקבע: ${name}`);
       onClose();
     });
   }
@@ -558,7 +555,7 @@ function UserActionsSheet({ user: u, onClose }: { user: AdminUser; onClose: () =
         </header>
 
         <div className="actions">
-          <button disabled={busy} onClick={rename}>
+          <button disabled={busy} onClick={() => setPicking(true)}>
             {u.display_name ? 'שינוי השם ברשימה' : 'קביעת שם ברשימה'}
           </button>
           <button disabled={busy} onClick={toggleAdmin}>
@@ -592,6 +589,14 @@ function UserActionsSheet({ user: u, onClose }: { user: AdminUser; onClose: () =
         </section>
         {error && <p className="error">{error}</p>}
       </div>
+      {picking && (
+        <AdminNamePicker
+          userLabel={userLabel(u)}
+          current={u.display_name}
+          onPick={rename}
+          onClose={() => setPicking(false)}
+        />
+      )}
     </div>
   );
 }

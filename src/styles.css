@@ -1984,3 +1984,12 @@ button.icon {
 .share-option .button {
   width: 100%;
 }
+
+.name-dialog {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.name-dialog .name-list {
+  max-height: 40vh;
+}

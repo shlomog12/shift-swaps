@@ -67,6 +67,10 @@ Requested after the review:
     the roster share button has room below it.
 46. Link previews: Open Graph tags and a 1200×630 PNG preview image, so a shared link shows a title,
     description and image in WhatsApp and similar apps.
+47. No promise of e-mails in messages; when the shift owner has not joined, the sheet, dialogs and WhatsApp
+    text say only an admin can approve for now and how to join.
+48. Admins set a user's roster name by picking it from the roster (taken names locked, the current one
+    marked, spelling-tolerant search); a new name not on the roster sits behind its own option.
 
 ## Setup still to do (owner)
 
