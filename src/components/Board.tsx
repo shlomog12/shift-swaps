@@ -14,6 +14,7 @@ import {
 import { useMe, useRoster } from '../lib/hooks';
 import type { Shift } from '../lib/types';
 import { offerCounts } from './Calendar';
+import { HebrewLine } from './HolidayTag';
 import { NoteIcon } from './Icons';
 import { WhatsAppButton, openSwapsText } from './SwapRequests';
 import { SkeletonList } from './Skeleton';
@@ -33,6 +34,7 @@ export function ShiftListItem({ shift, note }: { shift: Shift; note?: string }) 
             {formatDate(shift.night)} · {slotTime(shift.night, shift.slot)}
           </strong>
           <span className="muted small">{nightLabel(shift.night)}</span>
+          <HebrewLine night={shift.night} />
           {shift.swap_requested && shift.swap_note && (
             <span className="small list-note">
               <NoteIcon size={14} /> {shift.swap_note}

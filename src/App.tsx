@@ -3,7 +3,7 @@ import { Admin } from './components/Admin';
 import { api } from './lib/api';
 import { Board } from './components/Board';
 import { Calendar } from './components/Calendar';
-import { FeedbackProvider } from './components/Feedback';
+import { FeedbackProvider, useFeedback } from './components/Feedback';
 import { History } from './components/History';
 import { AccessPending, Login, SetupMissing } from './components/Login';
 import { MyShifts } from './components/MyShifts';
@@ -87,6 +87,7 @@ const ADMIN_MODE_KEY = 'admin-mode';
 
 function Shell({ profile, email }: { profile: Profile; email: string }) {
   const { refresh } = useRefresh();
+  const { toast } = useFeedback();
   const [tab, setTab] = useState<Tab>('calendar');
   // A shift shared by link (e.g. on WhatsApp) opens right away.
   const [open, setOpen] = useState<ShiftKey | null>(readSharedShift);
@@ -112,6 +113,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
     const next = !adminMode;
     setAdminMode(next);
     localStorage.setItem(ADMIN_MODE_KEY, next ? 'on' : 'off');
+    toast(next ? 'עברת למצב מנהל' : 'עברת למצב משתמש: כך האפליקציה נראית למשתמש רגיל', 'info');
   }
 
   const upcoming = useQuery(loadUpcomingShifts, []);
@@ -134,16 +136,17 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   return (
     <MeContext.Provider value={me}>
     <RosterContext.Provider value={roster}>
-      <header className="top-bar">
+      <header className={isAdmin ? 'top-bar admin-mode' : 'top-bar'}>
         <span className="app-title">משמרות וחילופים</span>
         <span className="user">
           {profile.is_admin && (
             <button
               className={isAdmin ? 'mode-toggle admin' : 'mode-toggle'}
               onClick={toggleAdminMode}
-              title="מעבר בין תצוגת מנהל לתצוגת משתמש רגיל"
+              aria-label={isAdmin ? 'כרגע במצב מנהל. מעבר למצב משתמש' : 'כרגע במצב משתמש. מעבר למצב מנהל'}
             >
-              {isAdmin ? 'מצב מנהל' : 'תצוגת משתמש'}
+              <SwapIcon size={15} />
+              {isAdmin ? 'מעבר למצב משתמש' : 'מעבר למצב מנהל'}
             </button>
           )}
           <button className="user-button" onClick={() => setProfileOpen(true)} aria-label="פרופיל והגדרות">

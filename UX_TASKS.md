@@ -52,6 +52,15 @@ Backlog from the UX review. Numbers match the review; done tasks are kept for re
 19. Admin: inner tabs (users with the pending badge, building nights, import); users as a list with a "⋯"
     action sheet, destructive actions set apart; search when there are many users.
 
+Requested after the review:
+
+40. Admin/user mode switch says what it does ("מעבר למצב משתמש" / "מעבר למצב מנהל"), a toast confirms the
+    mode, and admin mode shows a yellow line under the top bar.
+41. Month arrows are SVG chevrons pointing outwards (the ‹ › characters were mirrored by RTL).
+42. Optional Hebrew dates (calendar toolbar or profile): Hebrew day in each cell, Hebrew months under the
+    month title, the full Hebrew date in day details, lists and the shift sheet. Holidays, fasts and
+    memorial days are always marked (dot in the grid, tag with the name), with Israeli rules for moved days.
+
 ## Setup still to do (owner)
 
 Done in code, waiting for steps in Supabase. Order matters: database first, then the function.

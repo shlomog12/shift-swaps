@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFocusTrap } from '../lib/focusTrap';
+import { useHebrewDates } from '../lib/hebrewSetting';
 import { useMe } from '../lib/hooks';
 import { isIos, isStandalone, useInstall } from '../lib/pwa';
 import { supabase } from '../lib/supabase';
@@ -16,6 +17,7 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
   const { canInstall, install } = useInstall();
   const showInstall = !isStandalone() && (canInstall || isIos());
   const [offers, setOffers] = useState(shareOffersEnabled);
+  const [hebrew, setHebrew] = useHebrewDates();
   const sheetRef = useRef<HTMLDivElement>(null);
   useFocusTrap(sheetRef);
 
@@ -90,6 +92,13 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
             <span>
               אחרי פעולה, להציע לשלוח עדכון בוואטסאפ
               <span className="muted small"> (למשל אחרי התנדבות או אישור)</span>
+            </span>
+          </label>
+          <label className="toggle-row">
+            <input type="checkbox" checked={hebrew} onChange={(e) => setHebrew(e.target.checked)} />
+            <span>
+              הצגת תאריך עברי
+              <span className="muted small"> (ביומן, ברשימות ובחלון המשמרת. חגים מסומנים תמיד)</span>
             </span>
           </label>
         </section>

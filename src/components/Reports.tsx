@@ -9,6 +9,7 @@ import type { Shift } from '../lib/types';
 import { ShiftListItem } from './Board';
 import { SkeletonList } from './Skeleton';
 import { WhatsAppButton, shiftText } from './SwapRequests';
+import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
 
 const ALERT_DAYS = 7;
 const ALERT_SHOWN = 5;
@@ -66,11 +67,11 @@ export function ReportsPanel() {
     <section className="card">
       <div className="month-nav">
         <button className="icon" aria-label="החודש הקודם" onClick={() => setMonth(shiftMonth(month, -1))}>
-          ›
+          <ChevronRightIcon />
         </button>
         <h2>משמרות לכל אחד · {monthTitle(month)}</h2>
         <button className="icon" aria-label="החודש הבא" onClick={() => setMonth(shiftMonth(month, 1))}>
-          ‹
+          <ChevronLeftIcon />
         </button>
       </div>
       {shifts.error && <p className="error">{shifts.error}</p>}

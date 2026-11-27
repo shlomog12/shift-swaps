@@ -82,3 +82,16 @@ export const MoreIcon = ({ size = 20 }: { size?: number }) => (
     <circle cx="19" cy="12" r="1" />
   </Icon>
 );
+
+/** Points right on screen in every direction of text (unlike the ‹ › characters, which RTL mirrors). */
+export const ChevronRightIcon = ({ size = 24 }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M9 5l7 7-7 7" />
+  </Icon>
+);
+
+export const ChevronLeftIcon = ({ size = 24 }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M15 5l-7 7 7 7" />
+  </Icon>
+);

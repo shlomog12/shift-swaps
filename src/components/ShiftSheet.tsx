@@ -9,6 +9,7 @@ import { googleCalendarUrl } from '../lib/calendar';
 import { appLink } from '../lib/share';
 import { useFeedback, type AskOptions, type ConfirmOptions } from './Feedback';
 import { CalendarIcon } from './Icons';
+import { HebrewLine } from './HolidayTag';
 import { NoteLine } from './NoteLine';
 import { SkeletonList } from './Skeleton';
 import {
@@ -130,6 +131,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
             <p className="muted">
               {nightLabel(night)} · {slotTime(night, slot)}
             </p>
+            <HebrewLine night={night} />
           </div>
           <button className="icon" aria-label="סגירה" onClick={onClose}>
             ✕

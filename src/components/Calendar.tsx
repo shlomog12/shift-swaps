@@ -8,6 +8,7 @@ import {
   formatShortDate,
   hasStarted,
   israelToday,
+  monthBounds,
   monthGridBounds,
   monthKey,
   monthTitle,
@@ -24,6 +25,10 @@ import { swipeMonthStep } from '../lib/swipe';
 import { ShiftCell, shiftClasses } from './ShiftCell';
 import { DecisionsCard, NextShiftCard } from './Summary';
 import { SkeletonGrid, SkeletonList } from './Skeleton';
+import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
+import { hebrewDate, hebrewDay, hebrewMonthsBetween, holidayOn } from '../lib/hebrewDate';
+import { useHebrewDates } from '../lib/hebrewSetting';
+import { HebrewLine, HolidayTag } from './HolidayTag';
 
 type Filter = 'all' | 'mine' | 'open' | 'swap';
 type View = 'month' | 'list';
@@ -66,6 +71,7 @@ function initialView(): View {
 }
 
 export function Calendar() {
+  const [hebrew, setHebrew] = useHebrewDates();
   const today = israelToday();
   const [month, setMonth] = useState(monthKey(today));
   const [view, setView] = useState<View>(initialView);
@@ -108,11 +114,14 @@ export function Calendar() {
 
       <div className="month-nav">
         <button className="icon" aria-label="החודש הקודם" onClick={() => step(-1)}>
-          ›
+          <ChevronRightIcon />
         </button>
-        <h2>{monthTitle(month)}</h2>
+        <h2 className="month-title">
+          {monthTitle(month)}
+          {hebrew && <span className="hebrew-months">{hebrewMonthsBetween(monthBounds(month).from, monthBounds(month).to)}</span>}
+        </h2>
         <button className="icon" aria-label="החודש הבא" onClick={() => step(1)}>
-          ‹
+          <ChevronLeftIcon />
         </button>
       </div>
 
@@ -125,6 +134,13 @@ export function Calendar() {
             רשימה
           </button>
         </div>
+        <button
+          className={hebrew ? 'chip selected' : 'chip'}
+          aria-pressed={hebrew}
+          onClick={() => setHebrew(!hebrew)}
+        >
+          תאריך עברי
+        </button>
         {month !== monthKey(today) && (
           <button className="link" onClick={() => goToMonth(monthKey(today))}>
             היום
@@ -198,6 +214,7 @@ interface GridProps {
 
 function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect }: GridProps) {
   const me = useMe();
+  const [hebrew] = useHebrewDates();
   const days: string[] = [];
   for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
 
@@ -210,7 +227,9 @@ function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect
       ))}
       {days.map((day) => {
         const night = byNight.get(day);
+        const holiday = holidayOn(day);
         const classes = ['day'];
+        if (holiday) classes.push(holiday.major ? 'holiday major' : 'holiday');
         if (monthKey(day) !== month) classes.push('other-month');
         if (day === today) classes.push('today');
         if (day === selected) classes.push('selected');
@@ -223,10 +242,15 @@ function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect
                 e.stopPropagation();
                 onSelect(day);
               }}
-              aria-label={`${formatDate(day)}, ${nightLabel(day)}`}
+              aria-label={[formatDate(day), nightLabel(day), hebrew ? hebrewDate(day) : '', holiday?.name ?? '']
+                .filter(Boolean)
+                .join(', ')}
               aria-pressed={day === selected}
+              title={holiday?.name}
             >
               {dayOfMonth(day)}
+              {hebrew && <span className="hebrew-day">{hebrewDay(day)}</span>}
+              {holiday && <span className="holiday-dot" aria-hidden="true" />}
             </button>
             {([1, 2] as const).map((slot) => {
               const shift = night?.[slot];
@@ -290,6 +314,9 @@ function Legend({ month }: { month: string }) {
           </span>{' '}
           בקשת חילוף
         </span>
+        <span className="legend-item">
+          <span className="legend-holiday" aria-hidden="true" /> חג או מועד
+        </span>
         {!showNote && (
           <button className="link small" onClick={() => setShowNote(true)}>
             איך לקרוא את היומן?
@@ -318,6 +345,7 @@ function DayDetails({ night, shifts, counts }: { night: string; shifts?: NightSh
       <h3>
         {formatDate(night)} · <span className="muted">{nightLabel(night)}</span>
       </h3>
+      <HebrewLine night={night} />
       {!shifts && <p className="muted">אין משמרות בלילה הזה.</p>}
       {shifts &&
         ([1, 2] as const).map((slot) => {
@@ -348,6 +376,7 @@ interface ListProps {
 
 function RosterList({ month, today, byNight, filter, counts }: ListProps) {
   const me = useMe();
+  const [hebrew] = useHebrewDates();
   const todayRow = useRef<HTMLDivElement>(null);
   const scrolled = useRef(false);
 
@@ -397,6 +426,8 @@ function RosterList({ month, today, byNight, filter, counts }: ListProps) {
           <div className="night">
             <strong>{formatShortDate(night)}</strong>
             <span className="muted small">{nightShortLabel(night)}</span>
+            {hebrew && <span className="muted small">{hebrewDate(night)}</span>}
+            <HolidayTag night={night} />
           </div>
           {([1, 2] as const).map((slot) => {
             const shift = slots[slot];
