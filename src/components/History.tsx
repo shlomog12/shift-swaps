@@ -48,7 +48,11 @@ function describe(e: AuditEntry): string {
     case 'decline_offer':
       return `דחיית ההתנדבות של ${text(d.volunteer)}`;
     case 'admin_set':
-      return `שינוי מנהל: ${text(d.from)} ← ${text(d.to)}`;
+      return `שינוי מנהל: ${text(d.from)} ← ${text(d.to)}${d.plan === true ? ' (גם בלוח המקורי)' : ''}`;
+    case 'admin_set_plan':
+      return e.night
+        ? `עדכון הלוח המקורי: ${text(d.from)} ← ${text(d.to)}`
+        : `עדכון הלוח המקורי מההיסטוריה (${text(d.changed, '0')} משמרות)`;
     case 'import':
       return `ייבוא ${text(d.nights)} לילות (${text(d.changed)} שינויים) ${text(d.from, '')}–${text(d.to, '')}`;
     case 'add_nights':

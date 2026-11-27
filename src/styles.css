@@ -2023,3 +2023,86 @@ button.icon {
   flex-wrap: wrap;
   margin: 0.2rem 0 0;
 }
+
+.admin-tabs button {
+  white-space: nowrap;
+  padding-inline: 0.4rem;
+  font-size: 0.92rem;
+}
+
+/* Original-roster view: shifts that someone else does now get a dashed outline and "now: X". */
+.plan-banner {
+  background: var(--mine);
+  border: 1px solid var(--mine-border);
+  border-radius: 10px;
+  padding: 0.45rem 0.7rem;
+  margin: 0 0 0.6rem;
+}
+
+.day-chip.differs,
+.shift-cell.differs {
+  outline: 2px dashed var(--holiday);
+  outline-offset: -2px;
+}
+
+.differs-badge {
+  color: var(--holiday-text);
+}
+
+.report-toggle {
+  display: flex;
+  justify-content: center;
+  margin: 0.2rem 0 0.6rem;
+}
+
+/* The calendar toolbar wraps instead of squeezing its buttons. */
+.toolbar {
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+
+.toolbar .segmented,
+.toolbar .chip {
+  flex: none;
+}
+
+.segmented button,
+.toolbar .chip {
+  white-space: nowrap;
+}
+
+/* Next-roster people changes */
+.people-changes {
+  list-style: none;
+  padding: 0;
+  margin: 0.3rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.people-changes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.people-changes input,
+.people-changes select {
+  width: auto;
+  flex: 1 1 7rem;
+  min-height: 40px;
+}
+
+select {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+}

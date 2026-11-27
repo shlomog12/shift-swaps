@@ -44,9 +44,11 @@ export function translateError(message: string): string {
 
 async function call<T = void>(fn: string, args?: Record<string, unknown>): Promise<T> {
   let { data, error } = await supabase.rpc(fn, args);
-  // Before the swap-notes migration is applied the functions take no note: do the action without it.
-  if (error && args && 'p_note' in args && /could not find the function/i.test(error.message)) {
-    const { p_note: _note, ...rest } = args;
+  // Before a migration that adds an optional argument (a note, updating the original) is applied, the
+  // function does not know it: do the action without it.
+  const optional = ['p_note', 'p_update_plan'];
+  if (error && args && optional.some((k) => k in args) && /could not find the function/i.test(error.message)) {
+    const rest = Object.fromEntries(Object.entries(args).filter(([k]) => !optional.includes(k)));
     ({ data, error } = await supabase.rpc(fn, rest));
   }
   if (error) throw new Error(translateError(error.message));
@@ -81,8 +83,14 @@ export const api = {
   acceptSwapRequest: (requestId: number) => call('accept_swap_request', { p_request_id: requestId }),
   declineSwapRequest: (requestId: number) => call('decline_swap_request', { p_request_id: requestId }),
 
-  adminSetAssignee: (night: string, slot: Slot, name: string | null) =>
-    call('admin_set_assignee', { ...shiftArgs(night, slot), p_name: name ?? '' }),
+  adminSetAssignee: (night: string, slot: Slot, name: string | null, updatePlan = false) =>
+    call('admin_set_assignee', {
+      ...shiftArgs(night, slot),
+      p_name: name ?? '',
+      ...(updatePlan ? { p_update_plan: true } : {}),
+    }),
+  adminSetPlan: (rows: { night: string; slot: Slot; name: string | null }[]) =>
+    call<number>('admin_set_plan', { p_rows: rows }),
   adminImport: (rows: ImportRow[]) => call<number>('admin_import', { p_rows: rows }),
   adminAddNights: (from: string, to: string) => call<number>('admin_add_nights', { p_from: from, p_to: to }),
   adminDeleteNights: (from: string, to: string) =>

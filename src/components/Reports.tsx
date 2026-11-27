@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { api } from '../lib/api';
 import { israelToday, monthBounds, monthKey, monthTitle, shiftMonth } from '../lib/dates';
 import { fairnessReport, openSoon } from '../lib/fairness';
+import { asPlanned } from '../lib/plan';
 import { useMe, useQuery, useRoster } from '../lib/hooks';
 import { loadShifts } from '../lib/queries';
 import { shiftLink } from '../lib/share';
@@ -55,9 +56,16 @@ export function ReportsPanel() {
   const { from, to } = monthBounds(month);
   const shifts = useQuery(() => loadShifts(from, to), [from, to]);
   const names = useQuery(api.rosterNames, []);
+  // "Actual" counts who does the shifts now; "original" counts the roster as the admin planned it.
+  const [byPlan, setByPlan] = useState(false);
+  const canPlan = (shifts.data ?? []).some((s) => 'planned_assignee' in s);
+  const counted = useMemo(
+    () => (byPlan && canPlan ? (shifts.data ?? []).map(asPlanned) : shifts.data ?? []),
+    [shifts.data, byPlan, canPlan],
+  );
   const report = useMemo(
-    () => fairnessReport(shifts.data ?? [], (names.data ?? []).filter((n) => n.claimed).map((n) => n.name)),
-    [shifts.data, names.data],
+    () => fairnessReport(counted, (names.data ?? []).filter((n) => n.claimed).map((n) => n.name)),
+    [counted, names.data],
   );
   const max = Math.max(1, ...report.rows.map((r) => r.total));
   const spread = Math.max(2, report.average * 0.5);
@@ -74,6 +82,18 @@ export function ReportsPanel() {
           <ChevronLeftIcon />
         </button>
       </div>
+      {canPlan && (
+        <div className="report-toggle">
+          <div className="segmented" role="group" aria-label="לפי איזה לוח">
+            <button className={!byPlan ? 'selected' : undefined} onClick={() => setByPlan(false)}>
+              בפועל
+            </button>
+            <button className={byPlan ? 'selected' : undefined} onClick={() => setByPlan(true)}>
+              לפי המקור
+            </button>
+          </div>
+        </div>
+      )}
       {shifts.error && <p className="error">{shifts.error}</p>}
       {shifts.loading && !shifts.data && <SkeletonList rows={5} />}
       {shifts.data && report.rows.length === 0 && <p className="empty">אין משמרות בחודש הזה.</p>}

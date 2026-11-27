@@ -113,3 +113,39 @@ export async function loadAudit(limit: number): Promise<AuditEntry[]> {
     await supabase.from('audit_log').select(AUDIT_COLUMNS).order('at', { ascending: false }).limit(limit),
   ) as AuditEntry[];
 }
+
+const PAGE_ROWS = 1000;
+
+/** Every shift, in pages (the server returns at most 1000 rows per request). */
+export async function loadAllShifts(): Promise<Shift[]> {
+  const all: Shift[] = [];
+  for (let from = 0; ; from += PAGE_ROWS) {
+    const page = check(
+      await supabase
+        .from('shifts')
+        .select(SHIFT_COLUMNS)
+        .order('night')
+        .order('slot')
+        .range(from, from + PAGE_ROWS - 1),
+    ) as Shift[];
+    all.push(...page);
+    if (page.length < PAGE_ROWS) return all;
+  }
+}
+
+/** The whole history, newest first, in pages. */
+export async function loadAllAudit(): Promise<AuditEntry[]> {
+  const all: AuditEntry[] = [];
+  for (let from = 0; ; from += PAGE_ROWS) {
+    const page = check(
+      await supabase
+        .from('audit_log')
+        .select(AUDIT_COLUMNS)
+        .order('at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(from, from + PAGE_ROWS - 1),
+    ) as AuditEntry[];
+    all.push(...page);
+    if (page.length < PAGE_ROWS) return all;
+  }
+}

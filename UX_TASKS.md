@@ -73,7 +73,11 @@ Requested after the review:
     marked, spelling-tolerant search); a new name not on the roster sits behind its own option.
 49. System admin: an admin without a roster name ("אחראי מערכת"), approved in one step; full admin rights,
     no taking or swapping shifts, no "mine" tab.
-50. System admin "view as": pick a roster name and see the app as that user (read only, banner with exit);
+50. Original roster: kept next to the current one, rebuilt from the history with a preview, optional
+    "update the original too" on admin edits, an original view in the calendar and the fairness report.
+51. Next roster from the original: same order, same weekday option, first/second swap, replace / leave
+    (open or spread) / join (fair share), preview, then saved like an import.
+52. System admin "view as": pick a roster name and see the app as that user (read only, banner with exit);
     the calendar legend and list filters drop "mine" for a system admin.
 
 ## Setup still to do (owner)
@@ -111,6 +115,9 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 - [x] (applied) **Roster-only names (task 18)**: SQL Editor → run all of
       `supabase/migrations/20261205000000_claim_roster_name_only.sql`. Until then the app already hides
       the free-text name, but the database would still accept one.
+
+- [ ] **Original roster (stage 1)**: SQL Editor → run all of `supabase/migrations/20261206000000_planned_roster.sql`.
+      Then in the app: ניהול → בניית לוח → "שחזור מההיסטוריה", check the preview, save.
 
 ## Next, in recommended order
 

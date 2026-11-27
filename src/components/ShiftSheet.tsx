@@ -448,7 +448,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
               </details>
             )}
 
-            {isAdmin && <AdminAssign key={s.assignee ?? ''} night={night} slot={slot} current={s.assignee} />}
+            {isAdmin && <AdminAssign key={s.assignee ?? ''} night={night} slot={slot} current={s.assignee} planned={s.planned_assignee} />}
           </>
         )}
 
@@ -458,23 +458,45 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   );
 }
 
-function AdminAssign({ night, slot, current }: ShiftKey & { current: string | null }) {
+function AdminAssign({
+  night,
+  slot,
+  current,
+  planned,
+}: ShiftKey & { current: string | null; planned: string | null | undefined }) {
   const [name, setName] = useState(current ?? '');
+  const [updatePlan, setUpdatePlan] = useState(false);
   const names = useQuery(api.rosterNames, []);
   const { busy, error, run } = useAction();
   const { confirm, toast } = useFeedback();
+  // `planned` is undefined until the planned-roster migration is applied; then the checkbox is hidden.
+  const hasPlan = planned !== undefined;
+  const target = name.trim() || null;
+  const changes = target !== current || (updatePlan && hasPlan && target !== (planned ?? null));
+
+  function save(to: string | null) {
+    run(
+      () => api.adminSetAssignee(night, slot, to, updatePlan),
+      () =>
+        toast(
+          (to ? `המשמרת שובצה ל${to}` : 'המשמרת פונתה') + (updatePlan ? ', גם בלוח המקורי' : ''),
+        ),
+    );
+  }
 
   return (
     <section className="admin-box">
       <h3>עריכת מנהל</h3>
+      {hasPlan && planned !== current && (
+        <p className="small">
+          במקור: <strong>{planned ?? 'פנוי'}</strong>
+        </p>
+      )}
       <form
         className="row"
         onSubmit={(e) => {
           e.preventDefault();
-          run(
-            () => api.adminSetAssignee(night, slot, name.trim() || null),
-            () => toast(name.trim() ? `המשמרת שובצה ל${name.trim()}` : 'המשמרת פונתה'),
-          );
+          save(target);
         }}
       >
         <input list="roster-names" value={name} placeholder="שם (ריק = פנוי)" onChange={(e) => setName(e.target.value)} />
@@ -483,10 +505,19 @@ function AdminAssign({ night, slot, current }: ShiftKey & { current: string | nu
             <option key={n.name} value={n.name} />
           ))}
         </datalist>
-        <button className="primary" disabled={busy || name.trim() === (current ?? '')}>
+        <button className="primary" disabled={busy || !changes}>
           שמירה
         </button>
       </form>
+      {hasPlan && (
+        <label className="toggle-row small">
+          <input type="checkbox" checked={updatePlan} onChange={(e) => setUpdatePlan(e.target.checked)} />
+          <span>
+            לעדכן גם בלוח המקורי
+            <span className="muted"> (הבסיס ללוח הבא). בלי סימון, זה שינוי חד־פעמי.</span>
+          </span>
+        </label>
+      )}
       {current && (
         <button
           className="link danger"
@@ -494,11 +525,11 @@ function AdminAssign({ night, slot, current }: ShiftKey & { current: string | nu
           onClick={async () => {
             const ok = await confirm({
               title: 'לפנות את המשמרת?',
-              message: `המשמרת של ${current} תסומן כפנויה.`,
+              message: `המשמרת של ${current} תסומן כפנויה${updatePlan ? ', גם בלוח המקורי' : ''}.`,
               confirmLabel: 'פינוי',
               danger: true,
             });
-            if (ok) run(() => api.adminSetAssignee(night, slot, null), () => toast('המשמרת פונתה'));
+            if (ok) save(null);
           }}
         >
           פינוי המשמרת
