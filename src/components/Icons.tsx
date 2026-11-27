@@ -41,6 +41,13 @@ export const UserIcon = ({ size }: { size?: number }) => (
   </Icon>
 );
 
+export const EyeIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Icon>
+);
+
 export const HistoryIcon = ({ size }: { size?: number }) => (
   <Icon size={size}>
     <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />

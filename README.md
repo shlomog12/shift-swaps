@@ -66,7 +66,9 @@ An admin does not need a roster name: a system manager who runs the roster but i
 (for example a rotating duty officer's account). Approve a new sign-up with **כאחראי מערכת** in the
 **ניהול** tab, or make an approved user without a name an admin. They have every admin action but cannot
 take or swap shifts themselves, and appear as "אחראי מערכת". Removing them from the admins sends them to
-the name picker.
+the name picker. With **תצוגה** in the top bar they can pick a roster name and see the app exactly as that
+user does (their shifts, requests and offers); the view is read only, every action is blocked until they
+leave it.
 
 ### 5. E-mail notifications
 

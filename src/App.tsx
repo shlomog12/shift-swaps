@@ -9,8 +9,9 @@ import { AccessPending, Login, SetupMissing } from './components/Login';
 import { MyShifts } from './components/MyShifts';
 import { NamePicker } from './components/NamePicker';
 import { ProfileSheet } from './components/Profile';
-import { CalendarIcon, HistoryIcon, SettingsIcon, SwapIcon, UserIcon } from './components/Icons';
+import { CalendarIcon, EyeIcon, HistoryIcon, SettingsIcon, SwapIcon, UserIcon } from './components/Icons';
 import { ShiftSheet } from './components/ShiftSheet';
+import { ViewAsPicker } from './components/ViewAs';
 import {
   MeContext,
   RefreshContext,
@@ -100,15 +101,32 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   useLiveRefresh(true, refresh);
 
   const system = !profile.display_name; // only admins get this far without a name
-  const isAdmin = profile.is_admin && (adminMode || system);
+  // A system admin can view the app as one of the users on the roster (read only).
+  const [viewAs, setViewAs] = useState<string | null>(null);
+  const [pickingViewAs, setPickingViewAs] = useState(false);
+  const viewing = system && viewAs ? viewAs : null;
+  const isAdmin = !viewing && profile.is_admin && (adminMode || system);
+  const users = useQuery(() => (profile.is_admin ? api.adminListUsers() : Promise.resolve([])), [profile.is_admin]);
+  const viewedUser = viewing ? (users.data ?? []).find((u) => sameName(u.display_name, viewing)) : undefined;
+  const shown: Profile = viewing
+    ? {
+        id: viewedUser?.id ?? '', // a name nobody has claimed yet: no offers or requests of their own
+        display_name: viewing,
+        is_admin: false,
+        status: 'approved',
+        created_at: viewedUser?.created_at ?? profile.created_at,
+      }
+    : profile;
   const me: Me = useMemo(
     () => ({
-      profile: { ...profile, is_admin: isAdmin },
-      email,
-      isMine: (assignee) => sameName(assignee, profile.display_name),
+      profile: { ...shown, is_admin: isAdmin },
+      email: viewing ? (viewedUser?.email ?? '') : email,
+      isMine: (assignee) => sameName(assignee, shown.display_name),
       openShift: (night, slot) => setOpen({ night, slot }),
+      viewAs: viewing,
     }),
-    [profile, email, isAdmin],
+    // `shown` is rebuilt every render; these are what it is made of.
+    [profile, email, isAdmin, viewing, viewedUser],
   );
 
   function toggleAdminMode() {
@@ -120,7 +138,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
 
   const upcoming = useQuery(loadUpcomingShifts, []);
   const pendingOffers = useQuery(loadPendingOffers, []);
-  const incoming = useQuery(() => loadIncomingRequests(profile.display_name ?? ''), [profile.display_name]);
+  const incoming = useQuery(() => loadIncomingRequests(shown.display_name ?? ''), [shown.display_name]);
   const roster = useMemo(() => ({ upcoming, pendingOffers, incoming }), [upcoming, pendingOffers, incoming]);
   const decisionCount = useMemo(() => {
     const shifts = upcoming.data ?? [];
@@ -130,9 +148,8 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
     );
   }, [upcoming.data, pendingOffers.data, incoming.data, me]);
 
-  const tabs = TABS.filter((t) => (!t.adminOnly || isAdmin) && !(system && t.id === 'mine'));
-  const users = useQuery(() => (isAdmin ? api.adminListUsers() : Promise.resolve([])), [isAdmin]);
-  const pendingCount = (users.data ?? []).filter((u) => u.status === 'pending').length;
+  const tabs = TABS.filter((t) => (!t.adminOnly || isAdmin) && !(system && !viewing && t.id === 'mine'));
+  const pendingCount = isAdmin ? (users.data ?? []).filter((u) => u.status === 'pending').length : 0;
   const activeTab = tabs.some((t) => t.id === tab) ? tab : 'calendar';
 
   return (
@@ -151,11 +168,33 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
               {isAdmin ? 'מעבר למצב משתמש' : 'מעבר למצב מנהל'}
             </button>
           )}
+          {system && (
+            <button
+              className={viewing ? 'mode-toggle admin' : 'mode-toggle'}
+              onClick={() => setPickingViewAs(true)}
+              aria-label="תצוגה כמשתמש: לראות את האפליקציה כמו משתמש מסוים"
+            >
+              <EyeIcon size={15} />
+              {viewing ? 'החלפה' : 'תצוגה'}
+            </button>
+          )}
           <button className="user-button" onClick={() => setProfileOpen(true)} aria-label="פרופיל והגדרות">
             <UserIcon size={18} /> {profile.display_name ?? SYSTEM_ADMIN_LABEL}
           </button>
         </span>
       </header>
+
+      {viewing && (
+        <div className="view-as-bar" role="status">
+          <span>
+            תצוגה בלבד: האפליקציה כפי ש<strong>{viewing}</strong> רואה אותה
+            {!viewedUser && users.data && ' (עוד לא באפליקציה)'}
+          </span>
+          <button className="small" onClick={() => setViewAs(null)}>
+            יציאה
+          </button>
+        </div>
+      )}
 
       {!online && (
         <div className="offline-bar" role="status">
@@ -191,6 +230,17 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
         ))}
       </nav>
 
+      {pickingViewAs && (
+        <ViewAsPicker
+          current={viewing}
+          onPick={(name) => {
+            setViewAs(name);
+            setPickingViewAs(false);
+            setTab('calendar');
+          }}
+          onClose={() => setPickingViewAs(false)}
+        />
+      )}
       {profileOpen && <ProfileSheet onClose={() => setProfileOpen(false)} />}
       {open && <ShiftSheet key={`${open.night}/${open.slot}`} target={open} onClose={() => setOpen(null)} />}
     </RosterContext.Provider>

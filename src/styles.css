@@ -1419,6 +1419,25 @@ a.button.calendar {
   text-align: center;
 }
 
+/* A system admin viewing the app as another user */
+.view-as-bar {
+  position: sticky;
+  top: calc(2.9rem + env(safe-area-inset-top));
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--accent);
+  color: var(--accent-text);
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+}
+
+.view-as-bar button {
+  flex-shrink: 0;
+}
+
 /* Calendar subscription in the profile */
 .calendar-links {
   display: flex;

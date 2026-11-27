@@ -73,6 +73,8 @@ Requested after the review:
     marked, spelling-tolerant search); a new name not on the roster sits behind its own option.
 49. System admin: an admin without a roster name ("אחראי מערכת"), approved in one step; full admin rights,
     no taking or swapping shifts, no "mine" tab.
+50. System admin "view as": pick a roster name and see the app as that user (read only, banner with exit);
+    the calendar legend and list filters drop "mine" for a system admin.
 
 ## Setup still to do (owner)
 
