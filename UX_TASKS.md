@@ -38,6 +38,13 @@ Backlog from the UX review. Numbers match the review; done tasks are kept for re
     subscribe links, copy, sharing and privacy notes, and "new link". Needs the migration applied and the
     function deployed (README, step 6).
 
+22. Accessibility: SVG icons instead of emoji, 44px touch targets (36px compact), focus kept inside open
+    sheets and dialogs and returned on close, aria-current on the active tab.
+18. Name picker: "did you mean…?" for typed names close to a roster name, a warning before saving a new
+    name anyway, and a spelling-tolerant search.
+19. Admin: inner tabs (users with the pending badge, building nights, import); users as a list with a "⋯"
+    action sheet, destructive actions set apart; search when there are many users.
+
 ## Setup still to do (owner)
 
 Done in code, waiting for steps in Supabase. Order matters: database first, then the function.
@@ -72,9 +79,6 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 
 ## Next, in recommended order
 
-22. Accessibility: SVG icons instead of emoji, 44px touch targets, focus trap in sheets.
-18. Name picker: "did you mean…?" for names close to an existing one.
-19. Admin: inner tabs (users, roster, import), user actions in a "⋯" menu.
 20. Admin: fairness report (shifts per person per month), alert on open shifts in the coming week.
 21. History: group by day, "only mine", filter by action type.
 23. Skeleton loading instead of "טוען..." (the "offline" bar is already done in task 14).

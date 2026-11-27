@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { SLOT_HOURS, addDays, formatDate, formatDateRange, formatDateTime, israelToday, nightLabel } from '../lib/dates';
 import { useAction, useMe, useQuery } from '../lib/hooks';
@@ -6,15 +6,56 @@ import { parseSheet, type ImportResult, type ImportRow } from '../lib/importShee
 import { loadShifts } from '../lib/queries';
 import { appLink } from '../lib/share';
 import type { AdminUser, Shift } from '../lib/types';
+import { useFocusTrap } from '../lib/focusTrap';
 import { useFeedback } from './Feedback';
+import { MoreIcon } from './Icons';
+
+type AdminTab = 'users' | 'nights' | 'import';
+
+const ADMIN_TAB_KEY = 'admin-tab';
 
 export function Admin() {
+  const [tab, setTab] = useState<AdminTab>(() => (sessionStorage.getItem(ADMIN_TAB_KEY) as AdminTab) || 'users');
+  const users = useQuery(api.adminListUsers, []);
+  const pending = (users.data ?? []).filter((u) => u.status === 'pending').length;
+
+  function choose(next: AdminTab) {
+    setTab(next);
+    sessionStorage.setItem(ADMIN_TAB_KEY, next);
+  }
+
+  const tabs: [AdminTab, string][] = [
+    ['users', 'משתמשים'],
+    ['nights', 'בניית לילות'],
+    ['import', 'ייבוא'],
+  ];
+
   return (
     <div className="page">
-      <PendingPanel />
-      <ImportPanel />
-      <NightsPanel />
-      <UsersPanel />
+      <div className="segmented admin-tabs" role="tablist" aria-label="ניהול">
+        {tabs.map(([id, label]) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={tab === id}
+            className={tab === id ? 'selected' : undefined}
+            onClick={() => choose(id)}
+          >
+            {label}
+            {id === 'users' && pending > 0 && <b className="inline-badge">{pending}</b>}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel">
+        {tab === 'users' && (
+          <>
+            <PendingPanel />
+            <UsersPanel />
+          </>
+        )}
+        {tab === 'nights' && <NightsPanel />}
+        {tab === 'import' && <ImportPanel />}
+      </div>
     </div>
   );
 }
@@ -269,6 +310,7 @@ function useUserActions() {
       danger: true,
     });
     if (ok) run(() => api.adminDeleteUser(u.id), () => toast('המשתמש נמחק'));
+    return ok;
   }
 
   async function block(u: AdminUser) {
@@ -279,6 +321,7 @@ function useUserActions() {
       danger: true,
     });
     if (ok) run(() => api.adminSetStatus(u.id, 'rejected'), () => toast('המשתמש נחסם'));
+    return ok;
   }
 
   function approve(u: AdminUser) {
@@ -340,114 +383,48 @@ function PendingPanel() {
 }
 
 function UsersPanel() {
-  const me = useMe();
   const users = useQuery(api.adminListUsers, []);
-  const { busy, error, run, confirm, toast, remove, block, approve } = useUserActions();
-  const { ask } = useFeedback();
-  const approved = (users.data ?? []).filter((u) => u.status === 'approved');
+  const { busy, error, approve, remove } = useUserActions();
+  const [filter, setFilter] = useState('');
+  const [selected, setSelected] = useState<AdminUser | null>(null);
+  const term = filter.trim().toLowerCase();
+  const matches = (u: AdminUser) =>
+    !term || [u.display_name, u.google_name, u.email].some((v) => v?.toLowerCase().includes(term));
+  const approved = (users.data ?? []).filter((u) => u.status === 'approved' && matches(u));
   const rejected = (users.data ?? []).filter((u) => u.status === 'rejected');
-
-  async function rename(u: AdminUser) {
-    const current = u.display_name;
-    const name = await ask({
-      title: `שינוי השם ברשימה של ${userLabel(u)}`,
-      initial: current ?? '',
-      placeholder: 'השם החדש ברשימה',
-      confirmLabel: 'המשך',
-    });
-    if (name === null || name.trim() === (current ?? '')) return;
-    const renameShifts =
-      current !== null &&
-      name.trim() !== '' &&
-      (await confirm({
-        title: 'להעביר גם את המשמרות?',
-        message: `להעביר את כל המשמרות של "${current}" לשם "${name.trim()}"?`,
-        confirmLabel: 'כן, להעביר',
-        cancelLabel: 'לא, רק את השם',
-      }));
-    run(() => api.adminSetUserName(u.id, name, renameShifts), () => toast('השם עודכן'));
-  }
-
-  async function toggleAdmin(u: AdminUser, value: boolean) {
-    const ok = await confirm(
-      value
-        ? { title: `להפוך את ${userLabel(u)} למנהל?`, message: 'מנהל יכול לערוך כל משמרת ולנהל משתמשים.', confirmLabel: 'הוספת מנהל' }
-        : {
-            title: u.id === me.profile.id ? 'להסיר את עצמך מהמנהלים?' : `להסיר את ${userLabel(u)} מהמנהלים?`,
-            confirmLabel: 'הסרה',
-            danger: true,
-          },
-    );
-    if (ok) run(() => api.adminSetAdmin(u.id, value), () => toast(value ? 'המנהל נוסף' : 'המנהל הוסר'));
-  }
-
-  async function clearName(u: AdminUser) {
-    const ok = await confirm({
-      title: `לנתק את ${userLabel(u)} מהשם "${u.display_name}"?`,
-      message: 'המשמרות נשארות על השם, וההתנדבויות הממתינות של המשתמש יבוטלו. בכניסה הבאה תתבקש בחירת שם מחדש.',
-      confirmLabel: 'ניתוק',
-      danger: true,
-    });
-    if (ok) run(() => api.adminSetUserName(u.id, '', false), () => toast('המשתמש נותק מהשם'));
-  }
 
   return (
     <section className="card">
       <h2>משתמשים ומנהלים</h2>
       {users.error && <p className="error">{users.error}</p>}
       {users.loading && !users.data && <p className="muted">טוען...</p>}
-      <div className="table-wrap">
-        <table className="users">
-          <thead>
-            <tr>
-              <th>שם ברשימה</th>
-              <th>חשבון</th>
-              <th>מנהל</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {approved.map((u) => (
-              <tr key={u.id}>
-                <td>{u.display_name ?? <span className="muted">לא נבחר</span>}</td>
-                <td className="small">
-                  {u.google_name && <div>{u.google_name}</div>}
-                  <div className="ltr">{u.email}</div>
-                </td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={u.is_admin}
-                    disabled={busy}
-                    aria-label="מנהל"
-                    onChange={(e) => toggleAdmin(u, e.target.checked)}
-                  />
-                </td>
-                <td className="actions-cell">
-                  <button className="link small" disabled={busy} onClick={() => rename(u)}>
-                    שינוי שם
-                  </button>
-                  {u.display_name && (
-                    <button className="link small danger" disabled={busy} onClick={() => clearName(u)}>
-                      הסרת שם
-                    </button>
-                  )}
-                  {u.id !== me.profile.id && !u.is_admin && (
-                    <button className="link small danger" disabled={busy} onClick={() => block(u)}>
-                      חסימה
-                    </button>
-                  )}
-                  {u.id !== me.profile.id && !u.is_admin && (
-                    <button className="link small danger" disabled={busy} onClick={() => remove(u)}>
-                      מחיקה
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {(users.data ?? []).length > 6 && (
+        <input type="search" placeholder="חיפוש לפי שם או מייל" value={filter} onChange={(e) => setFilter(e.target.value)} />
+      )}
+      <ul className="user-list">
+        {approved.map((u) => (
+          <li key={u.id}>
+            <span className="list-main">
+              <strong>
+                {u.display_name ?? <span className="muted">לא נבחר שם</span>}
+                {u.is_admin && <span className="tag admin-tag">מנהל</span>}
+              </strong>
+              {u.google_name && <span className="small">{u.google_name}</span>}
+              <span className="small muted ltr-inline">{u.email}</span>
+            </span>
+            <button
+              className="icon more-button"
+              disabled={busy}
+              aria-label={`פעולות על ${userLabel(u)}`}
+              aria-haspopup="dialog"
+              onClick={() => setSelected(u)}
+            >
+              <MoreIcon />
+            </button>
+          </li>
+        ))}
+        {term && approved.length === 0 && <li className="muted small">לא נמצאו משתמשים.</li>}
+      </ul>
 
       {rejected.length > 0 && (
         <details>
@@ -473,6 +450,143 @@ function UsersPanel() {
         </details>
       )}
       {error && <p className="error">{error}</p>}
+      {selected && <UserActionsSheet user={selected} onClose={() => setSelected(null)} />}
     </section>
+  );
+}
+
+/** Everything an admin can do to one user, in a sheet; destructive actions are set apart at the bottom. */
+function UserActionsSheet({ user: u, onClose }: { user: AdminUser; onClose: () => void }) {
+  const me = useMe();
+  const { busy, error, run, confirm, toast, remove, block } = useUserActions();
+  const { ask } = useFeedback();
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(sheetRef);
+  const self = u.id === me.profile.id;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  async function rename() {
+    const current = u.display_name;
+    const name = await ask({
+      title: `שינוי השם ברשימה של ${userLabel(u)}`,
+      initial: current ?? '',
+      placeholder: 'השם החדש ברשימה',
+      confirmLabel: 'המשך',
+    });
+    if (name === null || name.trim() === (current ?? '')) return;
+    const renameShifts =
+      current !== null &&
+      name.trim() !== '' &&
+      (await confirm({
+        title: 'להעביר גם את המשמרות?',
+        message: `להעביר את כל המשמרות של "${current}" לשם "${name.trim()}"?`,
+        confirmLabel: 'כן, להעביר',
+        cancelLabel: 'לא, רק את השם',
+      }));
+    run(() => api.adminSetUserName(u.id, name, renameShifts), () => {
+      toast('השם עודכן');
+      onClose();
+    });
+  }
+
+  async function toggleAdmin() {
+    const value = !u.is_admin;
+    const ok = await confirm(
+      value
+        ? { title: `להפוך את ${userLabel(u)} למנהל?`, message: 'מנהל יכול לערוך כל משמרת ולנהל משתמשים.', confirmLabel: 'הוספת מנהל' }
+        : {
+            title: self ? 'להסיר את עצמך מהמנהלים?' : `להסיר את ${userLabel(u)} מהמנהלים?`,
+            confirmLabel: 'הסרה',
+            danger: true,
+          },
+    );
+    if (ok)
+      run(() => api.adminSetAdmin(u.id, value), () => {
+        toast(value ? 'המנהל נוסף' : 'המנהל הוסר');
+        onClose();
+      });
+  }
+
+  async function clearName() {
+    const ok = await confirm({
+      title: `לנתק את ${userLabel(u)} מהשם "${u.display_name}"?`,
+      message: 'המשמרות נשארות על השם, וההתנדבויות הממתינות של המשתמש יבוטלו. בכניסה הבאה תתבקש בחירת שם מחדש.',
+      confirmLabel: 'ניתוק',
+      danger: true,
+    });
+    if (ok)
+      run(() => api.adminSetUserName(u.id, '', false), () => {
+        toast('המשתמש נותק מהשם');
+        onClose();
+      });
+  }
+
+  const canBlockOrDelete = !self && !u.is_admin;
+
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div
+        ref={sheetRef}
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-sheet-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="sheet-header">
+          <div>
+            <h2 id="user-sheet-title">{u.display_name ?? 'לא נבחר שם'}</h2>
+            <p className="muted small">
+              {u.google_name && <>{u.google_name} · </>}
+              <span className="ltr-inline">{u.email}</span>
+            </p>
+          </div>
+          <button className="icon" aria-label="סגירה" onClick={onClose}>
+            ✕
+          </button>
+        </header>
+
+        <div className="actions">
+          <button disabled={busy} onClick={rename}>
+            {u.display_name ? 'שינוי השם ברשימה' : 'קביעת שם ברשימה'}
+          </button>
+          <button disabled={busy} onClick={toggleAdmin}>
+            {u.is_admin ? (self ? 'הסרת עצמי מהמנהלים' : 'הסרה מהמנהלים') : 'הפיכה למנהל'}
+          </button>
+        </div>
+
+        <section className="danger-zone">
+          <h3>פעולות שקשה לבטל</h3>
+          <div className="actions">
+            {u.display_name && (
+              <button className="danger" disabled={busy} onClick={clearName}>
+                ניתוק מהשם ברשימה
+              </button>
+            )}
+            {canBlockOrDelete ? (
+              <>
+                <button className="danger" disabled={busy} onClick={() => block(u).then((ok) => ok && onClose())}>
+                  חסימה
+                </button>
+                <button className="danger" disabled={busy} onClick={() => remove(u).then((ok) => ok && onClose())}>
+                  מחיקה
+                </button>
+              </>
+            ) : (
+              <p className="muted small">
+                {self ? 'אי אפשר לחסום או למחוק את עצמך.' : 'כדי לחסום או למחוק מנהל, קודם מסירים אותו מהמנהלים.'}
+              </p>
+            )}
+          </div>
+        </section>
+        {error && <p className="error">{error}</p>}
+      </div>
+    </div>
   );
 }
