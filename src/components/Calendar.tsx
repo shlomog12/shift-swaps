@@ -181,9 +181,11 @@ export function Calendar() {
       {showPlan && (
         <p className="plan-banner small" role="status">
           מוצג <strong>הלוח המקורי</strong>, לפני חילופים ולקיחות.{' '}
-          {changedInMonth > 0
-            ? `${changedInMonth} משמרות החודש השתנו מאז, ומסומנות במסגרת מקווקוות.`
-            : 'החודש אין משמרות שהשתנו.'}
+          {changedInMonth === 1
+            ? 'משמרת אחת החודש השתנתה מאז, ומסומנת במסגרת מקווקוות.'
+            : changedInMonth > 1
+              ? `${changedInMonth} משמרות החודש השתנו מאז, ומסומנות במסגרת מקווקוות.`
+              : 'החודש אין משמרות שהשתנו.'}
         </p>
       )}
 
