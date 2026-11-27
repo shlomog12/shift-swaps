@@ -152,7 +152,7 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
       (or a Database Webhook on push_outbox Insert → push-send).
       (4) App → profile → "התראות לטלפון" → turn on → "שליחת התראת בדיקה".
 
-- [ ] **Phones for everyone**: SQL Editor → run all of `supabase/migrations/20261211000000_member_phones.sql`.
+- [x] (applied) **Phones for everyone**: SQL Editor → run all of `supabase/migrations/20261211000000_member_phones.sql`.
       Until then only admins can save a phone, and WhatsApp messages open the chat picker as before.
 
 ## Next, in recommended order
