@@ -76,6 +76,8 @@ export function Calendar() {
   const [month, setMonth] = useState(monthKey(today));
   const [view, setView] = useState<View>(initialView);
   const [filter, setFilter] = useState<Filter>('all');
+  // A system admin (no roster name) has no shifts of their own, so "mine" means nothing to them.
+  const named = Boolean(useMe().profile.display_name);
   const [selected, setSelected] = useState<string>(today);
   const { from, to } = monthGridBounds(month);
   const shifts = useQuery(() => loadShifts(from, to), [from, to]);
@@ -151,7 +153,7 @@ export function Calendar() {
 
       {view === 'list' && (
         <div className="filters">
-          {FILTERS.map(([value, label]) => (
+          {FILTERS.filter(([value]) => named || value !== 'mine').map(([value, label]) => (
             <button key={value} className={filter === value ? 'chip selected' : 'chip'} onClick={() => setFilter(value)}>
               {label}
             </button>
@@ -292,6 +294,7 @@ const NOTE_KEY = 'midnight-note-seen';
 
 /** Colour legend, and the midnight rule: explained once, then one tap away. */
 function Legend({ month }: { month: string }) {
+  const named = Boolean(useMe().profile.display_name);
   const [showNote, setShowNote] = useState(() => localStorage.getItem(NOTE_KEY) !== 'yes');
   const example = `${month}-05`;
 
@@ -303,9 +306,11 @@ function Legend({ month }: { month: string }) {
   return (
     <>
       <div className="legend" aria-label="מקרא">
-        <span className="legend-item">
-          <span className="day-chip mine">שם</span> שלי
-        </span>
+        {named && (
+          <span className="legend-item">
+            <span className="day-chip mine">שם</span> שלי
+          </span>
+        )}
         <span className="legend-item">
           <span className="day-chip open">פנוי</span> פנויה
         </span>

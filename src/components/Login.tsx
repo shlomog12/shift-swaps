@@ -74,7 +74,7 @@ export function AccessPending({ status, email }: { status: Exclude<UserStatus, '
               השם שלך ברשימה. המסך הזה יתעדכן לבד ברגע האישור.
             </p>
             <AskAdmins
-              intro="כדי לזרז את האישור, אפשר לשלוח לו הודעה:"
+              intro="כדי לזרז את האישור, אפשר לשלוח הודעה למנהל:"
               text={`היי, נרשמתי לאפליקציית המשמרות עם ${email}. אפשר לאשר אותי?\n${appLink()}`}
             />
             <button className="primary" onClick={refresh}>
