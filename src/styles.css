@@ -1718,3 +1718,37 @@ button.icon {
   height: 6.5rem;
   margin: 0.5rem 0 0.8rem;
 }
+
+/* Month change: the new month slides in from the side it came from (RTL: next comes from the left). */
+.month-body {
+  touch-action: pan-y;
+}
+
+.month-body.slide-next {
+  animation: slide-from-left 0.2s ease-out;
+}
+
+.month-body.slide-prev {
+  animation: slide-from-right 0.2s ease-out;
+}
+
+@keyframes slide-from-left {
+  from {
+    transform: translateX(-12%);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-from-right {
+  from {
+    transform: translateX(12%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .month-body.slide-next,
+  .month-body.slide-prev {
+    animation: none;
+  }
+}

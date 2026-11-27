@@ -40,8 +40,12 @@ Backlog from the UX review. Numbers match the review; done tasks are kept for re
 
 22. Accessibility: SVG icons instead of emoji, 44px touch targets (36px compact), focus kept inside open
     sheets and dialogs and returned on close, aria-current on the active tab.
-18. Name picker: "did you mean…?" for typed names close to a roster name, a warning before saving a new
-    name anyway, and a spelling-tolerant search.
+18. Name picker: names can be picked from the roster only (also enforced in the database); a
+    spelling-tolerant search with "did you mean…?"; "my name is not on the list" asks an admin on WhatsApp.
+21. History: grouped by day (today / yesterday / weekday and date), filters for all, involving me, swaps,
+    assignments and users (admins).
+23. Loading placeholders in the shape of the content instead of "טוען...".
+24. Swipe between months in the calendar (RTL: drag right for the next month), with a short slide.
 19. Admin: inner tabs (users with the pending badge, building nights, import); users as a list with a "⋯"
     action sheet, destructive actions set apart; search when there are many users.
 
@@ -77,12 +81,13 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 - [ ] **Swap notes (task 11)**: SQL Editor → run all of `supabase/migrations/20261204000000_swap_notes.sql`.
       Until then the app works as before, and notes are simply not saved.
 
+- [ ] **Roster-only names (task 18)**: SQL Editor → run all of
+      `supabase/migrations/20261205000000_claim_roster_name_only.sql`. Until then the app already hides
+      the free-text name, but the database would still accept one.
+
 ## Next, in recommended order
 
 20. Admin: fairness report (shifts per person per month), alert on open shifts in the coming week.
-21. History: group by day, "only mine", filter by action type.
-23. Skeleton loading instead of "טוען..." (the "offline" bar is already done in task 14).
-24. Swipe between months in the calendar.
 17. Mutual swap between two shifts. Largely covered by swap offers with a shift in return; likely to close.
 
 ## Last (decide at the end)

@@ -20,6 +20,7 @@ import { useMe, useQuery, useRoster, type Me } from '../lib/hooks';
 import { loadShifts } from '../lib/queries';
 import type { Shift } from '../lib/types';
 import { RosterShare } from './RosterShare';
+import { swipeMonthStep } from '../lib/swipe';
 import { ShiftCell, shiftClasses } from './ShiftCell';
 import { DecisionsCard, NextShiftCard } from './Summary';
 import { SkeletonGrid, SkeletonList } from './Skeleton';
@@ -86,6 +87,15 @@ export function Calendar() {
     localStorage.setItem(VIEW_STORAGE_KEY, next);
   }
 
+  // Swiping the calendar turns the month; the slide direction follows the swipe or the arrow pressed.
+  const [slide, setSlide] = useState<'' | 'next' | 'prev'>('');
+  const touch = useRef<{ x: number; y: number } | null>(null);
+
+  function step(delta: 1 | -1) {
+    setSlide(delta === 1 ? 'next' : 'prev');
+    goToMonth(shiftMonth(month, delta));
+  }
+
   function goToMonth(key: string) {
     setMonth(key);
     setSelected(key === monthKey(today) ? today : `${key}-01`);
@@ -97,11 +107,11 @@ export function Calendar() {
       <DecisionsCard />
 
       <div className="month-nav">
-        <button className="icon" aria-label="החודש הקודם" onClick={() => goToMonth(shiftMonth(month, -1))}>
+        <button className="icon" aria-label="החודש הקודם" onClick={() => step(-1)}>
           ›
         </button>
         <h2>{monthTitle(month)}</h2>
-        <button className="icon" aria-label="החודש הבא" onClick={() => goToMonth(shiftMonth(month, 1))}>
+        <button className="icon" aria-label="החודש הבא" onClick={() => step(1)}>
           ‹
         </button>
       </div>
@@ -131,6 +141,22 @@ export function Calendar() {
         ))}
       </div>
 
+      <div
+        key={month}
+        className={slide ? `month-body slide-${slide}` : 'month-body'}
+        onTouchStart={(e) => {
+          const t = e.touches[0];
+          touch.current = e.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null;
+        }}
+        onTouchEnd={(e) => {
+          const start = touch.current;
+          touch.current = null;
+          if (!start) return;
+          const t = e.changedTouches[0];
+          const delta = swipeMonthStep(t.clientX - start.x, t.clientY - start.y);
+          if (delta !== 0) step(delta);
+        }}
+      >
       {shifts.error && <p className="error">{shifts.error}</p>}
       {shifts.loading && !shifts.data && (view === 'month' ? <SkeletonGrid /> : <SkeletonList rows={6} />)}
 
@@ -154,6 +180,7 @@ export function Calendar() {
       {shifts.data && view === 'list' && (
         <RosterList month={month} today={today} byNight={byNight} filter={filter} counts={counts} />
       )}
+      </div>
     </div>
   );
 }
