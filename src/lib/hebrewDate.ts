@@ -165,3 +165,20 @@ export function holidayOn(iso: string): Holiday | null {
       return null;
   }
 }
+
+/** Extra marks for a date besides its holiday: the eve of a day of rest, and Shabbat or its eve. */
+export interface DayMarks {
+  holiday: Holiday | null;
+  /** "ערב פסח" etc.: the day before a day of rest (yom tov or Yom Kippur), unless it is one itself. */
+  eve: string | null;
+  /** Saturday is Shabbat, Friday is its eve. A night shift dated Saturday is the night of Shabbat. */
+  shabbat: 'shabbat' | 'eve' | null;
+}
+
+export function dayMarks(iso: string): DayMarks {
+  const holiday = holidayOn(iso);
+  const next = holidayOn(addDays(iso, 1));
+  const eve = next?.major && !holiday?.major ? `ערב ${next.name.split(' · ')[0]}` : null;
+  const weekday = dayOfWeek(iso);
+  return { holiday, eve, shabbat: weekday === SAT ? 'shabbat' : weekday === FRI ? 'eve' : null };
+}

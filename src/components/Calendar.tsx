@@ -26,7 +26,7 @@ import { ShiftCell, shiftClasses } from './ShiftCell';
 import { DecisionsCard, NextShiftCard } from './Summary';
 import { SkeletonGrid, SkeletonList } from './Skeleton';
 import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
-import { hebrewDate, hebrewDay, hebrewMonthsBetween, holidayOn } from '../lib/hebrewDate';
+import { dayMarks, hebrewDate, hebrewDay, hebrewMonthsBetween } from '../lib/hebrewDate';
 import { useHebrewDates } from '../lib/hebrewSetting';
 import { HebrewLine, HolidayTag } from './HolidayTag';
 
@@ -149,13 +149,15 @@ export function Calendar() {
       </div>
       <RosterShare month={month} shifts={shifts.data} />
 
-      <div className="filters">
-        {FILTERS.map(([value, label]) => (
-          <button key={value} className={filter === value ? 'chip selected' : 'chip'} onClick={() => setFilter(value)}>
-            {label}
-          </button>
-        ))}
-      </div>
+      {view === 'list' && (
+        <div className="filters">
+          {FILTERS.map(([value, label]) => (
+            <button key={value} className={filter === value ? 'chip selected' : 'chip'} onClick={() => setFilter(value)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div
         key={month}
@@ -186,7 +188,6 @@ export function Calendar() {
             today={today}
             selected={selected}
             byNight={byNight}
-            filter={filter}
             onSelect={setSelected}
           />
           <DayDetails night={selected} shifts={byNight.get(selected)} counts={counts} />
@@ -208,11 +209,10 @@ interface GridProps {
   today: string;
   selected: string;
   byNight: Map<string, NightShifts>;
-  filter: Filter;
   onSelect: (night: string) => void;
 }
 
-function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect }: GridProps) {
+function MonthGrid({ month, from, to, today, selected, byNight, onSelect }: GridProps) {
   const me = useMe();
   const [hebrew] = useHebrewDates();
   const days: string[] = [];
@@ -227,9 +227,10 @@ function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect
       ))}
       {days.map((day) => {
         const night = byNight.get(day);
-        const holiday = holidayOn(day);
+        const { holiday, eve, shabbat } = dayMarks(day);
         const classes = ['day'];
         if (holiday) classes.push(holiday.major ? 'holiday major' : 'holiday');
+        if (shabbat === 'shabbat') classes.push('shabbat');
         if (monthKey(day) !== month) classes.push('other-month');
         if (day === today) classes.push('today');
         if (day === selected) classes.push('selected');
@@ -242,27 +243,27 @@ function MonthGrid({ month, from, to, today, selected, byNight, filter, onSelect
                 e.stopPropagation();
                 onSelect(day);
               }}
-              aria-label={[formatDate(day), nightLabel(day), hebrew ? hebrewDate(day) : '', holiday?.name ?? '']
+              aria-label={[formatDate(day), nightLabel(day), hebrew ? hebrewDate(day) : '', holiday?.name ?? '', eve ?? '']
                 .filter(Boolean)
                 .join(', ')}
               aria-pressed={day === selected}
-              title={holiday?.name}
+              title={[holiday?.name, eve].filter(Boolean).join(' · ') || undefined}
             >
               {dayOfMonth(day)}
               {hebrew && <span className="hebrew-day">{hebrewDay(day)}</span>}
               {holiday && <span className="holiday-dot" aria-hidden="true" />}
+              {!holiday && eve && <span className="holiday-dot eve" aria-hidden="true" />}
             </button>
             {([1, 2] as const).map((slot) => {
               const shift = night?.[slot];
               if (!shift) return null;
               const mine = me.isMine(shift.assignee);
               const chipClasses = shiftClasses(shift, mine).replace('shift-cell', 'day-chip');
-              const dim = matchesFilter(shift, filter, me) ? '' : ' dim';
               const name = shift.assignee ?? 'פנוי';
               return (
                 <button
                   key={slot}
-                  className={chipClasses + dim}
+                  className={chipClasses}
                   title={name}
                   aria-label={`${SLOT_HOURS[slot]} ${name}${shift.swap_requested ? ', בקשת חילוף' : ''}`}
                   onClick={(e) => {
@@ -316,6 +317,12 @@ function Legend({ month }: { month: string }) {
         </span>
         <span className="legend-item">
           <span className="legend-holiday" aria-hidden="true" /> חג או מועד
+        </span>
+        <span className="legend-item">
+          <span className="legend-holiday eve" aria-hidden="true" /> ערב חג
+        </span>
+        <span className="legend-item">
+          <span className="legend-shabbat" aria-hidden="true" /> שבת
         </span>
         {!showNote && (
           <button className="link small" onClick={() => setShowNote(true)}>

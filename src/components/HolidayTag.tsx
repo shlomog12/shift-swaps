@@ -1,17 +1,23 @@
-import { hebrewDate, holidayOn } from '../lib/hebrewDate';
+import { dayMarks, hebrewDate } from '../lib/hebrewDate';
 import { useHebrewDates } from '../lib/hebrewSetting';
 
-/** A small tag naming the holiday, fast or memorial day on that night, if any. */
+/** Tags for the holiday, the eve of a day of rest, and Shabbat or its eve, on that night; none if plain. */
 export function HolidayTag({ night }: { night: string }) {
-  const holiday = holidayOn(night);
-  if (!holiday) return null;
-  return <span className={holiday.major ? 'tag holiday-tag major' : 'tag holiday-tag'}>{holiday.name}</span>;
+  const { holiday, eve, shabbat } = dayMarks(night);
+  return (
+    <>
+      {holiday && <span className={holiday.major ? 'tag holiday-tag major' : 'tag holiday-tag'}>{holiday.name}</span>}
+      {eve && <span className="tag holiday-tag eve">{eve}</span>}
+      {shabbat && <span className="tag shabbat-tag">{shabbat === 'shabbat' ? 'שבת' : 'ערב שבת'}</span>}
+    </>
+  );
 }
 
-/** The Hebrew date (when the user shows Hebrew dates) and any holiday, under a night's heading. */
+/** The Hebrew date (when the user shows Hebrew dates) and the day's tags, under a night's heading. */
 export function HebrewLine({ night }: { night: string }) {
   const [hebrew] = useHebrewDates();
-  if (!hebrew && !holidayOn(night)) return null;
+  const { holiday, eve, shabbat } = dayMarks(night);
+  if (!hebrew && !holiday && !eve && !shabbat) return null;
   return (
     <p className="hebrew-line">
       {hebrew && <span className="muted small">{hebrewDate(night)}</span>}

@@ -60,6 +60,9 @@ Requested after the review:
 42. Optional Hebrew dates (calendar toolbar or profile): Hebrew day in each cell, Hebrew months under the
     month title, the full Hebrew date in day details, lists and the shift sheet. Holidays, fasts and
     memorial days are always marked (dot in the grid, tag with the name), with Israeli rules for moved days.
+43. Eves of days of rest (hollow ring in the grid, "ערב פסח" tag) and Shabbat (tinted Saturday cells,
+    "שבת" / "ערב שבת" tags); the legend explains both.
+44. The all / mine / open / swaps filters appear only in list view; the month grid always shows everything.
 
 ## Setup still to do (owner)
 

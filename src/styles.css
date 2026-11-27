@@ -19,6 +19,7 @@
   --accent: #f1c453;
   --accent-text: #1b2330;
   --shadow: rgb(0 0 0 / 8%);
+  --shabbat-bg: #eef1f8;
   --holiday: #8a4fc4;
   --holiday-bg: #f3ecfb;
   --holiday-text: #5b2c8a;
@@ -929,9 +930,6 @@ td.cell-changed {
   opacity: 0.55;
 }
 
-.day-chip.dim {
-  opacity: 0.2;
-}
 
 @media (min-width: 700px) {
   .day {
@@ -1061,6 +1059,7 @@ td.cell-changed {
     --bar-bg: #141b26;
     --bar-text: #e6eaf0;
     --shadow: rgb(0 0 0 / 40%);
+    --shabbat-bg: #1f2735;
     --holiday: #b98ae8;
     --holiday-bg: #2a2038;
     --holiday-text: #dcc4f5;
@@ -1937,6 +1936,45 @@ button.icon {
 }
 
 .night .holiday-tag {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  font-size: 0.65rem;
+  padding: 0 0.35rem;
+}
+
+/* Eve of a day of rest: a hollow ring; Shabbat: a faint tint on the Saturday cells. */
+.holiday-dot.eve,
+.legend-holiday.eve {
+  background: transparent;
+  border: 1.5px solid var(--holiday);
+}
+
+.day.shabbat:not(.holiday) {
+  background: var(--shabbat-bg);
+}
+
+.legend-shabbat {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--shabbat-bg);
+  border: 1px solid var(--border);
+}
+
+.holiday-tag.eve {
+  background: transparent;
+  font-weight: 400;
+}
+
+.shabbat-tag {
+  background: var(--shabbat-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+}
+
+.night .shabbat-tag {
   align-self: flex-start;
   margin-top: 0.15rem;
   font-size: 0.65rem;

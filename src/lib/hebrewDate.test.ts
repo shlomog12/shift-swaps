@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gematria, hebrewDate, hebrewDay, hebrewMonthsBetween, holidayOn } from './hebrewDate';
+import { dayMarks, gematria, hebrewDate, hebrewDay, hebrewMonthsBetween, holidayOn } from './hebrewDate';
 
 describe('Hebrew dates', () => {
   it('writes numbers in Hebrew letters', () => {
@@ -49,5 +49,22 @@ describe('holidays', () => {
     // 2025: 9 Av was Shabbat, so the fast moved to Sunday.
     expect(name('2025-08-03')).toBe('תשעה באב');
     expect(name('2025-08-02')).toBeNull();
+  });
+});
+
+describe('eves and Shabbat', () => {
+  it('marks the eve of a day of rest, but not the second day of a two-day holiday', () => {
+    expect(dayMarks('2026-09-20').eve).toBe('ערב יום כיפור');
+    expect(dayMarks('2026-09-11').eve).toBe('ערב ראש השנה');
+    expect(dayMarks('2026-09-12').eve).toBeNull(); // first day of Rosh Hashanah, the eve of the second
+    expect(dayMarks('2027-04-21').eve).toBe('ערב פסח');
+    expect(dayMarks('2026-10-02').eve).toBe('ערב שמיני עצרת'); // Hoshana Rabba is also the eve
+    expect(dayMarks('2026-11-20').eve).toBeNull();
+  });
+
+  it('marks Shabbat and its eve', () => {
+    expect(dayMarks('2026-11-28').shabbat).toBe('shabbat'); // Saturday
+    expect(dayMarks('2026-11-27').shabbat).toBe('eve'); // Friday
+    expect(dayMarks('2026-11-29').shabbat).toBeNull();
   });
 });
