@@ -74,6 +74,9 @@ that user, with that user's permissions. The history shows "<admin> בשם <user
 server (table `acting_as`) until the admin leaves it, and expires after 12 hours. A roster name nobody has
 claimed yet can only be viewed.
 
+The history is private: a user sees only the entries about them (they did it, an admin did it for them, or
+their roster name is in it). Only admins see all of it. The database enforces this.
+
 ### 5. E-mail notifications
 
 1. Create a free [Brevo](https://www.brevo.com) account, verify a sender address

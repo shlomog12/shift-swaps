@@ -113,7 +113,10 @@ export function History() {
 
   const days = useMemo(() => {
     const term = filter.trim();
+    // Only admins see the whole history (the server enforces it). The filter here also covers an admin in
+    // the user's view or acting as someone, whom the server still serves everything.
     const rows = (entries.data ?? [])
+      .filter((e) => me.profile.is_admin || involvesMe(e, me.profile.id, me.profile.display_name))
       .filter((e) =>
         show === 'all'
           ? true
@@ -140,15 +143,17 @@ export function History() {
       grouped.set(day, [...(grouped.get(day) ?? []), r]);
     }
     return [...grouped];
-  }, [entries.data, filter, show, me.profile.id, me.profile.display_name]);
+  }, [entries.data, filter, show, me.profile.id, me.profile.display_name, me.profile.is_admin]);
 
   const today = israelToday();
-  // Users only see the "users" filter when they are admins; for others it would only hold name choices.
-  const options = SHOW.filter(([value]) => value !== 'users' || me.profile.is_admin);
+  // For users everything shown is already theirs, so "related to me" adds nothing; the "users" filter would
+  // only hold their own name choice.
+  const options = SHOW.filter(([value]) => me.profile.is_admin || (value !== 'users' && value !== 'mine'));
 
   return (
     <div className="page">
       <h2>היסטוריה</h2>
+      {!me.profile.is_admin && <p className="muted small">הפעולות שקשורות אליך: המשמרות, החילופים וההצעות שלך.</p>}
       <div className="filters history-filters" role="group" aria-label="סינון">
         {options.map(([value, label]) => (
           <button

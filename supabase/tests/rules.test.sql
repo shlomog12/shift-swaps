@@ -439,4 +439,22 @@ select test.as_user('00000000-0000-0000-0000-00000000000c');
 select test.expect_error(format('select public.admin_act_as(%L)', :'b_id'), 'admin_only');
 reset role;
 
+-- History privacy: a user reads only entries about them, an admin reads all.
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.eq((select count(*) from public.audit_log
+                where not (actor_id is not distinct from '00000000-0000-0000-0000-00000000000c'
+                           or by_id is not distinct from '00000000-0000-0000-0000-00000000000c'
+                           or exists (select 1 from jsonb_each_text(details) d
+                                      where d.key in ('assignee', 'from', 'to', 'requester', 'volunteer', 'owner', 'user')
+                                        and lower(d.value) = lower(:'c_name')))),
+               0::bigint, 'a user reads only entries about them');
+select test.eq((select count(*) > 0 from public.audit_log where action = 'take' and night = :'p2' and slot = 1),
+               true, 'a user reads what an admin did for them');
+select test.eq((select count(*) from public.audit_log where action = 'import'), 0::bigint,
+               'a user does not read roster imports');
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select test.eq((select count(*) > 0 from public.audit_log where action = 'import'), true, 'an admin reads everything');
+reset role;
+
 \echo 'All rule tests passed.'

@@ -82,6 +82,8 @@ Requested after the review:
 52. Act as a user: any admin picks a roster name, sees the app as that user and can act for them; the
     server runs the action as that user and the history shows "<admin> בשם <user>". The calendar legend and
     list filters drop "mine" for a system admin, who otherwise has the same rights as any admin.
+53. History privacy: users see only entries about them (they did it, it was done for them, or their name is
+    in it); only admins see the whole history. Enforced by the database, not just hidden in the app.
 
 ## Setup still to do (owner)
 
@@ -124,6 +126,10 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 
 - [ ] **Act as a user (task 52)**: SQL Editor → run all of `supabase/migrations/20261207000000_act_as.sql`.
       Until then "בשם…" shows an error and the history has no "בשם" lines.
+
+- [ ] **History privacy (task 53)**: SQL Editor → run all of `supabase/migrations/20261208000000_history_privacy.sql`
+      (after the act-as one: it uses the new `by_id` column). Until then the app already shows users only
+      their own entries, but the database would still hand out the full history.
 
 ## Next, in recommended order
 
