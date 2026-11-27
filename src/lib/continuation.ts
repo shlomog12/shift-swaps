@@ -70,3 +70,36 @@ function remove(rows: ImportRow[], name: string) {
     if (same(row.slot2, name)) row.slot2 = null;
   }
 }
+
+/** Months the next roster covers by default. */
+export const DEFAULT_MONTHS = 3;
+
+/** The day `months` months after `iso` (the 31st of a short month falls back to its last day). */
+export function addMonths(iso: string, months: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const target = new Date(Date.UTC(y, m - 1 + months, 1));
+  const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(d, last));
+  return target.toISOString().slice(0, 10);
+}
+
+/**
+ * Default dates for the next roster: it starts on the first night from `today` with nobody on it (no shifts,
+ * or both shifts empty; one open shift in a built night does not count) and runs DEFAULT_MONTHS months. The
+ * source is the same number of days right before it, starting on the same weekday, so "keep the weekday"
+ * does not move the start. Null when there is no roster yet.
+ */
+export function defaultContinuationRange(
+  shifts: Shift[],
+  today: string,
+): { from: string; to: string; start: string; end: string } | null {
+  if (shifts.length === 0) return null;
+  const planned = (s: Shift) => ('planned_assignee' in s ? (s.planned_assignee ?? null) : s.assignee);
+  const filled = new Set(shifts.filter((s) => planned(s) || s.assignee).map((s) => s.night));
+  let start = today;
+  while (filled.has(start)) start = addDays(start, 1);
+  const end = addDays(addMonths(start, DEFAULT_MONTHS), -1);
+  const length = daysBetween(start, end) + 1;
+  const from = addDays(start, -7 * Math.ceil(length / 7));
+  return { from, to: addDays(from, length - 1), start, end };
+}

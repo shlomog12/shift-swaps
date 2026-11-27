@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alignedStart, generateContinuation } from './continuation';
+import { addMonths, alignedStart, defaultContinuationRange, generateContinuation } from './continuation';
 import { addDays } from './dates';
 import type { Shift } from './types';
 
@@ -58,5 +58,35 @@ describe('next roster', () => {
     expect(count(rows, 'רון')).toBe(0);
     expect(rows.filter((r) => r.slot1 === null || r.slot2 === null)).toHaveLength(5);
     expect(count(rows, 'אבי')).toBe(5); // nobody else gets them automatically
+  });
+});
+
+describe('defaultContinuationRange', () => {
+  it('starts at the first empty night and runs three months, from a same-weekday source', () => {
+    const shifts = [
+      shift('2026-12-01', 1, 'אבי'),
+      shift('2026-12-01', 2, 'דנה'),
+      shift('2026-12-02', 1, null), // one open shift: the night is still built
+      shift('2026-12-02', 2, 'רון'),
+      shift('2026-12-03', 1, null),
+      shift('2026-12-03', 2, null), // nobody on it: not built yet
+    ];
+    const r = defaultContinuationRange(shifts, '2026-12-01')!;
+    expect(r.start).toBe('2026-12-03');
+    expect(r.end).toBe('2027-03-02');
+    expect(r.to).toBe(addDays(r.from, 90 - 1));
+    expect(alignedStart(r.start, r.from)).toBe(r.start);
+    expect(r.to < r.start).toBe(true);
+  });
+
+  it('is null with no roster', () => {
+    expect(defaultContinuationRange([], '2026-12-01')).toBeNull();
+  });
+});
+
+describe('addMonths', () => {
+  it('keeps the day, or the last day of a shorter month', () => {
+    expect(addMonths('2026-12-03', 3)).toBe('2027-03-03');
+    expect(addMonths('2026-11-30', 3)).toBe('2027-02-28');
   });
 });

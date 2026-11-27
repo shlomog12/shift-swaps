@@ -141,6 +141,9 @@ Second review (after the paid swaps, notifications, phones and act-as work):
     menu (admins), and the original-roster banner has "חזרה לשיבוץ בפועל".
 75. Export: quick ranges (this month, next month, today to the end of the roster) and one line on "actual"
     vs "original".
+77. Next roster defaults: it starts on the first night from today with nobody on it (one open shift in a built
+    night does not count) and runs three months, built from the same number of days right before it on the
+    same weekday; "back to the default" once the dates were changed.
 
 ## Setup still to do (owner)
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { alignedStart, generateContinuation, type PeopleChange } from '../lib/continuation';
-import { SLOT_HOURS, addDays, dayName, daysBetween, formatDate, formatDateRange, nightLabel } from '../lib/dates';
+import { alignedStart, defaultContinuationRange, generateContinuation, type PeopleChange } from '../lib/continuation';
+import { SLOT_HOURS, addDays, dayName, daysBetween, formatDate, formatDateRange, israelToday, nightLabel } from '../lib/dates';
 import { useAction, useQuery } from '../lib/hooks';
 import type { ImportRow } from '../lib/importSheet';
 import { loadAllShifts, loadShifts } from '../lib/queries';
@@ -65,7 +65,6 @@ function readSaved(): Saved | null {
 export function ContinuationPanel() {
   const all = useQuery(loadAllShifts, []);
   const names = useQuery(api.rosterNames, []);
-  const lastNight = useMemo(() => (all.data ?? []).reduce((m, s) => (s.night > m ? s.night : m), ''), [all.data]);
 
   // Work in progress survives switching tabs, reloading and a dropped connection.
   const [restored] = useState(readSaved);
@@ -127,18 +126,25 @@ export function ContinuationPanel() {
     setJoiners([]);
     setDraft(null);
     setShowRestored(false);
-    setFrom(lastNight ? addDays(lastNight, -90) : '');
-    setTo(lastNight);
-    setStart(lastNight ? addDays(lastNight, 1) : '');
+    applyDefaults();
   }
 
-  // Defaults once the roster is loaded: the last three months as the source, starting the day after.
+  // Defaults: from the first night nobody is on yet, three months ahead, built from the same number of days
+  // right before it.
+  const defaults = useMemo(() => (all.data ? defaultContinuationRange(all.data, israelToday()) : null), [all.data]);
+  function applyDefaults() {
+    setFrom(defaults?.from ?? '');
+    setTo(defaults?.to ?? '');
+    setStart(defaults?.start ?? '');
+    setDraft(null);
+  }
   useEffect(() => {
-    if (!lastNight || to) return;
-    setTo(lastNight);
-    setFrom(addDays(lastNight, -90));
-    setStart(addDays(lastNight, 1));
-  }, [lastNight, to]);
+    if (!defaults || to) return;
+    setFrom(defaults.from);
+    setTo(defaults.to);
+    setStart(defaults.start);
+  }, [defaults, to]);
+  const isDefault = Boolean(defaults && from === defaults.from && to === defaults.to && start === defaults.start);
 
   const effectiveStart = from && start ? (keepWeekday ? alignedStart(start, from) : start) : '';
   const length = from && to ? daysBetween(from, to) + 1 : 0;
@@ -346,6 +352,17 @@ export function ContinuationPanel() {
           {end && (
             <p className="small">
               הלוח החדש: <strong>{formatDateRange(effectiveStart, end, true)}</strong> (מיום {dayName(effectiveStart)}).
+            </p>
+          )}
+          {defaults && (
+            <p className="muted small">
+              {isDefault ? (
+                'ברירת המחדל: מהלילה הראשון שעוד אין בו שיבוץ, לשלושה חודשים, לפי אותו מספר ימים שלפניו.'
+              ) : (
+                <button className="link small" onClick={applyDefaults}>
+                  חזרה לברירת המחדל: מ־{formatDate(defaults.start)}, לשלושה חודשים
+                </button>
+              )}
             </p>
           )}
 
