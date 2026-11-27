@@ -465,91 +465,66 @@ function AdminAssign({
   planned,
 }: ShiftKey & { current: string | null; planned: string | null | undefined }) {
   const [name, setName] = useState(current ?? '');
-  // The change waiting for the admin's choice: only this time, or in the original roster too.
-  const [pending, setPending] = useState<{ to: string | null } | null>(null);
+  // An admin's change is a one-off unless this is ticked: then the original roster changes too.
+  const [updatePlan, setUpdatePlan] = useState(false);
   const names = useQuery(api.rosterNames, []);
   const { busy, error, run } = useAction();
-  const { toast } = useFeedback();
-  // `planned` is undefined until the planned-roster migration is applied; then there is nothing to choose.
+  const { confirm, toast } = useFeedback();
+  // `planned` is undefined until the planned-roster migration is applied; then there is no checkbox.
   const hasPlan = planned !== undefined;
   const target = name.trim() || null;
+  const changes = target !== current || (updatePlan && hasPlan && target !== (planned ?? null));
 
-  function save(to: string | null, updatePlan: boolean) {
-    setPending(null);
+  function save(to: string | null) {
+    const plan = hasPlan && updatePlan;
     run(
-      () => api.adminSetAssignee(night, slot, to, updatePlan),
-      () => toast((to ? `המשמרת שובצה ל${to}` : 'המשמרת פונתה') + (updatePlan ? ', גם בלוח המקורי' : ', רק הפעם')),
+      () => api.adminSetAssignee(night, slot, to, plan),
+      () => toast((to ? `המשמרת שובצה ל${to}` : 'המשמרת פונתה') + (plan ? ', גם ברשימה המקורית' : '')),
     );
-  }
-
-  function ask(to: string | null) {
-    if (hasPlan) setPending({ to });
-    else save(to, false);
   }
 
   return (
     <section className="admin-box">
       <h3>עריכת מנהל</h3>
-      {hasPlan && planned !== current && (
-        <p className="small">
-          במקור: <strong>{planned ?? 'פנוי'}</strong>
-        </p>
-      )}
       <form
         className="row"
         onSubmit={(e) => {
           e.preventDefault();
-          ask(target);
+          save(target);
         }}
       >
-        <input
-          list="roster-names"
-          value={name}
-          placeholder="שם (ריק = פנוי)"
-          onChange={(e) => {
-            setName(e.target.value);
-            setPending(null);
-          }}
-        />
+        <input list="roster-names" value={name} placeholder="שם (ריק = פנוי)" onChange={(e) => setName(e.target.value)} />
         <datalist id="roster-names">
           {(names.data ?? []).map((n) => (
             <option key={n.name} value={n.name} />
           ))}
         </datalist>
-        <button className="primary" disabled={busy || target === current}>
+        <button className="primary" disabled={busy || !changes}>
           שמירה
         </button>
       </form>
-      {current && !pending && (
-        <button className="link danger" disabled={busy} onClick={() => ask(null)}>
+      {hasPlan && (
+        <label className="toggle-row small">
+          <input type="checkbox" checked={updatePlan} onChange={(e) => setUpdatePlan(e.target.checked)} />
+          <span>להחליף גם ברשימה המקורית</span>
+        </label>
+      )}
+      {current && (
+        <button
+          className="link danger"
+          disabled={busy}
+          onClick={async () => {
+            const ok = await confirm({
+              title: 'לפנות את המשמרת?',
+              message: `המשמרת של ${current} תסומן כפנויה${hasPlan && updatePlan ? ', גם ברשימה המקורית' : ''}.`,
+              confirmLabel: 'פינוי',
+              danger: true,
+            });
+            if (ok) save(null);
+          }}
+        >
           פינוי המשמרת
         </button>
-      )}
-
-      {pending && (
-        <div className="plan-choice" role="group" aria-label="איפה לשמור את השינוי">
-          <p className="small">
-            {pending.to ? (
-              <>
-                לשבץ את <strong>{pending.to}</strong>
-              </>
-            ) : (
-              <strong>לפנות את המשמרת</strong>
-            )}
-            . לשמור את זה גם בלוח המקורי (הבסיס ללוח הבא)?
-          </p>
-          <div className="row wrap">
-            <button disabled={busy} onClick={() => save(pending.to, false)}>
-              רק הפעם
-            </button>
-            <button className="primary" disabled={busy} onClick={() => save(pending.to, true)}>
-              גם בלוח המקורי
-            </button>
-            <button className="link" disabled={busy} onClick={() => setPending(null)}>
-              ביטול
-            </button>
-          </div>
-        </div>
       )}
       {error && <p className="error">{error}</p>}
     </section>

@@ -114,8 +114,8 @@ shift sheet also keeps a one-off "add to Google Calendar" button.
 ### 7. The original roster and the next one
 
 Each shift keeps the **original** assignee (what the admin planned) next to the current one. Imports and
-building the roster set both; taking shifts, swaps and swap offers change only the current one. When an admin
-edits a single shift, the app asks each time: only this time, or in the original too.
+building the roster set both; taking shifts, swaps and swap offers change only the current one. An admin's edit of a
+single shift is a one-off too, unless "להחליף גם ברשימה המקורית" is ticked.
 
 After applying `20261206000000_planned_roster.sql`, go to **ניהול → בניית לוח → הלוח המקורי** and run
 "שחזור מההיסטוריה" once: it rebuilds the original from the history (undoing swaps back to each night's import)

@@ -2128,17 +2128,6 @@ select {
   background: var(--swap);
 }
 
-.plan-choice {
-  margin-top: 0.5rem;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid var(--mine-border);
-  background: var(--mine);
-  border-radius: 10px;
-}
-
-.plan-choice p {
-  margin: 0 0 0.3rem;
-}
 
 /* "<admin> בשם <user>" in the history */
 .by-label {
