@@ -28,6 +28,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   payment_cancelled: 'התשלום בוטל.',
   not_your_payment: 'זה לא תשלום שלך.',
   invalid_link: 'הקישור צריך להתחיל ב־https://',
+  no_push_device: 'למכשיר הזה עוד לא הופעלו התראות.',
+  invalid_subscription: 'הרישום להתראות נכשל. כדאי לנסות שוב.',
   note_too_long: 'ההערה ארוכה מדי (עד 300 תווים).',
   stale_offer: 'המשמרת השתנתה מאז ההתנדבות, ולכן אי אפשר לאשר אותה.',
   admin_only: 'הפעולה הזאת זמינה רק למנהלים.',
@@ -96,6 +98,13 @@ export const api = {
       ...priceArg(price),
     }),
   myPayments: () => call<SwapPayment[]>('my_payments'),
+  savePushSubscription: (endpoint: string, p256dh: string, auth: string) =>
+    call('save_push_subscription', { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth }),
+  deletePushSubscription: (endpoint: string) => call('delete_push_subscription', { p_endpoint: endpoint }),
+  myPushSettings: () =>
+    call<{ devices: number; reminders: boolean }[]>('my_push_settings').then((rows) => rows[0] ?? null),
+  setPushReminders: (on: boolean) => call('set_push_reminders', { p_on: on }),
+  sendTestPush: () => call('send_test_push'),
   adminOpenPayments: () => call<SwapPayment[]>('admin_open_payments'),
   markPaymentPaid: (id: number) => call('mark_payment_paid', { p_id: id }),
   markPaymentReceived: (id: number) => call('mark_payment_received', { p_id: id }),

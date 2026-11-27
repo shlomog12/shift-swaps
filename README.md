@@ -129,6 +129,21 @@ optionally on the same weekdays and with first and second shifts swapped, and wi
 (their shifts become open). Nothing is assigned automatically: the preview is an editable table where the
 admin fills a leaver's shifts (marked) and sets a newcomer's, and saving works like an import.
 
+### Phone notifications
+
+Web Push: works in Chrome / Edge / Firefox on Android and desktop, and on iPhone once the app is on the home
+screen. No e-mail needed.
+
+1. Run `supabase/migrations/20261210000000_push_notifications.sql` (it also schedules the evening shift
+   reminder when pg_cron is available).
+2. Create the edge function `push-send`: with the CLI, `supabase functions deploy push-send --no-verify-jwt`;
+   or in the dashboard (Edge Functions → Deploy a new function → Via Editor) paste
+   `supabase/dashboard/push-send.ts`, deploy, and turn off "Enforce JWT verification". It creates its own
+   keys on first use; no secrets to set.
+3. **Database → Webhooks → Create**: table `push_outbox`, event *Insert*, type *Supabase Edge Function*,
+   function `push-send`, method POST.
+4. In the app: profile → "התראות לטלפון" → turn on, then "שליחת התראת בדיקה".
+
 ### Exporting the roster
 
 **ניהול → ייבוא/ייצוא → ייצוא ל־CSV** downloads any date range as a CSV file (date, night, first shift,

@@ -516,4 +516,57 @@ reset role;
 select test.eq((select count(*) from public.email_outbox where subject like 'תשלום של ₪%'), 2::bigint,
                'payers are told what to pay');
 
+-- Phone notifications: devices subscribe, notices are queued for subscribed users, reminders the evening
+-- before a shift.
+reset role;
+select display_name as b_name from public.profiles where id = '00000000-0000-0000-0000-00000000000b' \gset
+select display_name as c_name from public.profiles where id = '00000000-0000-0000-0000-00000000000c' \gset
+select (f1 + 80)::text as q1 from test.d \gset
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select test.expect_error('select public.send_test_push()', 'no_push_device');
+select test.expect_error('select public.save_push_subscription(''http://x'', ''k'', ''a'')', 'invalid_subscription');
+select public.save_push_subscription('https://push.example/c1', 'key-c', 'auth-c');
+select public.save_push_subscription('https://push.example/c1', 'key-c2', 'auth-c2');
+select test.eq((select devices from public.my_push_settings()), 1, 'one device, updated in place');
+select public.send_test_push();
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.save_push_subscription('https://push.example/b1', 'key-b', 'auth-b');
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_add_nights(:'q1', :'q1');
+select public.admin_set_assignee(:'q1', 1::smallint, :'b_name');
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.request_swap(:'q1', 1::smallint);
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.offer_swap(:'q1', 1::smallint) as push_offer \gset
+select test.as_user('00000000-0000-0000-0000-00000000000b');
+select public.accept_offer(:push_offer);
+reset role;
+select test.eq((select count(*) from public.push_outbox where user_id = '00000000-0000-0000-0000-00000000000c'
+                and title = 'התראת בדיקה'), 1::bigint, 'test push queued');
+select test.eq((select count(*) from public.push_outbox where user_id = '00000000-0000-0000-0000-00000000000b'
+                and title like '%מוכן/ה לקחת את המשמרת שלך%'), 1::bigint, 'owner pushed about the volunteer');
+select test.eq((select count(*) from public.push_outbox where user_id = '00000000-0000-0000-0000-00000000000c'
+                and title like 'החילוף אושר%'), 1::bigint, 'volunteer pushed about the approval');
+select test.eq((select count(*) from public.push_outbox where user_id = '00000000-0000-0000-0000-00000000000a'), 0::bigint,
+               'no push without a device');
+
+-- Tonight's shift (dated tomorrow) gets a reminder; turning reminders off stops it.
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000a');
+select public.admin_add_nights((now() at time zone 'Asia/Jerusalem')::date + 1,
+                               (now() at time zone 'Asia/Jerusalem')::date + 1);
+select public.admin_set_assignee((now() at time zone 'Asia/Jerusalem')::date + 1, 2::smallint, :'c_name');
+reset role;
+select test.eq(public.queue_shift_reminders() >= 1, true, 'reminder queued');
+select test.eq((select count(*) > 0 from public.push_outbox where user_id = '00000000-0000-0000-0000-00000000000c'
+                and title = 'תזכורת: משמרת הלילה' and url like './?shift=%_2'), true, 'reminder links the shift');
+set role authenticated;
+select test.as_user('00000000-0000-0000-0000-00000000000c');
+select public.set_push_reminders(false);
+select test.eq((select reminders from public.my_push_settings()), false, 'reminders off');
+reset role;
+delete from public.push_outbox where title = 'תזכורת: משמרת הלילה';
+select test.eq(public.queue_shift_reminders(), 0, 'no reminder when turned off');
+
 \echo 'All rule tests passed.'

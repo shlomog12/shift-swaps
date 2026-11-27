@@ -84,6 +84,9 @@ Requested after the review:
     return; whoever hands over the shift pays whoever takes it; a "payments" card in "mine" with how to pay
     (the payee's phone for Bit/PayBox, or a PayBox link) and "paid" / "received"; admins see open payments
     and can cancel one.
+54. Phone notifications (Web Push, no e-mail): every existing notice also goes to subscribed devices, plus an
+    evening reminder before a shift (pg_cron); profile section to turn on/off, test, and reminders on/off.
+15. (Done as part of 54: reminders by phone notification instead of e-mail.)
 52. Act as a user: any admin picks a roster name, sees the app as that user and can act for them; the
     server runs the action as that user and the history shows "<admin> בשם <user>". The calendar legend and
     list filters drop "mine" for a system admin, who otherwise has the same rights as any admin.
@@ -138,6 +141,12 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
 
 - [ ] **Paid swaps**: SQL Editor → run all of `supabase/migrations/20261209000000_paid_swaps.sql`.
 
+- [ ] **Phone notifications**: (1) SQL Editor → run all of `supabase/migrations/20261210000000_push_notifications.sql`.
+      (2) Edge Functions → Deploy a new function → Via Editor → name `push-send` → paste
+      `supabase/dashboard/push-send.ts` → Deploy → turn off "Enforce JWT verification".
+      (3) Database → Webhooks → Create: table `push_outbox`, Insert, Supabase Edge Function `push-send`, POST.
+      (4) App → profile → "התראות לטלפון" → turn on → "שליחת התראת בדיקה".
+
 ## Next, in recommended order
 
 Nothing left before the last group.
@@ -150,5 +159,4 @@ Nothing left before the last group.
 
 ## Last (decide at the end)
 
-15. Reminder by e-mail or push X hours before a shift (Supabase cron + the existing e-mail queue).
 25. Profile: notification preferences (only if task 15 is built).
