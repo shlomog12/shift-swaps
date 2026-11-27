@@ -7,7 +7,6 @@ import { isIos, isStandalone, useInstall } from '../lib/pwa';
 import { supabase } from '../lib/supabase';
 import { MyPhoneSection } from './MyPhone';
 import { CalendarFeedSection } from './CalendarFeed';
-import { PaymentDetailsSection } from './PaidSwap';
 import { PushSection } from './PushSection';
 import { ShareIosIcon } from './Icons';
 import { setShareOffersEnabled, shareOffersEnabled, useFeedback } from './Feedback';
@@ -84,7 +83,6 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
         {me.profile.display_name && <CalendarFeedSection />}
         <MyPhoneSection />
         <PushSection />
-        {me.profile.display_name && <PaymentDetailsSection />}
 
         <section className="profile-section">
           <h3>הגדרות</h3>

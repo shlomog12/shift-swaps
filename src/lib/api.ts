@@ -110,12 +110,9 @@ export const api = {
   markPaymentReceived: (id: number) => call('mark_payment_received', { p_id: id }),
   adminCancelPayment: (id: number) => call('admin_cancel_payment', { p_id: id }),
   paymentContact: (id: number) =>
-    call<{ name: string; phone: string | null; link: string | null }[]>('payment_contact', { p_id: id }).then(
+    call<{ name: string; phone: string | null }[]>('payment_contact', { p_id: id }).then(
       (rows) => rows[0] ?? null,
     ),
-  myPaymentDetails: () =>
-    call<{ phone: string | null; link: string | null }[]>('my_payment_details').then((rows) => rows[0] ?? null),
-  setMyPaymentLink: (link: string) => call('set_my_payment_link', { p_link: link }),
   withdrawSwapRequest: (requestId: number) => call('withdraw_swap_request', { p_request_id: requestId }),
   acceptSwapRequest: (requestId: number) => call('accept_swap_request', { p_request_id: requestId }),
   declineSwapRequest: (requestId: number) => call('decline_swap_request', { p_request_id: requestId }),

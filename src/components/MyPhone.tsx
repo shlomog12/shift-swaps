@@ -63,7 +63,7 @@ export function MyPhoneSection() {
     <section className="profile-section">
       <h3>מספר הטלפון שלי</h3>
       <p className="muted small">
-        {WHO_SEES} משמש גם לתשלום בביט או בפייבוקס בחילופים בתשלום. לא חובה, ואפשר למחוק בכל רגע.
+        {WHO_SEES} משמש גם לתשלום בפייבוקס בחילופים בתשלום. לא חובה, ואפשר למחוק בכל רגע.
       </p>
       {me.profile.is_admin && (
         <p className="small warning-note">

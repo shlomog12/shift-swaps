@@ -82,13 +82,13 @@ Requested after the review:
 52. CSV export of any date range (current or original), Excel-friendly and re-importable.
 53. Paid swaps: an amount (default ₪250, up to ₪500) on a swap request or a direct offer with nothing in
     return; whoever hands over the shift pays whoever takes it; a "payments" card in "mine" with how to pay
-    (the payee's phone for Bit/PayBox, or a PayBox link) and "paid" / "received"; admins see open payments
+    (copies the payee's phone, to paste in PayBox) and "paid" / "received"; admins see open payments
     and can cancel one.
 54. Phone notifications (Web Push, no e-mail): every existing notice also goes to subscribed devices, plus an
     evening reminder before a shift (pg_cron); profile section to turn on/off, test, and reminders on/off.
 55. A phone number for every user ("מספר הטלפון שלי" in the profile, suggested once after picking a name):
     WhatsApp messages to a specific person open their chat directly; payments use the same number for
-    Bit/PayBox. Approved members see each other's numbers.
+    PayBox. Approved members see each other's numbers.
 56. "Act as a user": one name per line.
 15. (Done as part of 54: reminders by phone notification instead of e-mail.)
 52. Act as a user: any admin picks a roster name, sees the app as that user and can act for them; the
