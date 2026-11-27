@@ -73,6 +73,10 @@ Requested after the review:
     marked, spelling-tolerant search); a new name not on the roster sits behind its own option.
 49. System admin: an admin without a roster name ("אחראי מערכת"), approved in one step; full admin rights,
     no taking or swapping shifts, no "mine" tab.
+50. Original roster: kept next to the current one, rebuilt from the history with a preview, optional
+    "update the original too" on admin edits, an original view in the calendar and the fairness report.
+51. Next roster from the original: same order, same weekday option, first/second swap, replace / leave
+    (open or spread) / join (fair share), preview, then saved like an import.
 
 ## Setup still to do (owner)
 

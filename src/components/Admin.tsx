@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { SLOT_HOURS, addDays, formatDate, formatDateRange, formatDateTime, israelToday, nightLabel } from '../lib/dates';
+import { addDays, formatDate, formatDateRange, formatDateTime, israelToday } from '../lib/dates';
 import { sameName, useAction, useMe, useQuery } from '../lib/hooks';
-import { parseSheet, type ImportResult, type ImportRow } from '../lib/importSheet';
+import { parseSheet, type ImportResult } from '../lib/importSheet';
 import { loadShifts } from '../lib/queries';
 import { appLink } from '../lib/share';
 import { SYSTEM_ADMIN_LABEL, type AdminUser, type Shift } from '../lib/types';
 import { useFocusTrap } from '../lib/focusTrap';
 import { useFeedback } from './Feedback';
+import { PreviewTable, rowState, type RowState } from './ImportPreview';
 import { AdminNamePicker } from './AdminNamePicker';
 import { MoreIcon } from './Icons';
+import { ContinuationPanel } from './ContinuationPanel';
 import { PlanPanel } from './PlanPanel';
 import { OpenSoonAlert, ReportsPanel } from './Reports';
 import { SkeletonList } from './Skeleton';
@@ -63,6 +65,7 @@ export function Admin() {
         {tab === 'nights' && (
           <>
             <PlanPanel />
+            <ContinuationPanel />
             <NightsPanel />
           </>
         )}
@@ -71,8 +74,6 @@ export function Admin() {
     </div>
   );
 }
-
-type RowState = 'new' | 'changed' | 'same';
 
 interface Preview extends ImportResult {
   states: Map<string, RowState>;
@@ -191,55 +192,10 @@ function ImportPanel() {
               תאריכים כפולים (נלקחה השורה האחרונה): {preview.duplicates.map(formatDate).join(', ')}
             </p>
           )}
-          <div className="table-wrap">
-            <table className="preview">
-              <thead>
-                <tr>
-                  <th>תאריך</th>
-                  <th>{SLOT_HOURS[1]}</th>
-                  <th>{SLOT_HOURS[2]}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {preview.rows.map((row) => {
-                  const state = preview.states.get(row.night)!;
-                  return (
-                    <tr key={row.night} className={`state-${state}`}>
-                      <td>
-                        {formatDate(row.night)}
-                        <div className="muted small">{nightLabel(row.night)}</div>
-                      </td>
-                      <PreviewCell value={row.slot1} old={preview.existing.get(`${row.night}/1`)} />
-                      <PreviewCell value={row.slot2} old={preview.existing.get(`${row.night}/2`)} />
-                      <td className="small">{state === 'new' ? 'חדש' : state === 'changed' ? 'שינוי' : 'זהה'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <PreviewTable rows={preview.rows} existing={preview.existing} />
         </>
       )}
     </section>
-  );
-}
-
-function rowState(row: ImportRow, existing: Map<string, Shift>): RowState {
-  const first = existing.get(`${row.night}/1`);
-  const second = existing.get(`${row.night}/2`);
-  if (!first && !second) return 'new';
-  const same = first?.assignee === row.slot1 && second?.assignee === row.slot2;
-  return same ? 'same' : 'changed';
-}
-
-function PreviewCell({ value, old }: { value: string | null; old: Shift | undefined }) {
-  const changed = old !== undefined && old.assignee !== value;
-  return (
-    <td className={changed ? 'cell-changed' : undefined}>
-      {value ?? <span className="muted">פנוי</span>}
-      {changed && <div className="muted small">היה: {old.assignee ?? 'פנוי'}</div>}
-    </td>
   );
 }
 
