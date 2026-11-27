@@ -193,7 +193,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
               {isAdmin ? 'מעבר למצב משתמש' : 'מעבר למצב מנהל'}
             </button>
           )}
-          {profile.is_admin && !viewing && (
+          {isAdmin && (
             <button
               className="mode-toggle icon-only"
               onClick={() => setPickingViewAs(true)}
