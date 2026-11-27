@@ -12,6 +12,7 @@ import { PreviewTable, rowState, type RowState } from './ImportPreview';
 import { AdminNamePicker } from './AdminNamePicker';
 import { MoreIcon } from './Icons';
 import { ContinuationPanel } from './ContinuationPanel';
+import { ExportPanel } from './ExportPanel';
 import { PlanPanel } from './PlanPanel';
 import { OpenSoonAlert, ReportsPanel } from './Reports';
 import { SkeletonList } from './Skeleton';
@@ -34,7 +35,7 @@ export function Admin() {
     ['users', 'משתמשים'],
     ['reports', 'דוחות'],
     ['nights', 'בניית לוח'],
-    ['import', 'ייבוא'],
+    ['import', 'ייבוא/ייצוא'],
   ];
 
   return (
@@ -69,7 +70,12 @@ export function Admin() {
             <NightsPanel />
           </>
         )}
-        {tab === 'import' && <ImportPanel />}
+        {tab === 'import' && (
+          <>
+            <ExportPanel />
+            <ImportPanel />
+          </>
+        )}
       </div>
     </div>
   );

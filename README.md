@@ -129,6 +129,12 @@ optionally on the same weekdays and with first and second shifts swapped, and wi
 (their shifts become open). Nothing is assigned automatically: the preview is an editable table where the
 admin fills a leaver's shifts (marked) and sets a newcomer's, and saving works like an import.
 
+### Exporting the roster
+
+**ניהול → ייבוא/ייצוא → ייצוא ל־CSV** downloads any date range as a CSV file (date, night, first shift,
+second shift), current or original. It opens in Excel and Google Sheets with Hebrew intact, and the import
+accepts the same file back.
+
 ### 8. Moving the roster over
 
 In the **ניהול** tab, copy the table from Google Sheets (date, day, first shift, second shift), paste it,

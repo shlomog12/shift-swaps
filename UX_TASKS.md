@@ -79,6 +79,7 @@ Requested after the review:
 51. Next roster from the original: same order, same weekday option, first/second swap, replace or leave
     (shifts become open); nothing assigned automatically: an editable preview where the admin fills a
     leaver's marked shifts and sets a newcomer's; then saved like an import.
+52. CSV export of any date range (current or original), Excel-friendly and re-importable.
 52. Act as a user: any admin picks a roster name, sees the app as that user and can act for them; the
     server runs the action as that user and the history shows "<admin> בשם <user>". The calendar legend and
     list filters drop "mine" for a system admin, who otherwise has the same rights as any admin.
