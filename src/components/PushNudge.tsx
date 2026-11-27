@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useMe } from '../lib/hooks';
 import { enablePush, pushState } from '../lib/push';
+import { reminderTime } from '../lib/dates';
 import { useFeedback } from './Feedback';
 
 const NUDGE_KEY = 'push-nudge';
@@ -29,7 +30,7 @@ export function usePushNudge() {
       localStorage.setItem(NUDGE_KEY, String(Date.now()));
       const ok = await confirm({
         title: 'לקבל התראה לטלפון?',
-        message: `התראה לטלפון ${when}, וגם תזכורת בערב שלפני משמרת. בלי מייל, ואפשר לכבות בכל רגע בפרופיל.`,
+        message: `התראה לטלפון ${when}, וגם תזכורת בערב שלפני משמרת (בשעה ${reminderTime()}). בלי מייל, ואפשר לכבות בכל רגע בפרופיל.`,
         confirmLabel: 'הפעלת התראות',
         cancelLabel: 'לא עכשיו',
       });

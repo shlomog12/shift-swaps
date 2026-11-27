@@ -92,7 +92,7 @@ const ADMIN_MODE_KEY = 'admin-mode';
 
 function Shell({ profile, email }: { profile: Profile; email: string }) {
   const { refresh } = useRefresh();
-  const { confirm, toast } = useFeedback();
+  const { confirm, toast, toastUndo } = useFeedback();
   const [tab, setTab] = useState<Tab>('calendar');
   // A shift shared by link (e.g. on WhatsApp) opens right away.
   const [open, setOpen] = useState<ShiftKey | null>(readSharedShift);
@@ -138,13 +138,16 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
   );
 
   async function viewAs(name: string | null) {
+    const previous = viewing;
     const user = name ? (users.data ?? []).find((u) => u.status === 'approved' && sameName(u.display_name, name)) : undefined;
     try {
       if (user || acting.data) await api.adminActAs(user?.id ?? null);
       setViewOnly(name && !user ? name : null);
       setTab('calendar');
-      if (name) toast(user ? `מעכשיו הפעולות נעשות בשם ${name}` : `${name} עוד לא באפליקציה: תצוגה בלבד`, 'info');
-      else toast('יצאת מ"פעולה בשם"', 'info');
+      // Undo goes back to whoever was shown before (another name, or the admin's own view).
+      const back = () => viewAs(previous);
+      if (name) toastUndo(user ? `מעכשיו הפעולות נעשות בשם ${name}` : `${name} עוד לא באפליקציה: תצוגה בלבד`, back);
+      else if (previous) toastUndo('יצאת מ"פעולה בשם"', back);
     } catch (e) {
       toast((e as Error).message, 'error');
     } finally {

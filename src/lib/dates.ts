@@ -197,3 +197,12 @@ export function weekLabel(start: string, today: string): string {
   if (diff === 1) return 'שבוע הבא';
   return `שבוע ${formatDateRange(start, addDays(start, 6))}`;
 }
+
+/** The reminder job runs at 18:00 UTC (see the push-notifications migration). */
+const REMINDER_UTC_HOUR = 18;
+
+/** The evening reminder's time in Israel today, e.g. "20:00" in winter and "21:00" in summer. */
+export function reminderTime(now = new Date()): string {
+  const at = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), REMINDER_UTC_HOUR));
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' }).format(at);
+}

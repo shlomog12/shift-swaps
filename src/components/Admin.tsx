@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { addDays, formatDate, formatDateRange, formatDateTime, israelToday } from '../lib/dates';
-import { sameName, useAction, useMe, useQuery } from '../lib/hooks';
+import { sameName, useAction, useMe, useQuery, useRefresh } from '../lib/hooks';
 import { parseSheet, type ImportResult } from '../lib/importSheet';
 import { loadShifts } from '../lib/queries';
 import { appLink } from '../lib/share';
@@ -78,9 +78,15 @@ export function Admin() {
         )}
         {tab === 'nights' && (
           <>
-            <PlanPanel />
             <ContinuationPanel />
             <NightsPanel />
+            {/* Rare, and it cannot be undone: folded away below the everyday tools. */}
+            <details className="advanced">
+              <summary>
+                <strong>מתקדם:</strong> שחזור הלוח המקורי מההיסטוריה
+              </summary>
+              <PlanPanel />
+            </details>
           </>
         )}
         {tab === 'import' && (
@@ -467,6 +473,8 @@ function UsersPanel() {
 function UserActionsSheet({ user: u, onClose }: { user: AdminUser; onClose: () => void }) {
   const me = useMe();
   const { busy, error, run, confirm, toast, remove, block } = useUserActions();
+  const { toastUndo } = useFeedback();
+  const { refresh } = useRefresh();
   const sheetRef = useRef<HTMLDivElement>(null);
   useFocusTrap(sheetRef);
   const self = u.id === me.profile.id;
@@ -514,7 +522,16 @@ function UserActionsSheet({ user: u, onClose }: { user: AdminUser; onClose: () =
     );
     if (ok)
       run(() => api.adminSetAdmin(u.id, value), () => {
-        toast(value ? 'המנהל נוסף' : 'המנהל הוסר');
+        const message = value ? 'המנהל נוסף' : 'המנהל הוסר';
+        // Removing yourself takes away the rights needed to undo it.
+        if (self) toast(message);
+        else
+          toastUndo(message, () =>
+            api
+              .adminSetAdmin(u.id, !value)
+              .then(() => toast(value ? 'ההוספה בוטלה' : 'ההסרה בוטלה'), (e: Error) => toast(e.message, 'error'))
+              .finally(refresh),
+          );
         onClose();
       });
   }

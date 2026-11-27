@@ -127,6 +127,16 @@ Second review (after the paid swaps, notifications, phones and act-as work):
     does not mark their entries read.
 72. Payments open over 3 days count in the admin tab badge and the "דוחות" inner tab, flagged in the list;
     admins can mark a payment paid or received for the two sides, besides cancelling it.
+73. Undo in the toast (10 seconds): admin assignment or clearing in the shift sheet (also puts back the original
+    roster when that changed too), starting or leaving "act as", and adding/removing an admin (not yourself).
+    Swap requests cancelled by an assignment are not brought back.
+65. "בניית לוח": next roster first, then nights; "restore the original roster from history" folded under
+    "מתקדם".
+68. Shift sheet, admin edit: "בלוח המקורי: X" when the current assignee differs, with "החזרה למקורי".
+69. The reminder time (20:00 in winter, 21:00 in summer, from the 18:00 UTC job) in the profile and the
+    notifications offer; a toast when reminders are turned on or off.
+74. Reports: a swaps balance (handed over / taken / open shifts taken) and a payments balance (paid /
+    received / still owed / still due) per person for the month.
 
 ## Setup still to do (owner)
 
@@ -190,17 +200,12 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
       `supabase/migrations/20261212000000_payment_confirmation.sql`. Until then "לא קיבלתי" shows an error,
       and the admin's open payments list drops a payment as soon as it is marked paid.
 
-- [ ] **Inbox (task 71)**: SQL Editor → run all of `supabase/migrations/20261213000000_inbox.sql`.
+- [x] (applied) **Inbox (task 71)**: SQL Editor → run all of `supabase/migrations/20261213000000_inbox.sql`.
       Until then the bell is hidden; nothing else changes.
 
 ## Next, in recommended order
 
-65. "בניית לוח" order: next roster first, then nights, and "restore from history" under a folded "advanced".
 67. Calendar toolbar: Hebrew dates only in the profile; "original" behind a small "⋯" menu.
-68. Shift sheet, admin edit: show "במקור: X" when the current assignee differs from the original roster.
-69. Notifications: say the reminder time; a toast when the reminder switch changes.
-73. "Undo" in the toast after admin assignment, clearing and acting-for actions (about 10 seconds).
-74. Reports: payments balance (paid / received per person per month) and a swaps balance (given / taken).
 75. Export: one line on "original" vs "actual", and "this month" / "next month" shortcuts.
 76. Phone suggestion only in "mine", or after the first action where a phone helps (volunteering, payment).
 

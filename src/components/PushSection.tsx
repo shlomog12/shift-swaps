@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAction, useQuery } from '../lib/hooks';
 import { disablePush, enablePush, pushState, type PushState } from '../lib/push';
+import { reminderTime } from '../lib/dates';
 import { useFeedback } from './Feedback';
 
 /** Profile: phone notifications on this device, a test, and the evening reminder before a shift. */
@@ -24,7 +25,7 @@ export function PushSection() {
       <h3>התראות לטלפון</h3>
       <p className="muted small">
         התראה כשמישהו מתנדב למשמרת שלך או שולח לך הצעה, כשההתנדבות או ההצעה שלך אושרה, כשיש תשלום, ותזכורת בערב
-        שלפני משמרת. בלי מייל.
+        שלפני משמרת (בשעה {reminderTime()}). בלי מייל. כל ההתראות נשמרות גם בפעמון שבראש המסך.
       </p>
 
       {state === 'needs-install' && (
@@ -63,9 +64,15 @@ export function PushSection() {
               type="checkbox"
               checked={reminders}
               disabled={busy}
-              onChange={(e) => run(() => api.setPushReminders(e.target.checked))}
+              onChange={(e) => {
+                const on = e.target.checked;
+                run(
+                  () => api.setPushReminders(on),
+                  () => toast(on ? `התזכורות הופעלו: בערב שלפני משמרת, בשעה ${reminderTime()}` : 'התזכורות כובו'),
+                );
+              }}
             />
-            <span>תזכורת בערב שלפני משמרת</span>
+            <span>תזכורת בערב שלפני משמרת, בשעה {reminderTime()}</span>
           </label>
           <div className="row wrap">
             <button className="small" disabled={busy} onClick={() => run(api.sendTestPush, () => toast('נשלחה התראת בדיקה'))}>

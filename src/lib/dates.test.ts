@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   SLOT_HOURS,
   addDays,
+  reminderTime,
   hasStarted,
   formatDateRange,
   urgencyLabel,
@@ -54,5 +55,12 @@ describe('dates', () => {
     expect(weekLabel('2026-09-27', '2026-10-01')).toBe('השבוע');
     expect(weekLabel('2026-10-04', '2026-10-01')).toBe('שבוע הבא');
     expect(weekLabel('2026-10-11', '2026-10-01')).toBe(`שבוע ${formatDateRange('2026-10-11', '2026-10-17')}`);
+  });
+});
+
+describe('reminderTime', () => {
+  it('is 20:00 in Israeli winter and 21:00 in summer', () => {
+    expect(reminderTime(new Date('2026-12-15T10:00:00Z'))).toBe('20:00');
+    expect(reminderTime(new Date('2026-07-15T10:00:00Z'))).toBe('21:00');
   });
 });

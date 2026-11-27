@@ -2314,3 +2314,40 @@ select {
 .cell-field {
   display: flex;
 }
+
+/* A toast with "undo" */
+.toast.with-undo {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toast-undo {
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.15rem 0.75rem;
+  min-height: 32px;
+  font-weight: 600;
+}
+
+table.balance td:not(:first-child),
+table.balance th:not(:first-child) {
+  text-align: center;
+}
+
+table.balance tr.mine td:first-child {
+  font-weight: 700;
+}
+
+details.advanced {
+  margin: 0.75rem 0;
+}
+
+details.advanced > summary {
+  cursor: pointer;
+  padding: 0.6rem 0.2rem;
+  color: var(--muted);
+}

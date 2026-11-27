@@ -54,6 +54,8 @@ interface Feedback {
   /** Resolves to the entered text, or null when cancelled. */
   ask: (options: AskOptions) => Promise<string | null>;
   toast: (message: string, kind?: ToastKind) => void;
+  /** A success toast with a "ביטול" button that runs `undo`, shown longer (10 seconds). */
+  toastUndo: (message: string, undo: () => void) => void;
   /** Shows a dismissible WhatsApp offer that does not block the screen (unless the user turned these off). */
   shareOffer: (offer: ShareOffer) => void;
 }
@@ -74,9 +76,11 @@ interface Toast {
   id: number;
   message: string;
   kind: ToastKind;
+  undo?: () => void;
 }
 
 const TOAST_MS = 3500;
+const UNDO_MS = 10_000;
 
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [dialog, setDialog] = useState<DialogState | null>(null);
@@ -98,6 +102,11 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     setToasts((list) => [...list, { id, message, kind }]);
     window.setTimeout(() => setToasts((list) => list.filter((t) => t.id !== id)), TOAST_MS);
   }, []);
+  const toastUndo = useCallback((message: string, undo: () => void) => {
+    const id = ++nextId.current;
+    setToasts((list) => [...list, { id, message, kind: 'success', undo }]);
+    window.setTimeout(() => setToasts((list) => list.filter((t) => t.id !== id)), UNDO_MS);
+  }, []);
 
   const shareOffer = useCallback((offer: ShareOffer) => {
     if (!shareOffersEnabled()) return;
@@ -106,7 +115,10 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     shareTimer.current = window.setTimeout(() => setShare(null), SHARE_MS);
   }, []);
 
-  const value = useMemo(() => ({ confirm, ask, toast, shareOffer }), [confirm, ask, toast, shareOffer]);
+  const value = useMemo(
+    () => ({ confirm, ask, toast, toastUndo, shareOffer }),
+    [confirm, ask, toast, toastUndo, shareOffer],
+  );
 
   function close(result: boolean, text: string) {
     if (!dialog) return;
@@ -121,8 +133,19 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
       {dialog && <Dialog key={dialog.options.title} state={dialog} onClose={close} />}
       <div className="toasts" role="status" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className={`toast ${t.kind}`}>
+          <div key={t.id} className={t.undo ? `toast ${t.kind} with-undo` : `toast ${t.kind}`}>
             {t.message}
+            {t.undo && (
+              <button
+                className="toast-undo"
+                onClick={() => {
+                  setToasts((list) => list.filter((x) => x.id !== t.id));
+                  t.undo!();
+                }}
+              >
+                ביטול
+              </button>
+            )}
           </div>
         ))}
         {share && (

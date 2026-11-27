@@ -13,6 +13,7 @@ import {
   type Shift,
   type Slot,
   type SwapOffer,
+  type SwapPayment,
   type SwapRequest,
 } from './types';
 
@@ -152,4 +153,22 @@ export async function loadAllAudit(): Promise<AuditEntry[]> {
     all.push(...page);
     if (page.length < PAGE_ROWS) return all;
   }
+}
+
+/** Payments for shifts in a date range (admins see all of them). Empty before the paid-swaps migration. */
+export async function loadPayments(from: string, to: string): Promise<SwapPayment[]> {
+  const result = await supabase.from('swap_payments').select('*').gte('night', from).lte('night', to);
+  return result.error ? [] : (result.data as SwapPayment[]);
+}
+
+/** History entries that move a shift between people (swaps, accepted offers, taking an open shift). */
+export async function loadSwapEntries(from: string, to: string): Promise<AuditEntry[]> {
+  return check(
+    await supabase
+      .from('audit_log')
+      .select(AUDIT_COLUMNS)
+      .in('action', ['swap', 'accept_swap_request', 'take'])
+      .gte('night', from)
+      .lte('night', to),
+  ) as unknown as AuditEntry[];
 }

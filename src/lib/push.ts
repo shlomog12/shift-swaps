@@ -45,3 +45,4 @@ export async function disablePush(): Promise<void> {
   await api.deletePushSubscription(sub.endpoint).catch(() => undefined);
   await sub.unsubscribe();
 }
+

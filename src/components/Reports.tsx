@@ -4,7 +4,8 @@ import { israelToday, monthBounds, monthKey, monthTitle, shiftMonth } from '../l
 import { fairnessReport, openSoon } from '../lib/fairness';
 import { asPlanned } from '../lib/plan';
 import { useMe, useQuery, useRoster } from '../lib/hooks';
-import { loadShifts } from '../lib/queries';
+import { loadPayments, loadShifts, loadSwapEntries } from '../lib/queries';
+import { paymentBalances, swapBalances } from '../lib/balance';
 import { shiftLink } from '../lib/share';
 import type { Shift } from '../lib/types';
 import { ShiftListItem } from './Board';
@@ -132,6 +133,86 @@ export function ReportsPanel() {
           </ul>
         </>
       )}
+      <Balances from={from} to={to} />
     </section>
+  );
+}
+
+/** The month's swaps (handed over / taken) and payments (paid / received / still open), per person. */
+function Balances({ from, to }: { from: string; to: string }) {
+  const me = useMe();
+  const entries = useQuery(() => loadSwapEntries(from, to), [from, to]);
+  const payments = useQuery(() => loadPayments(from, to), [from, to]);
+  const swaps = useMemo(() => swapBalances(entries.data ?? []), [entries.data]);
+  const money = useMemo(() => paymentBalances(payments.data ?? []), [payments.data]);
+  const shekel = (n: number) => (n ? `₪${n}` : '–');
+
+  return (
+    <>
+      <h3>מאזן חילופים</h3>
+      {entries.error && <p className="error">{entries.error}</p>}
+      {entries.loading && !entries.data && <SkeletonList rows={3} />}
+      {entries.data && swaps.length === 0 && <p className="muted small">אין חילופים על משמרות החודש.</p>}
+      {swaps.length > 0 && (
+        <div className="table-wrap">
+          <table className="preview balance">
+            <thead>
+              <tr>
+                <th>שם</th>
+                <th>מסרו</th>
+                <th>לקחו</th>
+                <th>פנויות שלקחו</th>
+              </tr>
+            </thead>
+            <tbody>
+              {swaps.map((r) => (
+                <tr key={r.name} className={me.isMine(r.name) ? 'mine' : undefined}>
+                  <td>{r.name}</td>
+                  <td>{r.given || '–'}</td>
+                  <td>{r.taken || '–'}</td>
+                  <td>{r.open || '–'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="muted small">
+        לפי משמרות החודש. החלפה של משמרת במשמרת נספרת לשני הצדדים גם כמסירה וגם כלקיחה.
+      </p>
+
+      {payments.data && money.length > 0 && (
+        <>
+          <h3>מאזן תשלומים</h3>
+          <div className="table-wrap">
+            <table className="preview balance">
+              <thead>
+                <tr>
+                  <th>שם</th>
+                  <th>שילמו</th>
+                  <th>קיבלו</th>
+                  <th>עוד חייבים</th>
+                  <th>עוד מגיע להם</th>
+                </tr>
+              </thead>
+              <tbody>
+                {money.map((r) => (
+                  <tr key={r.name} className={me.isMine(r.name) ? 'mine' : undefined}>
+                    <td>{r.name}</td>
+                    <td>{shekel(r.paid)}</td>
+                    <td>{shekel(r.received)}</td>
+                    <td>{shekel(r.owes)}</td>
+                    <td>{shekel(r.due)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted small">
+            תשלומים שבוטלו לא נספרים. תשלום שסומן ששולם ולא נענה 7 ימים נספר כשולם.
+          </p>
+        </>
+      )}
+    </>
   );
 }

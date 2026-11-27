@@ -3,7 +3,7 @@ import { useFocusTrap } from '../lib/focusTrap';
 import { useIsRegistered } from '../lib/registered';
 import { api } from '../lib/api';
 import { SLOT_NAME, formatDate, formatDateTime, hasStarted, nightLabel, slotTime } from '../lib/dates';
-import { useAction, useMe, usePhoneOf, useQuery } from '../lib/hooks';
+import { useAction, useMe, usePhoneOf, useQuery, useRefresh } from '../lib/hooks';
 import { loadShift, loadShiftOffers, loadShiftRequests } from '../lib/queries';
 import type { ShiftKey, SwapOffer } from '../lib/types';
 import { googleCalendarUrl } from '../lib/calendar';
@@ -501,9 +501,12 @@ function AdminAssign({
   const [updatePlan, setUpdatePlan] = useState(false);
   const names = useQuery(api.rosterNames, []);
   const { busy, error, run } = useAction();
-  const { confirm, toast } = useFeedback();
+  const { confirm, toast, toastUndo } = useFeedback();
+  const { refresh } = useRefresh();
   // `planned` is undefined until the planned-roster migration is applied; then there is no checkbox.
   const hasPlan = planned !== undefined;
+  // The current assignee differs from the original roster: show what the original says.
+  const differs = hasPlan && (planned ?? '').toLowerCase() !== (current ?? '').toLowerCase();
   const roster = (names.data ?? []).map((n) => n.name);
   const check = checkName(name, roster);
   // A name that differs from a roster name only in spacing or case is saved as the roster's spelling.
@@ -512,15 +515,51 @@ function AdminAssign({
 
   function save(to: string | null) {
     const plan = hasPlan && updatePlan;
+    const before = { assignee: current, planned: planned ?? null };
     run(
       () => api.adminSetAssignee(night, slot, to, plan),
-      () => toast((to ? `המשמרת שובצה ל${to}` : 'המשמרת פונתה') + (plan ? ', גם בלוח המקורי' : '')),
+      () =>
+        toastUndo((to ? `המשמרת שובצה ל${to}` : 'המשמרת פונתה') + (plan ? ', גם בלוח המקורי' : ''), () =>
+          undo(before, plan),
+        ),
     );
+  }
+
+  /** Puts back who was on the shift (and in the original roster, when that changed too). */
+  async function undo(before: { assignee: string | null; planned: string | null }, plan: boolean) {
+    try {
+      if (plan) {
+        await api.adminSetAssignee(night, slot, before.planned, true);
+        if ((before.assignee ?? '') !== (before.planned ?? '')) {
+          await api.adminSetAssignee(night, slot, before.assignee, false);
+        }
+      } else {
+        await api.adminSetAssignee(night, slot, before.assignee, false);
+      }
+      toast(before.assignee ? `השיבוץ הוחזר ל${before.assignee}` : 'המשמרת הוחזרה לפנויה');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      refresh();
+    }
   }
 
   return (
     <section className="admin-box">
       <h3>עריכת מנהל</h3>
+      {differs && (
+        <p className="small plan-note">
+          בלוח המקורי: <strong>{planned ?? 'פנוי'}</strong>
+          {(planned ?? '') !== name.trim() && (
+            <>
+              {' '}
+              <button type="button" className="link small" onClick={() => setName(planned ?? '')}>
+                החזרה למקורי
+              </button>
+            </>
+          )}
+        </p>
+      )}
       <form
         className="row"
         onSubmit={async (e) => {
