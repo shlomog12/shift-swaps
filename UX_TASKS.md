@@ -139,12 +139,13 @@ Done in code, waiting for steps in Supabase. Order matters: database first, then
       (after the act-as one: it uses the new `by_id` column). Until then the app already shows users only
       their own entries, but the database would still hand out the full history.
 
-- [ ] **Paid swaps**: SQL Editor → run all of `supabase/migrations/20261209000000_paid_swaps.sql`.
+- [x] (applied) **Paid swaps**: SQL Editor → run all of `supabase/migrations/20261209000000_paid_swaps.sql`.
 
-- [ ] **Phone notifications**: (1) SQL Editor → run all of `supabase/migrations/20261210000000_push_notifications.sql`.
+- [x] (done, test notification arrived) **Phone notifications**: (1) SQL Editor → run all of `supabase/migrations/20261210000000_push_notifications.sql`.
       (2) Edge Functions → Deploy a new function → Via Editor → name `push-send` → paste
       `supabase/dashboard/push-send.ts` → Deploy → turn off "Enforce JWT verification".
-      (3) Database → Webhooks → Create: table `push_outbox`, Insert, Supabase Edge Function `push-send`, POST.
+      (3) SQL Editor → run `supabase/dashboard/push-outbox-trigger.sql` with PROJECT_REF replaced
+      (or a Database Webhook on push_outbox Insert → push-send).
       (4) App → profile → "התראות לטלפון" → turn on → "שליחת התראת בדיקה".
 
 ## Next, in recommended order
@@ -159,4 +160,4 @@ Nothing left before the last group.
 
 ## Last (decide at the end)
 
-25. Profile: notification preferences (only if task 15 is built).
+25. Profile: notification preferences. Partly done in 54 (evening reminders on/off); per-type choices only if asked.

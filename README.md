@@ -89,59 +89,10 @@ their roster name is in it). Only admins see all of it. The database enforces th
    supabase secrets set BREVO_API_KEY=... SENDER_EMAIL=... WEBHOOK_SECRET=<random string> \
      APP_URL=https://<github-user>.github.io/shift-swaps/
    ```
-3. **Database → Webhooks → Create**: table `email_outbox`, event *Insert*, type *Supabase Edge Function*,
-   function `send-emails`, add HTTP header `x-webhook-secret` with the same random string.
-
-Failed sends keep their error in `email_outbox.error`. Without this step the app works the same, just
-without e-mails.
-
-### 6. Calendar subscription (optional)
-
-Lets each user subscribe to their own shifts in Google Calendar or on an iPhone (profile → "המשמרות שלי ביומן").
-
-1. Run `supabase/migrations/20261203000000_calendar_feed.sql` in the SQL Editor (if you have not applied all
-   migrations yet).
-2. Deploy the function. It must run without a login, because calendar apps send none; the secret token in the
-   URL is the key, and users can replace it from the app:
-   ```sh
-   supabase functions deploy calendar-feed --no-verify-jwt
-   ```
-   It uses `APP_URL` (set in step 5) for the link in each event; without it the events simply have no link.
-
-Google refreshes subscribed calendars on its own schedule (usually every few hours, sometimes a day), so the
-shift sheet also keeps a one-off "add to Google Calendar" button.
-
-### 7. The original roster and the next one
-
-Each shift keeps the **original** assignee (what the admin planned) next to the current one. Imports and
-building the roster set both; taking shifts, swaps and swap offers change only the current one. An admin's edit of a
-single shift is a one-off too, unless "להחליף גם ברשימה המקורית" is ticked.
-
-After applying `20261206000000_planned_roster.sql`, go to **ניהול → בניית לוח → הלוח המקורי** and run
-"שחזור מההיסטוריה" once: it rebuilds the original from the history (undoing swaps back to each night's import)
-and shows every change before saving. Saving replaces the original of those shifts (all swaps since each night's
-import are dropped from it, an admin's "original too" edits stay), so it asks to type "שחזור" to confirm.
-Admins can then view the original in the calendar ("מקורי") and count
-by it in the reports.
-
-**יצירת לוח המשך** builds the next period from the original of an existing one: same order and spacing,
-optionally on the same weekdays and with first and second shifts swapped, and with people replaced or leaving
-(their shifts become open). Nothing is assigned automatically: the preview is an editable table where the
-admin fills a leaver's shifts (marked) and sets a newcomer's, and saving works like an import.
-
-### Phone notifications
-
-Web Push: works in Chrome / Edge / Firefox on Android and desktop, and on iPhone once the app is on the home
-screen. No e-mail needed.
-
-1. Run `supabase/migrations/20261210000000_push_notifications.sql` (it also schedules the evening shift
-   reminder when pg_cron is available).
-2. Create the edge function `push-send`: with the CLI, `supabase functions deploy push-send --no-verify-jwt`;
-   or in the dashboard (Edge Functions → Deploy a new function → Via Editor) paste
-   `supabase/dashboard/push-send.ts`, deploy, and turn off "Enforce JWT verification". It creates its own
-   keys on first use; no secrets to set.
-3. **Database → Webhooks → Create**: table `push_outbox`, event *Insert*, type *Supabase Edge Function*,
-   function `push-send`, method POST.
+3. Have new `push_outbox` rows call the function: in the SQL Editor run
+   `supabase/dashboard/push-outbox-trigger.sql` with `PROJECT_REF` replaced by the project's id (a trigger
+   with pg_net). A Database Webhook (Integrations → Database Webhooks: table `push_outbox`, *Insert*,
+   Supabase Edge Function `push-send`) does the same.
 4. In the app: profile → "התראות לטלפון" → turn on, then "שליחת התראת בדיקה".
 
 ### Exporting the roster
