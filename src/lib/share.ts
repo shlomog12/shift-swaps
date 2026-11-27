@@ -10,7 +10,9 @@ export function shiftLink(night: string, slot: Slot): string {
 
 /** The app's own address, for invitations and approval messages. */
 export function appLink(): string {
-  return `${window.location.origin}${window.location.pathname}`;
+  // "?s=2" changes nothing in the app. WhatsApp caches a link's preview per exact address, and the plain
+  // address was cached before the app had a preview image; bump the number if the preview changes again.
+  return `${window.location.origin}${window.location.pathname}?s=2`;
 }
 
 /** Opens WhatsApp with the text; with a phone (e.g. 972501234567) it goes straight to that chat. */
