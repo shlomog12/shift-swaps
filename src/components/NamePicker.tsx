@@ -3,6 +3,7 @@ import { api } from '../lib/api';
 import { useAction, useQuery } from '../lib/hooks';
 import { supabase } from '../lib/supabase';
 import { useFeedback } from './Feedback';
+import { LockIcon } from './Icons';
 
 export function NamePicker() {
   const names = useQuery(api.rosterNames, []);
@@ -51,7 +52,7 @@ export function NamePicker() {
               onClick={() => choose(n.name)}
             >
               {n.name}
-              {n.claimed && ' 🔒'}
+              {n.claimed && <LockIcon />}
             </button>
           ))}
         </div>

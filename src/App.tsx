@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Admin } from './components/Admin';
 import { api } from './lib/api';
 import { Board } from './components/Board';
@@ -9,6 +9,7 @@ import { AccessPending, Login, SetupMissing } from './components/Login';
 import { MyShifts } from './components/MyShifts';
 import { NamePicker } from './components/NamePicker';
 import { ProfileSheet } from './components/Profile';
+import { CalendarIcon, HistoryIcon, SettingsIcon, SwapIcon, UserIcon } from './components/Icons';
 import { ShiftSheet } from './components/ShiftSheet';
 import {
   MeContext,
@@ -30,12 +31,12 @@ import type { Profile, ShiftKey } from './lib/types';
 
 type Tab = 'calendar' | 'board' | 'mine' | 'history' | 'admin';
 
-const TABS: { id: Tab; label: string; icon: string; adminOnly?: boolean }[] = [
-  { id: 'calendar', label: 'יומן', icon: '📅' },
-  { id: 'board', label: 'חילופים', icon: '🔁' },
-  { id: 'mine', label: 'שלי', icon: '👤' },
-  { id: 'history', label: 'היסטוריה', icon: '🕓' },
-  { id: 'admin', label: 'ניהול', icon: '⚙️', adminOnly: true },
+const TABS: { id: Tab; label: string; icon: ReactNode; adminOnly?: boolean }[] = [
+  { id: 'calendar', label: 'יומן', icon: <CalendarIcon /> },
+  { id: 'board', label: 'חילופים', icon: <SwapIcon /> },
+  { id: 'mine', label: 'שלי', icon: <UserIcon /> },
+  { id: 'history', label: 'היסטוריה', icon: <HistoryIcon /> },
+  { id: 'admin', label: 'ניהול', icon: <SettingsIcon />, adminOnly: true },
 ];
 
 export function App() {
@@ -145,7 +146,7 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
             </button>
           )}
           <button className="user-button" onClick={() => setProfileOpen(true)} aria-label="פרופיל והגדרות">
-            <span aria-hidden="true">👤</span> {profile.display_name}
+            <UserIcon size={18} /> {profile.display_name}
           </button>
         </span>
       </header>
@@ -166,7 +167,12 @@ function Shell({ profile, email }: { profile: Profile; email: string }) {
 
       <nav className="tab-bar">
         {tabs.map((t) => (
-          <button key={t.id} className={t.id === activeTab ? 'active' : undefined} onClick={() => setTab(t.id)}>
+          <button
+            key={t.id}
+            className={t.id === activeTab ? 'active' : undefined}
+            aria-current={t.id === activeTab ? 'page' : undefined}
+            onClick={() => setTab(t.id)}
+          >
             <span aria-hidden="true">{t.icon}</span>
             {t.label}
             {t.id === 'admin' && pendingCount > 0 && <b className="tab-badge">{pendingCount}</b>}

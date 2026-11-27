@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from '../lib/focusTrap';
 import { useMe } from '../lib/hooks';
 import { isIos, isStandalone, useInstall } from '../lib/pwa';
 import { supabase } from '../lib/supabase';
 import { AdminPhonePanel } from './AdminPhone';
 import { CalendarFeedSection } from './CalendarFeed';
+import { ShareIosIcon } from './Icons';
 import { setShareOffersEnabled, shareOffersEnabled, useFeedback } from './Feedback';
 import { WhatsAppButton, inviteText } from './SwapRequests';
 
@@ -14,6 +16,8 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
   const { canInstall, install } = useInstall();
   const showInstall = !isStandalone() && (canInstall || isIos());
   const [offers, setOffers] = useState(shareOffersEnabled);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(sheetRef);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -27,7 +31,15 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="profile-title" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={sheetRef}
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <header className="sheet-header">
           <div>
             <h2 id="profile-title">{me.profile.display_name}</h2>
@@ -56,7 +68,7 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
               </button>
             ) : (
               <p className="small">
-                בספארי: לחיצה על כפתור השיתוף <span aria-hidden="true">⎙</span> ואז <strong>"הוספה למסך הבית"</strong>.
+                בספארי: לחיצה על כפתור השיתוף <ShareIosIcon /> ואז <strong>"הוספה למסך הבית"</strong>.
               </p>
             )}
           </section>

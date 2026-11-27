@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useFocusTrap } from '../lib/focusTrap';
 import { api } from '../lib/api';
 import { SLOT_NAME, formatDate, formatDateTime, hasStarted, nightLabel, slotTime } from '../lib/dates';
 import { useAction, useMe, useQuery } from '../lib/hooks';
@@ -7,6 +8,7 @@ import type { ShiftKey, SwapOffer } from '../lib/types';
 import { googleCalendarUrl } from '../lib/calendar';
 import { appLink } from '../lib/share';
 import { useFeedback, type AskOptions, type ConfirmOptions } from './Feedback';
+import { CalendarIcon } from './Icons';
 import { NoteLine } from './NoteLine';
 import {
   IncomingRequest,
@@ -36,6 +38,8 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
   const offers = useQuery(() => loadShiftOffers(night, slot), [night, slot]);
   const requests = useQuery(() => loadShiftRequests(night, slot), [night, slot]);
   const [asking, setAsking] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(sheetRef);
   const { busy, error, run } = useAction();
   const { confirm, ask, toast, shareOffer } = useFeedback();
 
@@ -108,10 +112,18 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={sheetRef}
+        className="sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="shift-sheet-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <header className="sheet-header">
           <div>
-            <h2>
+            <h2 id="shift-sheet-title">
               {formatDate(night)} · משמרת {SLOT_NAME[slot]}
             </h2>
             <p className="muted">
@@ -271,7 +283,7 @@ export function ShiftSheet({ target, onClose }: { target: ShiftKey; onClose: () 
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <span aria-hidden="true">📅</span> הוספה ליומן גוגל
+                  <CalendarIcon size={18} /> הוספה ליומן גוגל
                 </a>
               )}
               {!started && s.swap_requested && (

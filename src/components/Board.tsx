@@ -14,6 +14,7 @@ import {
 import { useMe, useRoster } from '../lib/hooks';
 import type { Shift } from '../lib/types';
 import { offerCounts } from './Calendar';
+import { NoteIcon } from './Icons';
 import { WhatsAppButton, openSwapsText } from './SwapRequests';
 
 export function ShiftListItem({ shift, note }: { shift: Shift; note?: string }) {
@@ -32,7 +33,9 @@ export function ShiftListItem({ shift, note }: { shift: Shift; note?: string }) 
           </strong>
           <span className="muted small">{nightLabel(shift.night)}</span>
           {shift.swap_requested && shift.swap_note && (
-            <span className="small list-note">💬 {shift.swap_note}</span>
+            <span className="small list-note">
+              <NoteIcon size={14} /> {shift.swap_note}
+            </span>
           )}
         </span>
         <span className="list-side">

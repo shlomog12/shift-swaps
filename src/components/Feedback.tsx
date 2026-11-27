@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useFocusTrap } from '../lib/focusTrap';
 import { whatsappUrl } from '../lib/share';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
@@ -164,6 +165,8 @@ function Dialog({ state, onClose }: { state: DialogState; onClose: (ok: boolean,
   const [text, setText] = useState(state.type === 'ask' ? (state.options.initial ?? '') : '');
   const inputRef = useRef<HTMLInputElement>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  useFocusTrap(formRef, false);
   const danger = state.type === 'confirm' && state.options.danger;
   const blocked = required !== undefined && text.trim() !== required;
 
@@ -184,6 +187,7 @@ function Dialog({ state, onClose }: { state: DialogState; onClose: (ok: boolean,
       }}
     >
       <form
+        ref={formRef}
         className="dialog"
         role="alertdialog"
         aria-modal="true"

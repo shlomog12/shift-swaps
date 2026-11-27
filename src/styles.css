@@ -1501,3 +1501,60 @@ a.button:not(.primary):not(.whatsapp):not(.calendar) {
 .request-form input {
   margin-bottom: 0.4rem;
 }
+
+/* Touch targets: 44px for buttons and button-like links, 36px for compact ones. Day chips and day numbers
+   in the month grid are exempt (the whole day cell is the larger target), as are inline text links. */
+button,
+a.button {
+  min-height: 44px;
+}
+
+button.small,
+a.button.small,
+.chip,
+.share-toggle,
+.segmented button,
+.mode-toggle,
+.user-button {
+  min-height: 36px;
+}
+
+button.link {
+  min-height: 0;
+  padding-block: 0.45rem;
+}
+
+.day-chip,
+.day-number,
+.legend .day-chip {
+  min-height: 0;
+}
+
+.day-chip {
+  min-height: 1.5rem;
+}
+
+button.icon {
+  min-width: 44px;
+}
+
+.tab-bar button {
+  min-height: 56px;
+}
+
+.icon-svg {
+  flex: none;
+  vertical-align: middle;
+}
+
+.note-line .icon-svg,
+.list-note .icon-svg {
+  margin-inline-end: 0.25rem;
+  color: var(--swap-border);
+}
+
+.user-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
