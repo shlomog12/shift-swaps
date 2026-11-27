@@ -74,9 +74,11 @@ Requested after the review:
 49. System admin: an admin without a roster name ("אחראי מערכת"), approved in one step; full admin rights,
     no taking or swapping shifts, no "mine" tab.
 50. Original roster: kept next to the current one, rebuilt from the history with a preview, optional
-    "update the original too" on admin edits, an original view in the calendar and the fairness report.
-51. Next roster from the original: same order, same weekday option, first/second swap, replace / leave
-    (open or spread) / join (fair share), preview, then saved like an import.
+    an explicit "only this time / original too" choice on every admin edit, a typed confirmation before the
+    reconstruction replaces the original, an original view in the calendar and the fairness report.
+51. Next roster from the original: same order, same weekday option, first/second swap, replace or leave
+    (shifts become open); nothing assigned automatically: an editable preview where the admin fills a
+    leaver's marked shifts and sets a newcomer's; then saved like an import.
 52. System admin "view as": pick a roster name and see the app as that user (read only, banner with exit);
     the calendar legend and list filters drop "mine" for a system admin.
 

@@ -57,9 +57,25 @@ export function PlanPanel() {
   async function save() {
     if (!changes || changes.length === 0) return;
     const ok = await confirm({
-      title: `לעדכן ${changes.length} משמרות בלוח המקורי?`,
-      message: 'השיבוץ הנוכחי (מי עושה כל משמרת בפועל) לא משתנה. משתנה רק הלוח המקורי, שעליו נבנה הלוח הבא.',
-      confirmLabel: 'שמירה בלוח המקורי',
+      title: `להחליף את הלוח המקורי ב־${changes.length} משמרות?`,
+      message: (
+        <>
+          <p>
+            <strong>
+              מהלוח המקורי יימחקו כל החילופים, לקיחות המשמרות והצעות ההחלפה שנעשו מאז הייבוא של כל לילה.
+            </strong>{' '}
+            במקומם ייכתב מה שמוצג בטבלה.
+          </p>
+          <p>
+            שינויים של מנהל שנשמרו "גם בלוח המקורי" נשארים. השיבוץ בפועל (מי עושה כל משמרת עכשיו) לא משתנה. אי אפשר
+            לבטל את הפעולה.
+          </p>
+          <p>לאישור יש להקליד "שחזור".</p>
+        </>
+      ),
+      confirmLabel: 'החלפת הלוח המקורי',
+      danger: true,
+      requireText: 'שחזור',
     });
     if (!ok) return;
     const rows = changes.map(({ night, slot, name }) => ({ night, slot, name }));
@@ -100,7 +116,8 @@ export function PlanPanel() {
       {changes && changes.length > 0 && (
         <>
           <p className="small">
-            <strong>{changes.length}</strong> משמרות יתעדכנו בלוח המקורי. שום דבר לא נשמר לפני האישור.
+            <strong>{changes.length}</strong> משמרות יתעדכנו בלוח המקורי: יימחקו ממנו כל החילופים ולקיחות המשמרות מאז
+            הייבוא. שינויים של מנהל שנשמרו "גם בלוח המקורי" נשארים. שום דבר לא נשמר לפני האישור.
           </p>
           <div className="table-wrap">
             <table className="preview">

@@ -53,26 +53,10 @@ describe('next roster', () => {
     expect(count(rows, 'שירה')).toBe(5);
   });
 
-  it('leaves a leaver\'s shifts open, or spreads them without doubling a night', () => {
-    const open = generateContinuation(source(), { ...base, changes: [{ kind: 'remove', name: 'רון', spread: false }] });
-    expect(open.filter((r) => r.slot1 === null || r.slot2 === null)).toHaveLength(5);
-
-    const spread = generateContinuation(source(), { ...base, changes: [{ kind: 'remove', name: 'רון', spread: true }] });
-    expect(count(spread, 'רון')).toBe(0);
-    expect(spread.every((r) => r.slot1 && r.slot2 && r.slot1 !== r.slot2)).toBe(true);
-    // רון always shared his nights with מיכל, so his shifts go to אבי and דנה, evenly.
-    expect(count(spread, 'מיכל')).toBe(5);
-    expect(count(spread, 'אבי') + count(spread, 'דנה')).toBe(15);
-    expect(Math.abs(count(spread, 'אבי') - count(spread, 'דנה'))).toBeLessThanOrEqual(1);
-  });
-
-  it('gives a newcomer a fair share, spread out', () => {
-    const rows = generateContinuation(source(), { ...base, changes: [{ kind: 'add', name: 'שירה' }] });
-    expect(count(rows, 'שירה')).toBe(4); // 20 shifts / 5 people
-    const counts = ['אבי', 'דנה', 'רון', 'מיכל', 'שירה'].map((n) => count(rows, n));
-    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1);
-    expect(rows.every((r) => r.slot1 !== r.slot2)).toBe(true);
-    const nights = rows.filter((r) => r.slot1 === 'שירה' || r.slot2 === 'שירה').map((r) => r.night);
-    expect(new Set(nights).size).toBe(4);
+  it('leaves a leaver\'s shifts open for the admin to fill', () => {
+    const rows = generateContinuation(source(), { ...base, changes: [{ kind: 'remove', name: 'רון' }] });
+    expect(count(rows, 'רון')).toBe(0);
+    expect(rows.filter((r) => r.slot1 === null || r.slot2 === null)).toHaveLength(5);
+    expect(count(rows, 'אבי')).toBe(5); // nobody else gets them automatically
   });
 });

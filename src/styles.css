@@ -2106,3 +2106,26 @@ select {
   background: var(--card);
   color: var(--text);
 }
+
+/* Editable next-roster preview */
+.preview.editable input {
+  min-width: 5.2rem;
+  min-height: 38px;
+  padding: 0.3rem 0.45rem;
+}
+
+.preview td.cell-left {
+  background: var(--swap);
+}
+
+.plan-choice {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--mine-border);
+  background: var(--mine);
+  border-radius: 10px;
+}
+
+.plan-choice p {
+  margin: 0 0 0.3rem;
+}

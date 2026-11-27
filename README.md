@@ -107,18 +107,20 @@ shift sheet also keeps a one-off "add to Google Calendar" button.
 ### 7. The original roster and the next one
 
 Each shift keeps the **original** assignee (what the admin planned) next to the current one. Imports and
-building the roster set both; taking shifts, swaps and swap offers change only the current one. An admin's
-edit of a single shift changes the original only when "update the original too" is ticked.
+building the roster set both; taking shifts, swaps and swap offers change only the current one. When an admin
+edits a single shift, the app asks each time: only this time, or in the original too.
 
 After applying `20261206000000_planned_roster.sql`, go to **ניהול → בניית לוח → הלוח המקורי** and run
 "שחזור מההיסטוריה" once: it rebuilds the original from the history (undoing swaps back to each night's import)
-and shows every change before saving. Admins can then view the original in the calendar ("מקורי") and count
+and shows every change before saving. Saving replaces the original of those shifts (all swaps since each night's
+import are dropped from it, an admin's "original too" edits stay), so it asks to type "שחזור" to confirm.
+Admins can then view the original in the calendar ("מקורי") and count
 by it in the reports.
 
 **יצירת לוח המשך** builds the next period from the original of an existing one: same order and spacing,
-optionally on the same weekdays and with first and second shifts swapped, with people replaced, leaving
-(their shifts open or spread over everyone) or joining (a fair share taken from those with the most). It shows
-a preview and then saves like an import.
+optionally on the same weekdays and with first and second shifts swapped, and with people replaced or leaving
+(their shifts become open). Nothing is assigned automatically: the preview is an editable table where the
+admin fills a leaver's shifts (marked) and sets a newcomer's, and saving works like an import.
 
 ### 8. Moving the roster over
 

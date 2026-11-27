@@ -2,11 +2,14 @@ import { addDays, daysBetween, dayOfWeek } from './dates';
 import type { ImportRow } from './importSheet';
 import type { Shift } from './types';
 
-/** What changes in the people between the source roster and the next one. */
+/**
+ * What changes in the people between the source roster and the next one. Nothing is assigned automatically:
+ * a leaver's shifts become open for the admin to fill, and a newcomer's shifts are set by the admin in the
+ * preview.
+ */
 export type PeopleChange =
   | { kind: 'replace'; from: string; to: string } // X's shifts go to Y
-  | { kind: 'remove'; name: string; spread: boolean } // X left: shifts open, or spread over everyone
-  | { kind: 'add'; name: string }; // Y joined: takes a fair share from those with the most
+  | { kind: 'remove'; name: string }; // X left: their shifts become open
 
 export interface ContinuationOptions {
   /** The source: the original roster in this range. */
@@ -49,79 +52,21 @@ export function generateContinuation(shifts: Shift[], opts: ContinuationOptions)
 
   for (const change of opts.changes) {
     if (change.kind === 'replace') replace(rows, change.from, change.to);
-    else if (change.kind === 'remove') remove(rows, change.name, change.spread);
-    else add(rows, change.name);
+    else remove(rows, change.name);
   }
   return rows;
 }
 
-type Cell = { row: ImportRow; slot: 'slot1' | 'slot2' };
-
-function cells(rows: ImportRow[]): Cell[] {
-  return rows.flatMap((row) => [
-    { row, slot: 'slot1' as const },
-    { row, slot: 'slot2' as const },
-  ]);
-}
-
-function countByName(rows: ImportRow[]): Map<string, number> {
-  const counts = new Map<string, number>();
-  for (const { row, slot } of cells(rows)) {
-    const name = row[slot];
-    if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
-  }
-  return counts;
-}
-
-/** Someone may not hold both shifts of one night. */
-function freeOnNight(row: ImportRow, name: string): boolean {
-  return !same(row.slot1, name) && !same(row.slot2, name);
-}
-
 function replace(rows: ImportRow[], from: string, to: string) {
-  for (const { row, slot } of cells(rows)) if (same(row[slot], from)) row[slot] = to;
-}
-
-/** A leaver's shifts become open, or each goes to whoever has the fewest shifts and is free that night. */
-function remove(rows: ImportRow[], name: string, spread: boolean) {
-  const theirs = cells(rows).filter(({ row, slot }) => same(row[slot], name));
-  for (const c of theirs) c.row[c.slot] = null;
-  if (!spread) return;
-  for (const c of theirs) {
-    const counts = countByName(rows);
-    const candidates = [...counts.entries()]
-      .filter(([other]) => freeOnNight(c.row, other))
-      .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0], 'he'));
-    if (candidates.length > 0) c.row[c.slot] = candidates[0][0];
+  for (const row of rows) {
+    if (same(row.slot1, from)) row.slot1 = to;
+    if (same(row.slot2, from)) row.slot2 = to;
   }
 }
 
-/**
- * A newcomer takes a fair share (total shifts / people, rounded down), one shift at a time from whoever has
- * the most, choosing the shift farthest from the newcomer's other nights so theirs spread over the period.
- */
-function add(rows: ImportRow[], name: string) {
-  const counts = countByName(rows);
-  if (counts.has(name)) return;
-  const total = [...counts.values()].reduce((a, b) => a + b, 0);
-  const share = Math.floor(total / (counts.size + 1));
-  const mine: string[] = [];
-  for (let i = 0; i < share; i++) {
-    const now = countByName(rows);
-    const donor = [...now.entries()]
-      .filter(([other]) => !same(other, name))
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'he'))[0];
-    if (!donor || donor[1] <= (now.get(name) ?? 0) + 1) break;
-    const options = cells(rows).filter(({ row, slot }) => same(row[slot], donor[0]) && freeOnNight(row, name));
-    if (options.length === 0) break;
-    const distance = (night: string) =>
-      mine.length === 0 ? Infinity : Math.min(...mine.map((m) => Math.abs(daysBetween(m, night))));
-    // Farthest from the newcomer's nights; on a tie, the earliest (the first pick lands in the middle).
-    const pick =
-      mine.length === 0
-        ? options[Math.floor(options.length / 2)]
-        : options.reduce((best, c) => (distance(c.row.night) > distance(best.row.night) ? c : best));
-    pick.row[pick.slot] = name;
-    mine.push(pick.row.night);
+function remove(rows: ImportRow[], name: string) {
+  for (const row of rows) {
+    if (same(row.slot1, name)) row.slot1 = null;
+    if (same(row.slot2, name)) row.slot2 = null;
   }
 }
