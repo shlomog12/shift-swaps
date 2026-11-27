@@ -65,6 +65,8 @@ Requested after the review:
 44. The all / mine / open / swaps filters appear only in list view; the month grid always shows everything.
 45. Sharing the roster and "my shifts" opens a dialog with the choices (instead of expanding in place), and
     the roster share button has room below it.
+46. Link previews: Open Graph tags and a 1200×630 PNG preview image, so a shared link shows a title,
+    description and image in WhatsApp and similar apps.
 
 ## Setup still to do (owner)
 
