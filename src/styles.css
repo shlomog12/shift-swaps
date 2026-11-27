@@ -1558,3 +1558,15 @@ button.icon {
   align-items: center;
   gap: 0.3rem;
 }
+
+.did-you-mean {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.6rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--swap);
+  border: 1px solid var(--swap-border);
+  border-radius: 10px;
+}
